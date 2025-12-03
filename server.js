@@ -248,7 +248,6 @@ app.get('/api/roots', async (req, res) => {
                     name: pathName,
                     path: pathName, // 名前だけを返す
                     type: 'directory',
-                    isDirectory: true, // 互換性のため残す
                     size: stats.size,
                     modified: stats.mtime
                 });
@@ -309,7 +308,6 @@ app.get('/api/dir/*', async (req, res) => {
                 name: item.name,
                 path: itemPath,
                 type: type,
-                isDirectory: item.isDirectory(), // 互換性のため残す
                 size: itemStats.size,
                 modified: itemStats.mtime
             });
@@ -317,8 +315,8 @@ app.get('/api/dir/*', async (req, res) => {
 
         // ソート: ディレクトリ優先、その後名前順（自然順ソート）
         files.sort((a, b) => {
-            if (a.isDirectory !== b.isDirectory) {
-                return a.isDirectory ? -1 : 1;
+            if (a.type !== b.type) {
+                return a.type === 'directory' ? -1 : 1;
             }
             return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
         });
