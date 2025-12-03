@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -429,6 +430,7 @@
     }
   </style>
 </head>
+
 <body class="file-list">
   <div class="container">
     <div id="breadcrumb" class="breadcrumb">
@@ -473,13 +475,13 @@
     async function showPreview(file) {
       const overlay = document.getElementById('preview-overlay');
       const content = document.getElementById('preview-content');
-      
+
       content.innerHTML = '<p>読み込み中...</p>';
       overlay.classList.add('visible');
 
       try {
         const filePath = `/api/file/${encodeURIComponent(file.path)}`;
-        
+
         if (isImageFile(file.name)) {
           const img = document.createElement('img');
           img.src = filePath;
@@ -508,13 +510,13 @@
     function initTheme() {
       const savedTheme = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
+
       if (savedTheme) {
         document.body.setAttribute('data-theme', savedTheme);
       } else if (!prefersDark) {
         document.body.setAttribute('data-theme', 'light');
       }
-      
+
       updateThemeIcon();
     }
 
@@ -540,7 +542,7 @@
     async function loadFileList(dirPath = null) {
       try {
         let response, data;
-        
+
         if (dirPath) {
           response = await fetch(`/api/dir/${encodeURIComponent(dirPath)}`);
           data = await response.json();
@@ -553,116 +555,116 @@
           currentRootName = null;
           currentRelativePath = '';
         }
-        
+
         const fileListDiv = document.getElementById('file-list');
         fileListDiv.innerHTML = '';
-        
+
         if (files.length === 0) {
           fileListDiv.innerHTML = '<p>ファイルが見つかりません。config.jsonを確認してください。</p>';
           return;
         }
-        
+
         // ディレクトリとファイルを分けて、表示順に並べる
         const directories = files.filter(f => f.isDirectory);
         const cbzFiles = files.filter(f => f.isArchive);
         const videoFiles = files.filter(f => f.isVideo);
         const audioFiles = files.filter(f => f.isAudio);
         const otherFiles = files.filter(f => !f.isDirectory && !f.isArchive && !f.isVideo && !f.isAudio);
-        
+
         // 表示順に並べた配列を作成（これがカーソル移動の順序になる）
         files = [...directories, ...cbzFiles, ...videoFiles, ...audioFiles, ...otherFiles];
-        
+
         // ディレクトリのリスト表示
         let displayIndex = 0;
-        
+
         if (directories.length > 0) {
           const dirSection = document.createElement('div');
           dirSection.className = 'list-section';
-          
+
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
-          
+
           directories.forEach((file) => {
             const li = createListItem(file, displayIndex);
             ul.appendChild(li);
             displayIndex++;
           });
-          
+
           dirSection.appendChild(ul);
           fileListDiv.appendChild(dirSection);
         }
-        
+
         // CBZファイルのタイル表示
         if (cbzFiles.length > 0) {
           const cbzSection = document.createElement('div');
           cbzSection.className = 'tile-section';
-          
+
           cbzFiles.forEach((file) => {
             const tile = createTileItem(file, displayIndex);
             cbzSection.appendChild(tile);
             displayIndex++;
           });
-          
+
           fileListDiv.appendChild(cbzSection);
         }
-        
+
         // 動画ファイルのリスト表示
         if (videoFiles.length > 0) {
           const videoSection = document.createElement('div');
           videoSection.className = 'list-section';
-          
+
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
-          
+
           videoFiles.forEach((file) => {
             const li = createListItem(file, displayIndex);
             ul.appendChild(li);
             displayIndex++;
           });
-          
+
           videoSection.appendChild(ul);
           fileListDiv.appendChild(videoSection);
         }
-        
+
         // 音声ファイルのリスト表示
         if (audioFiles.length > 0) {
           const audioSection = document.createElement('div');
           audioSection.className = 'list-section';
-          
+
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
-          
+
           audioFiles.forEach((file) => {
             const li = createListItem(file, displayIndex);
             ul.appendChild(li);
             displayIndex++;
           });
-          
+
           audioSection.appendChild(ul);
           fileListDiv.appendChild(audioSection);
         }
-        
+
         // その他のファイルのリスト表示
         if (otherFiles.length > 0) {
           const otherSection = document.createElement('div');
           otherSection.className = 'list-section';
-          
+
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
-          
+
           otherFiles.forEach((file) => {
             const li = createListItem(file, displayIndex);
             ul.appendChild(li);
             displayIndex++;
           });
-          
+
           otherSection.appendChild(ul);
           fileListDiv.appendChild(otherSection);
         }
-        
+
         // パンくずリストを更新
         updateBreadcrumb();
-        
+
         // カーソル位置を復元
         // 1. sessionStorageから（ビューアから戻ってきた場合）
         const savedIndexSession = sessionStorage.getItem('fileListIndex');
@@ -670,7 +672,7 @@
         // 2. localStorageから（リロードした場合）
         const storageKey = currentRootName ? `${currentRootName}/${currentRelativePath}` : '';
         const savedIndexLocal = localStorage.getItem(`fileList_index_${storageKey}`);
-        
+
         if (savedIndexSession && savedPathSession === currentRelativePath) {
           currentIndex = parseInt(savedIndexSession);
           sessionStorage.removeItem('fileListIndex');
@@ -680,10 +682,10 @@
         } else {
           currentIndex = 0;
         }
-        
+
         updateSelection();
       } catch (err) {
-        document.getElementById('file-list').innerHTML = 
+        document.getElementById('file-list').innerHTML =
           `<p class="error">エラー: ${err.message}</p>`;
       }
     }
@@ -691,7 +693,7 @@
     // リスト形式のアイテムを作成
     function createListItem(file, index) {
       const li = document.createElement('li');
-      
+
       // メディアファイルの場合はクラスを変更してデフォルトアイコンを非表示
       if (file.isDirectory) {
         li.className = 'directory';
@@ -700,12 +702,12 @@
       } else {
         li.className = 'file';
       }
-      
+
       li.dataset.index = index;
-      
+
       const contentWrapper = document.createElement('div');
       contentWrapper.className = 'file-item-content';
-      
+
       if (file.isDirectory) {
         const link = document.createElement('a');
         link.href = `/?dir=${encodeURIComponent(file.path)}`;
@@ -732,9 +734,9 @@
         span.textContent = file.name;
         contentWrapper.appendChild(span);
       }
-      
+
       li.appendChild(contentWrapper);
-      
+
       li.addEventListener('click', (e) => {
         currentIndex = index;
         updateSelection(false);
@@ -742,7 +744,7 @@
           e.preventDefault();
         }
       });
-      
+
       return li;
     }
 
@@ -751,68 +753,68 @@
       const tile = document.createElement('div');
       tile.className = 'tile-item';
       tile.dataset.index = index;
-      
+
       const link = document.createElement('a');
       link.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
-      
+
       const thumbnail = document.createElement('img');
       thumbnail.className = 'tile-thumbnail';
       thumbnail.src = `/api/archive/${encodeURIComponent(file.path)}/thumbnail`;
       thumbnail.alt = file.name;
       thumbnail.loading = 'lazy';
-      
+
       const title = document.createElement('div');
       title.className = 'tile-title';
       title.textContent = file.name;
-      
+
       link.appendChild(thumbnail);
       link.appendChild(title);
       tile.appendChild(link);
-      
+
       tile.addEventListener('click', (e) => {
         currentIndex = index;
         updateSelection(false);
       });
-      
+
       return tile;
     }
 
     // パンくずリストを更新
     function updateBreadcrumb() {
       const breadcrumbDiv = document.getElementById('breadcrumb');
-      
+
       // テーマトグルボタンを保持
       const themeToggle = document.getElementById('theme-toggle');
-      
+
       breadcrumbDiv.innerHTML = '';
-      
+
       // パンくず部分のコンテナ
       const breadcrumbContent = document.createElement('div');
       breadcrumbContent.style.display = 'flex';
       breadcrumbContent.style.alignItems = 'center';
       breadcrumbContent.style.gap = '4px';
       breadcrumbContent.style.flex = '1';
-      
+
       // ホームアイコン
       const home = document.createElement('a');
       home.href = '/';
       home.className = 'breadcrumb-item';
       home.textContent = 'Home';
       breadcrumbContent.appendChild(home);
-      
+
       if (!currentRootName) {
         // トップレベルの場合はホームのみ
         breadcrumbDiv.appendChild(breadcrumbContent);
         breadcrumbDiv.appendChild(themeToggle);
         return;
       }
-      
+
       // ルート名を追加
       const separator1 = document.createElement('span');
       separator1.className = 'breadcrumb-separator';
       separator1.textContent = '›';
       breadcrumbContent.appendChild(separator1);
-      
+
       if (!currentRelativePath) {
         // ルートレベルの場合（現在地）
         const rootCurrent = document.createElement('span');
@@ -827,20 +829,20 @@
         rootLink.textContent = currentRootName;
         breadcrumbContent.appendChild(rootLink);
       }
-      
+
       if (currentRelativePath) {
         // 相対パスを分割して各階層を表示
         const pathParts = currentRelativePath.split('/').filter(p => p);
         let accumulatedPath = currentRootName;
-        
+
         for (let i = 0; i < pathParts.length; i++) {
           const separator = document.createElement('span');
           separator.className = 'breadcrumb-separator';
           separator.textContent = '›';
           breadcrumbContent.appendChild(separator);
-          
+
           accumulatedPath = accumulatedPath + '/' + pathParts[i];
-          
+
           if (i === pathParts.length - 1) {
             // 最後の要素（現在のフォルダ）
             const item = document.createElement('span');
@@ -857,7 +859,7 @@
           }
         }
       }
-      
+
       breadcrumbDiv.appendChild(breadcrumbContent);
       breadcrumbDiv.appendChild(themeToggle);
     }
@@ -876,7 +878,7 @@
           item.classList.remove('selected');
         }
       });
-      
+
       // カーソル位置をlocalStorageに保存
       const storageKey = currentRootName ? `${currentRootName}/${currentRelativePath}` : '';
       localStorage.setItem(`fileList_index_${storageKey}`, currentIndex);
@@ -885,9 +887,9 @@
     // 選択中のアイテムを開く
     function openSelected() {
       if (currentIndex < 0 || currentIndex >= files.length) return;
-      
+
       const file = files[currentIndex];
-      
+
       if (file.isArchive) {
         // カーソル位置と現在のパスを保存
         sessionStorage.setItem('fileListIndex', currentIndex);
@@ -911,7 +913,7 @@
 
     // キーボードイベントハンドラ
     document.addEventListener('keydown', async (e) => {
-      switch(e.key) {
+      switch (e.key) {
         case 'ArrowDown':
         case 'ArrowRight':
           e.preventDefault();
@@ -964,10 +966,10 @@
           break;
       }
     });
-    
+
     // ページ読み込み時にファイル一覧を取得
     initTheme();
-    
+
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
     document.getElementById('preview-close').addEventListener('click', hidePreview);
     document.getElementById('preview-overlay').addEventListener('click', (e) => {
@@ -975,10 +977,10 @@
         hidePreview();
       }
     });
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const dirParam = urlParams.get('dir');
-    
+
     if (dirParam) {
       loadFileList(dirParam);
     } else {
@@ -986,4 +988,5 @@
     }
   </script>
 </body>
+
 </html>
