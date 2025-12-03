@@ -60,7 +60,7 @@ try {
         });
     }
 } catch (err) {
-    console.error('キャッシュの読み込みエラー:', err.message);
+    console.error('Cache loading error:', err.message);
 }
 
 // LRU方式でキャッシュをクリーンアップ
@@ -78,7 +78,7 @@ function cleanupCache() {
             fssync.unlinkSync(metadata.path);
             cacheMetadata.delete(hash);
         } catch (err) {
-            console.error('キャッシュ削除エラー:', err.message);
+            console.error('Cache deletion error:', err.message);
         }
     }
 }
@@ -152,23 +152,19 @@ async function extractFileFromArchive(filePath, entryName) {
 }
 
 // 設定ファイルの読み込み
-let config = { paths: [] };
+let config = { roots: ['/data'] };
 try {
     const configData = require('./config.json');
     config = configData;
 } catch (err) {
-    console.warn('config.json が読み込めません。デフォルト設定を使用します:', err.message);
-    // デフォルト設定: /data ディレクトリを使用
-    config = {
-        paths: ['/data']
-    };
+    console.warn('config.json could not be loaded. Using default settings:', err.message);
 }
 
 // 名前→パスのマッピングを作成
 const nameToPath = new Map();
 const pathToName = new Map();
 
-for (const pathConfig of config.paths) {
+for (const pathConfig of config.roots) {
     const dirPath = typeof pathConfig === 'string' ? pathConfig : pathConfig.path;
     const customName = typeof pathConfig === 'object' ? pathConfig.name : null;
     const name = customName || path.basename(dirPath);
@@ -200,7 +196,7 @@ app.get('/api/roots', async (req, res) => {
     try {
         const rootItems = [];
 
-        for (const pathConfig of config.paths) {
+        for (const pathConfig of config.roots) {
             try {
                 // 文字列またはオブジェクトをサポート
                 const dirPath = typeof pathConfig === 'string' ? pathConfig : pathConfig.path;
@@ -213,12 +209,12 @@ app.get('/api/roots', async (req, res) => {
                     name: pathName,
                     path: pathName, // 名前だけを返す
                     isDirectory: true,
-                    isCBZ: false,
+                    isArchive: false,
                     size: stats.size,
                     modified: stats.mtime
                 });
             } catch (err) {
-                console.error(`パスの読み込みエラー:`, err.message);
+                console.error(`Path loading error:`, err.message);
             }
         }
 
@@ -265,7 +261,7 @@ app.get('/api/dir/*', async (req, res) => {
                 name: item.name,
                 path: itemPath,
                 isDirectory: item.isDirectory(),
-                isCBZ: isArchive,
+                isArchive: isArchive,
                 size: itemStats.size,
                 modified: itemStats.mtime
             });
@@ -416,7 +412,7 @@ app.get('/api/archive/:filename(*)/thumbnail', async (req, res) => {
             });
             cleanupCache();
         } catch (err) {
-            console.error('キャッシュ保存エラー:', err.message);
+            console.error('Cache save error:', err.message);
         }
 
         res.set('Content-Type', mimeType);
@@ -429,6 +425,5 @@ app.get('/api/archive/:filename(*)/thumbnail', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`サーバーが起動しました: http://localhost:${PORT}`);
-    console.log(`設定されたパス:`, config.paths);
+    console.log(`Server started: http://localhost:${PORT}`);
 });

@@ -83,8 +83,8 @@
         
         // ディレクトリとファイルを分ける
         const directories = files.filter(f => f.isDirectory);
-        const cbzFiles = files.filter(f => f.isCBZ);
-        const otherFiles = files.filter(f => !f.isDirectory && !f.isCBZ);
+        const cbzFiles = files.filter(f => f.isArchive);
+        const otherFiles = files.filter(f => !f.isDirectory && !f.isArchive);
         
         // ディレクトリのリスト表示
         if (directories.length > 0) {
@@ -336,11 +336,11 @@
       
       const file = files[currentIndex];
       
-      if (file.isCBZ) {
+      if (file.isArchive) {
         // カーソル位置と現在のパスを保存
         sessionStorage.setItem('fileListIndex', currentIndex);
         sessionStorage.setItem('fileListPath', currentRelativePath);
-        // CBZファイルをビューアで開く
+        // アーカイブファイルをビューアで開く
         window.location.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
       } else if (file.isDirectory) {
         // ディレクトリに入る

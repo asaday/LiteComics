@@ -41,7 +41,7 @@ const demoStructure = {
             name: "Sample Library",
             path: "Sample Library",
             isDirectory: true,
-            isCBZ: false,
+            isArchive: false,
             size: 0,
             modified: new Date().toISOString()
         }
@@ -52,7 +52,7 @@ const demoStructure = {
                 name: "Portrait Comic",
                 path: "Sample Library/Portrait Comic",
                 isDirectory: false,
-                isCBZ: true,
+                isArchive: true,
                 size: 1024000,
                 modified: new Date().toISOString()
             },
@@ -60,7 +60,7 @@ const demoStructure = {
                 name: "Landscape Comic",
                 path: "Sample Library/Landscape Comic",
                 isDirectory: false,
-                isCBZ: true,
+                isArchive: true,
                 size: 2048000,
                 modified: new Date().toISOString()
             },
@@ -68,7 +68,7 @@ const demoStructure = {
                 name: "Mixed Comic",
                 path: "Sample Library/Mixed Comic",
                 isDirectory: false,
-                isCBZ: true,
+                isArchive: true,
                 size: 1536000,
                 modified: new Date().toISOString()
             }
