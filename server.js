@@ -315,12 +315,12 @@ app.get('/api/dir/*', async (req, res) => {
             });
         }
 
-        // ソート: ディレクトリ優先、その後名前順
+        // ソート: ディレクトリ優先、その後名前順（自然順ソート）
         files.sort((a, b) => {
             if (a.isDirectory !== b.isDirectory) {
                 return a.isDirectory ? -1 : 1;
             }
-            return a.name.localeCompare(b.name);
+            return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
         });
 
         res.json({
