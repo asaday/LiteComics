@@ -6,6 +6,83 @@
   <title>LiteComics</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="style.css">
+  <style>
+    #preview-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #preview-overlay.visible {
+      display: flex;
+    }
+
+    #preview-container {
+      max-width: 90%;
+      max-height: 90%;
+      background: white;
+      border-radius: 8px;
+      overflow: auto;
+      position: relative;
+    }
+
+    [data-theme="dark"] #preview-container {
+      background: #2d2d2d;
+      color: #e0e0e0;
+    }
+
+    #preview-close {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      color: #333;
+      font-size: 24px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10001;
+    }
+
+    [data-theme="dark"] #preview-close {
+      background: rgba(50, 50, 50, 0.9);
+      color: #e0e0e0;
+    }
+
+    #preview-close:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+
+    [data-theme="dark"] #preview-close:hover {
+      background: rgba(70, 70, 70, 1);
+    }
+
+    #preview-content {
+      padding: 20px;
+    }
+
+    #preview-content img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    #preview-content pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: monospace;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body class="file-list">
   <div class="container">
@@ -17,11 +94,70 @@
     </div>
   </div>
 
+  <div id="preview-overlay">
+    <button id="preview-close">×</button>
+    <div id="preview-container">
+      <div id="preview-content"></div>
+    </div>
+  </div>
+
   <script>
     let files = [];
     let currentIndex = 0;
     let currentRootName = null;
     let currentRelativePath = '';
+
+    // ファイル種類の判定
+    function isImageFile(filename) {
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'];
+      const ext = filename.toLowerCase().split('.').pop();
+      return imageExtensions.includes('.' + ext);
+    }
+
+    function isTextFile(filename) {
+      const textExtensions = ['.txt', '.md', '.json', '.xml', '.log', '.csv', '.nfo'];
+      const ext = filename.toLowerCase().split('.').pop();
+      return textExtensions.includes('.' + ext);
+    }
+
+    function isPreviewableFile(filename) {
+      return isImageFile(filename) || isTextFile(filename);
+    }
+
+    // プレビュー表示
+    async function showPreview(file) {
+      const overlay = document.getElementById('preview-overlay');
+      const content = document.getElementById('preview-content');
+      
+      content.innerHTML = '<p>読み込み中...</p>';
+      overlay.classList.add('visible');
+
+      try {
+        const filePath = `/api/file/${encodeURIComponent(file.path)}`;
+        
+        if (isImageFile(file.name)) {
+          const img = document.createElement('img');
+          img.src = filePath;
+          img.alt = file.name;
+          content.innerHTML = '';
+          content.appendChild(img);
+        } else if (isTextFile(file.name)) {
+          const response = await fetch(filePath);
+          const text = await response.text();
+          const pre = document.createElement('pre');
+          pre.textContent = text;
+          content.innerHTML = '';
+          content.appendChild(pre);
+        }
+      } catch (err) {
+        content.innerHTML = `<p>エラー: ${err.message}</p>`;
+      }
+    }
+
+    function hidePreview() {
+      const overlay = document.getElementById('preview-overlay');
+      overlay.classList.remove('visible');
+    }
 
     // テーマの初期化
     function initTheme() {
@@ -81,12 +217,19 @@
           return;
         }
         
-        // ディレクトリとファイルを分ける
+        // ディレクトリとファイルを分けて、表示順に並べる
         const directories = files.filter(f => f.isDirectory);
         const cbzFiles = files.filter(f => f.isArchive);
-        const otherFiles = files.filter(f => !f.isDirectory && !f.isArchive);
+        const videoFiles = files.filter(f => f.isVideo);
+        const audioFiles = files.filter(f => f.isAudio);
+        const otherFiles = files.filter(f => !f.isDirectory && !f.isArchive && !f.isVideo && !f.isAudio);
+        
+        // 表示順に並べた配列を作成（これがカーソル移動の順序になる）
+        files = [...directories, ...cbzFiles, ...videoFiles, ...audioFiles, ...otherFiles];
         
         // ディレクトリのリスト表示
+        let displayIndex = 0;
+        
         if (directories.length > 0) {
           const dirSection = document.createElement('div');
           dirSection.className = 'list-section';
@@ -94,9 +237,10 @@
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
           
-          directories.forEach((file, idx) => {
-            const li = createListItem(file, files.indexOf(file));
+          directories.forEach((file) => {
+            const li = createListItem(file, displayIndex);
             ul.appendChild(li);
+            displayIndex++;
           });
           
           dirSection.appendChild(ul);
@@ -108,12 +252,49 @@
           const cbzSection = document.createElement('div');
           cbzSection.className = 'tile-section';
           
-          cbzFiles.forEach((file, idx) => {
-            const tile = createTileItem(file, files.indexOf(file));
+          cbzFiles.forEach((file) => {
+            const tile = createTileItem(file, displayIndex);
             cbzSection.appendChild(tile);
+            displayIndex++;
           });
           
           fileListDiv.appendChild(cbzSection);
+        }
+        
+        // 動画ファイルのリスト表示
+        if (videoFiles.length > 0) {
+          const videoSection = document.createElement('div');
+          videoSection.className = 'list-section';
+          
+          const ul = document.createElement('ul');
+          ul.className = 'file-list-view';
+          
+          videoFiles.forEach((file) => {
+            const li = createListItem(file, displayIndex);
+            ul.appendChild(li);
+            displayIndex++;
+          });
+          
+          videoSection.appendChild(ul);
+          fileListDiv.appendChild(videoSection);
+        }
+        
+        // 音声ファイルのリスト表示
+        if (audioFiles.length > 0) {
+          const audioSection = document.createElement('div');
+          audioSection.className = 'list-section';
+          
+          const ul = document.createElement('ul');
+          ul.className = 'file-list-view';
+          
+          audioFiles.forEach((file) => {
+            const li = createListItem(file, displayIndex);
+            ul.appendChild(li);
+            displayIndex++;
+          });
+          
+          audioSection.appendChild(ul);
+          fileListDiv.appendChild(audioSection);
         }
         
         // その他のファイルのリスト表示
@@ -124,9 +305,10 @@
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
           
-          otherFiles.forEach((file, idx) => {
-            const li = createListItem(file, files.indexOf(file));
+          otherFiles.forEach((file) => {
+            const li = createListItem(file, displayIndex);
             ul.appendChild(li);
+            displayIndex++;
           });
           
           otherSection.appendChild(ul);
@@ -164,7 +346,16 @@
     // リスト形式のアイテムを作成
     function createListItem(file, index) {
       const li = document.createElement('li');
-      li.className = file.isDirectory ? 'directory' : 'file';
+      
+      // メディアファイルの場合はクラスを変更してデフォルトアイコンを非表示
+      if (file.isDirectory) {
+        li.className = 'directory';
+      } else if (file.isVideo || file.isAudio || file.isArchive || isImageFile(file.name) || isTextFile(file.name)) {
+        li.className = 'media-file';
+      } else {
+        li.className = 'file';
+      }
+      
       li.dataset.index = index;
       
       const contentWrapper = document.createElement('div');
@@ -175,6 +366,22 @@
         link.href = `/?dir=${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
         contentWrapper.appendChild(link);
+      } else if (file.isVideo) {
+        const span = document.createElement('span');
+        span.textContent = '🎬 ' + file.name;
+        contentWrapper.appendChild(span);
+      } else if (file.isAudio) {
+        const span = document.createElement('span');
+        span.textContent = '🎵 ' + file.name;
+        contentWrapper.appendChild(span);
+      } else if (isImageFile(file.name)) {
+        const span = document.createElement('span');
+        span.textContent = '🖼️ ' + file.name;
+        contentWrapper.appendChild(span);
+      } else if (isTextFile(file.name)) {
+        const span = document.createElement('span');
+        span.textContent = '📄 ' + file.name;
+        contentWrapper.appendChild(span);
       } else {
         const span = document.createElement('span');
         span.textContent = file.name;
@@ -342,6 +549,15 @@
         sessionStorage.setItem('fileListPath', currentRelativePath);
         // アーカイブファイルをビューアで開く
         window.location.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
+      } else if (file.isVideo || file.isAudio) {
+        // カーソル位置と現在のパスを保存
+        sessionStorage.setItem('fileListIndex', currentIndex);
+        sessionStorage.setItem('fileListPath', currentRelativePath);
+        // メディアファイルをプレーヤーで開く
+        window.location.href = `/media.html#/${encodeURIComponent(file.path)}`;
+      } else if (isPreviewableFile(file.name)) {
+        // 画像・テキストファイルをプレビュー
+        showPreview(file);
       } else if (file.isDirectory) {
         // ディレクトリに入る
         window.location.href = `/?dir=${encodeURIComponent(file.path)}`;
@@ -386,6 +602,12 @@
         case 'Escape':
         case 'Backspace':
           e.preventDefault();
+          // プレビューが開いている場合は閉じる
+          const overlay = document.getElementById('preview-overlay');
+          if (overlay.classList.contains('visible')) {
+            hidePreview();
+            break;
+          }
           // ルートレベルでは何もしない
           if (!currentRootName && !currentRelativePath) {
             break;
@@ -402,6 +624,12 @@
     initTheme();
     
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    document.getElementById('preview-close').addEventListener('click', hidePreview);
+    document.getElementById('preview-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'preview-overlay') {
+        hidePreview();
+      }
+    });
     
     const urlParams = new URLSearchParams(window.location.search);
     const dirParam = urlParams.get('dir');

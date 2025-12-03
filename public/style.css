@@ -21,6 +21,7 @@ body.file-list {
 
 body.file-list[data-theme="light"] {
   background: #f5f5f7;
+  color: #1d1d1f;
 }
 
 /* ビューア画面の背景 */
@@ -221,6 +222,10 @@ body[data-theme="light"] .file-list-view li.selected {
 
 .file-list-view li.file::before {
   content: '📃';
+}
+
+.file-list-view li.media-file::before {
+  content: '';
 }
 
 .file-item-content {

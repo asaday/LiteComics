@@ -26,6 +26,31 @@ const IMAGE_EXTENSIONS = Object.keys(IMAGE_MIME_TYPES);
 // サポートするアーカイブ拡張子
 const ARCHIVE_EXTENSIONS = ['.cbz', '.zip', '.cbr', '.rar', '.epub'];
 
+// サポートする動画拡張子
+const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.webm', '.avi', '.mov'];
+
+// サポートする音声拡張子
+const AUDIO_EXTENSIONS = ['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac'];
+
+// 動画のMIMEタイプマッピング
+const VIDEO_MIME_TYPES = {
+    '.mp4': 'video/mp4',
+    '.mkv': 'video/x-matroska',
+    '.webm': 'video/webm',
+    '.avi': 'video/x-msvideo',
+    '.mov': 'video/quicktime'
+};
+
+// 音声のMIMEタイプマッピング
+const AUDIO_MIME_TYPES = {
+    '.mp3': 'audio/mpeg',
+    '.flac': 'audio/flac',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac'
+};
+
 // アーカイブ形式の判定
 function isRarArchive(filePath) {
     const ext = path.extname(filePath).toLowerCase();
@@ -35,6 +60,20 @@ function isRarArchive(filePath) {
 function isArchiveFile(filename) {
     const ext = path.extname(filename).toLowerCase();
     return ARCHIVE_EXTENSIONS.includes(ext);
+}
+
+function isVideoFile(filename) {
+    const ext = path.extname(filename).toLowerCase();
+    return VIDEO_EXTENSIONS.includes(ext);
+}
+
+function isAudioFile(filename) {
+    const ext = path.extname(filename).toLowerCase();
+    return AUDIO_EXTENSIONS.includes(ext);
+}
+
+function isMediaFile(filename) {
+    return isVideoFile(filename) || isAudioFile(filename);
 }
 
 // サムネイルキャッシュの設定
@@ -256,12 +295,16 @@ app.get('/api/dir/*', async (req, res) => {
             const itemPath = `${rootName}/${itemRelativePath}`;
 
             const isArchive = item.isFile() && isArchiveFile(item.name);
+            const isVideo = item.isFile() && isVideoFile(item.name);
+            const isAudio = item.isFile() && isAudioFile(item.name);
 
             files.push({
                 name: item.name,
                 path: itemPath,
                 isDirectory: item.isDirectory(),
                 isArchive: isArchive,
+                isVideo: isVideo,
+                isAudio: isAudio,
                 size: itemStats.size,
                 modified: itemStats.mtime
             });
@@ -419,6 +462,110 @@ app.get('/api/archive/:filename(*)/thumbnail', async (req, res) => {
         res.set('Cache-Control', 'public, max-age=86400');
         res.set('X-Cache', 'MISS');
         res.send(imageBuffer);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 動画・音声ファイルをストリーミング配信
+app.get('/api/media/:filename(*)', async (req, res) => {
+    try {
+        const requestPath = decodeURIComponent(req.params.filename);
+        const resolved = resolveRequestPath(requestPath);
+
+        if (!resolved) {
+            return res.status(404).json({ error: '無効なルート名です' });
+        }
+
+        const filePath = resolved.fullPath;
+
+        // ファイルの存在確認
+        const stat = await fs.stat(filePath);
+
+        if (!stat.isFile()) {
+            return res.status(404).json({ error: 'ファイルが見つかりません' });
+        }
+
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeType = VIDEO_MIME_TYPES[ext] || AUDIO_MIME_TYPES[ext] || 'application/octet-stream';
+
+        // Range リクエストのサポート
+        const range = req.headers.range;
+        const fileSize = stat.size;
+
+        if (range) {
+            const parts = range.replace(/bytes=/, '').split('-');
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            const chunkSize = (end - start) + 1;
+
+            res.writeHead(206, {
+                'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunkSize,
+                'Content-Type': mimeType,
+            });
+
+            const stream = fssync.createReadStream(filePath, { start, end });
+            stream.pipe(res);
+        } else {
+            res.writeHead(200, {
+                'Content-Length': fileSize,
+                'Content-Type': mimeType,
+            });
+
+            const stream = fssync.createReadStream(filePath);
+            stream.pipe(res);
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 一般ファイルを配信（画像、テキストなど）
+app.get('/api/file/:filename(*)', async (req, res) => {
+    try {
+        const requestPath = decodeURIComponent(req.params.filename);
+        const resolved = resolveRequestPath(requestPath);
+
+        if (!resolved) {
+            return res.status(404).json({ error: '無効なルート名です' });
+        }
+
+        const filePath = resolved.fullPath;
+
+        // ファイルの存在確認
+        const stat = await fs.stat(filePath);
+
+        if (!stat.isFile()) {
+            return res.status(404).json({ error: 'ファイルが見つかりません' });
+        }
+
+        const ext = path.extname(filePath).toLowerCase();
+        let mimeType = 'application/octet-stream';
+
+        // MIMEタイプの判定
+        if (IMAGE_MIME_TYPES[ext]) {
+            mimeType = IMAGE_MIME_TYPES[ext];
+        } else if (ext === '.txt' || ext === '.log' || ext === '.nfo') {
+            mimeType = 'text/plain; charset=utf-8';
+        } else if (ext === '.json') {
+            mimeType = 'application/json';
+        } else if (ext === '.xml') {
+            mimeType = 'application/xml';
+        } else if (ext === '.md') {
+            mimeType = 'text/markdown; charset=utf-8';
+        } else if (ext === '.csv') {
+            mimeType = 'text/csv; charset=utf-8';
+        }
+
+        res.writeHead(200, {
+            'Content-Length': stat.size,
+            'Content-Type': mimeType,
+        });
+
+        const stream = fssync.createReadStream(filePath);
+        stream.pipe(res);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
