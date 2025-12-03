@@ -1357,11 +1357,9 @@
 
         // 横方向のスワイプが縦方向より大きい場合のみページ送り
         if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
-          if (diffX > 0) {
-            // 左スワイプ = 次へ（右綴じなので左が次）
+          if (diffX < 0) {
             nextPages();
           } else {
-            // 右スワイプ = 前へ
             prevPages();
           }
         }
