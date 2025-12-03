@@ -24,7 +24,7 @@ const IMAGE_MIME_TYPES = {
 const IMAGE_EXTENSIONS = Object.keys(IMAGE_MIME_TYPES);
 
 // サポートするアーカイブ拡張子
-const ARCHIVE_EXTENSIONS = ['.cbz', '.zip', '.cbr', '.rar', '.epub'];
+const ARCHIVE_EXTENSIONS = ['.cbz', '.zip', '.cbr', '.rar', '.cb7', '.7z', '.epub'];
 
 // サポートする動画拡張子
 const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.webm', '.avi', '.mov'];
@@ -57,6 +57,11 @@ function isRarArchive(filePath) {
     return ext === '.rar' || ext === '.cbr';
 }
 
+function is7zArchive(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    return ext === '.7z' || ext === '.cb7';
+}
+
 function isArchiveFile(filename) {
     const ext = path.extname(filename).toLowerCase();
     return ARCHIVE_EXTENSIONS.includes(ext);
@@ -70,10 +75,6 @@ function isVideoFile(filename) {
 function isAudioFile(filename) {
     const ext = path.extname(filename).toLowerCase();
     return AUDIO_EXTENSIONS.includes(ext);
-}
-
-function isMediaFile(filename) {
-    return isVideoFile(filename) || isAudioFile(filename);
 }
 
 // サムネイルキャッシュの設定
@@ -129,9 +130,8 @@ function generateCacheKey(filePath) {
 
 // 本（アーカイブ）から画像ファイルリストを取得
 async function getImagesFromBook(filePath) {
-    const isRar = isRarArchive(filePath);
 
-    if (isRar) {
+    if (isRarArchive(filePath)) {
         // RAR/CBRの処理 - unrarコマンドを使用
         try {
             const output = execSync(`unrar lb "${filePath}"`, { encoding: 'utf8' });
@@ -145,6 +145,36 @@ async function getImagesFromBook(filePath) {
                 .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
         } catch (err) {
             throw new Error(`RARファイルの読み込みに失敗: ${err.message}`);
+        }
+    } else if (is7zArchive(filePath)) {
+        // 7Z/CB7の処理 - 7zコマンドを使用
+        try {
+            const output = execSync(`7z l -slt "${filePath}"`, { encoding: 'utf8' });
+            const files = [];
+            const lines = output.split('\n');
+            let currentPath = null;
+            let isDirectory = false;
+
+            for (const line of lines) {
+                if (line.startsWith('Path = ')) {
+                    currentPath = line.substring(7).trim();
+                } else if (line.startsWith('Folder = ')) {
+                    isDirectory = line.substring(9).trim() === '+';
+                } else if (line.trim() === '' && currentPath) {
+                    if (!isDirectory) {
+                        const fileExt = path.extname(currentPath).toLowerCase();
+                        if (IMAGE_EXTENSIONS.includes(fileExt)) {
+                            files.push(currentPath);
+                        }
+                    }
+                    currentPath = null;
+                    isDirectory = false;
+                }
+            }
+
+            return files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        } catch (err) {
+            throw new Error(`7Zファイルの読み込みに失敗: ${err.message}`);
         }
     } else {
         // ZIP/CBZの処理
@@ -164,12 +194,22 @@ async function getImagesFromBook(filePath) {
 
 // 本（アーカイブ）からファイルを抽出
 async function extractFileFromBook(filePath, entryName) {
-    const isRar = isRarArchive(filePath);
 
-    if (isRar) {
+    if (isRarArchive(filePath)) {
         // RAR/CBRの処理 - unrarコマンドで標準出力に抽出
         try {
             const buffer = execSync(`unrar p -inul "${filePath}" "${entryName}"`, {
+                encoding: 'buffer',
+                maxBuffer: 50 * 1024 * 1024 // 50MBまで
+            });
+            return buffer;
+        } catch (err) {
+            throw new Error(`ファイルの抽出に失敗: ${entryName}`);
+        }
+    } else if (is7zArchive(filePath)) {
+        // 7Z/CB7の処理 - 7zコマンドで標準出力に抽出
+        try {
+            const buffer = execSync(`7z e -so "${filePath}" "${entryName}"`, {
                 encoding: 'buffer',
                 maxBuffer: 50 * 1024 * 1024 // 50MBまで
             });
