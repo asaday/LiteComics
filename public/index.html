@@ -565,11 +565,11 @@
         }
 
         // ディレクトリとファイルを分けて、表示順に並べる
-        const directories = files.filter(f => f.isDirectory);
-        const cbzFiles = files.filter(f => f.isArchive);
-        const videoFiles = files.filter(f => f.isVideo);
-        const audioFiles = files.filter(f => f.isAudio);
-        const otherFiles = files.filter(f => !f.isDirectory && !f.isArchive && !f.isVideo && !f.isAudio);
+        const directories = files.filter(f => f.type === 'directory');
+        const cbzFiles = files.filter(f => f.type === 'book');
+        const videoFiles = files.filter(f => f.type === 'video');
+        const audioFiles = files.filter(f => f.type === 'audio');
+        const otherFiles = files.filter(f => f.type === 'file');
 
         // 表示順に並べた配列を作成（これがカーソル移動の順序になる）
         files = [...directories, ...cbzFiles, ...videoFiles, ...audioFiles, ...otherFiles];
@@ -695,9 +695,9 @@
       const li = document.createElement('li');
 
       // メディアファイルの場合はクラスを変更してデフォルトアイコンを非表示
-      if (file.isDirectory) {
+      if (file.type === 'directory') {
         li.className = 'directory';
-      } else if (file.isVideo || file.isAudio || file.isArchive || isImageFile(file.name) || isTextFile(file.name)) {
+      } else if (file.type === 'video' || file.type === 'audio' || file.type === 'archive' || isImageFile(file.name) || isTextFile(file.name)) {
         li.className = 'media-file';
       } else {
         li.className = 'file';
@@ -708,16 +708,16 @@
       const contentWrapper = document.createElement('div');
       contentWrapper.className = 'file-item-content';
 
-      if (file.isDirectory) {
+      if (file.type === 'directory') {
         const link = document.createElement('a');
         link.href = `/?dir=${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
         contentWrapper.appendChild(link);
-      } else if (file.isVideo) {
+      } else if (file.type === 'video') {
         const span = document.createElement('span');
         span.textContent = '🎬 ' + file.name;
         contentWrapper.appendChild(span);
-      } else if (file.isAudio) {
+      } else if (file.type === 'audio') {
         const span = document.createElement('span');
         span.textContent = '🎵 ' + file.name;
         contentWrapper.appendChild(span);
@@ -759,7 +759,7 @@
 
       const thumbnail = document.createElement('img');
       thumbnail.className = 'tile-thumbnail';
-      thumbnail.src = `/api/archive/${encodeURIComponent(file.path)}/thumbnail`;
+      thumbnail.src = `/api/book/${encodeURIComponent(file.path)}/thumbnail`;
       thumbnail.alt = file.name;
       thumbnail.loading = 'lazy';
 
@@ -890,13 +890,13 @@
 
       const file = files[currentIndex];
 
-      if (file.isArchive) {
+      if (file.type === 'book') {
         // カーソル位置と現在のパスを保存
         sessionStorage.setItem('fileListIndex', currentIndex);
         sessionStorage.setItem('fileListPath', currentRelativePath);
         // アーカイブファイルをビューアで開く
         window.location.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
-      } else if (file.isVideo || file.isAudio) {
+      } else if (file.type === 'video' || file.type === 'audio') {
         // カーソル位置と現在のパスを保存
         sessionStorage.setItem('fileListIndex', currentIndex);
         sessionStorage.setItem('fileListPath', currentRelativePath);
@@ -905,7 +905,7 @@
       } else if (isPreviewableFile(file.name)) {
         // 画像・テキストファイルをプレビュー
         showPreview(file);
-      } else if (file.isDirectory) {
+      } else if (file.type === 'directory') {
         // ディレクトリに入る
         window.location.href = `/?dir=${encodeURIComponent(file.path)}`;
       }

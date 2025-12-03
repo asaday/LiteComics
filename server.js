@@ -127,8 +127,8 @@ function generateCacheKey(filePath) {
     return crypto.createHash('md5').update(filePath).digest('hex');
 }
 
-// アーカイブから画像ファイルリストを取得
-async function getImagesFromArchive(filePath) {
+// 本（アーカイブ）から画像ファイルリストを取得
+async function getImagesFromBook(filePath) {
     const isRar = isRarArchive(filePath);
 
     if (isRar) {
@@ -162,8 +162,8 @@ async function getImagesFromArchive(filePath) {
     }
 }
 
-// アーカイブからファイルを抽出
-async function extractFileFromArchive(filePath, entryName) {
+// 本（アーカイブ）からファイルを抽出
+async function extractFileFromBook(filePath, entryName) {
     const isRar = isRarArchive(filePath);
 
     if (isRar) {
@@ -247,8 +247,8 @@ app.get('/api/roots', async (req, res) => {
                 rootItems.push({
                     name: pathName,
                     path: pathName, // 名前だけを返す
-                    isDirectory: true,
-                    isArchive: false,
+                    type: 'directory',
+                    isDirectory: true, // 互換性のため残す
                     size: stats.size,
                     modified: stats.mtime
                 });
@@ -294,17 +294,22 @@ app.get('/api/dir/*', async (req, res) => {
             const itemRelativePath = relativePath ? `${relativePath}/${item.name}` : item.name;
             const itemPath = `${rootName}/${itemRelativePath}`;
 
-            const isArchive = item.isFile() && isArchiveFile(item.name);
-            const isVideo = item.isFile() && isVideoFile(item.name);
-            const isAudio = item.isFile() && isAudioFile(item.name);
+            let type = 'file';
+            if (item.isDirectory()) {
+                type = 'directory';
+            } else if (isArchiveFile(item.name)) {
+                type = 'book';
+            } else if (isVideoFile(item.name)) {
+                type = 'video';
+            } else if (isAudioFile(item.name)) {
+                type = 'audio';
+            }
 
             files.push({
                 name: item.name,
                 path: itemPath,
-                isDirectory: item.isDirectory(),
-                isArchive: isArchive,
-                isVideo: isVideo,
-                isAudio: isAudio,
+                type: type,
+                isDirectory: item.isDirectory(), // 互換性のため残す
                 size: itemStats.size,
                 modified: itemStats.mtime
             });
@@ -328,8 +333,8 @@ app.get('/api/dir/*', async (req, res) => {
     }
 });
 
-// アーカイブファイル内のファイルリストを取得
-app.get('/api/archive/:filename(*)/list', async (req, res) => {
+// 本（アーカイブ）内のファイルリストを取得
+app.get('/api/book/:filename(*)/list', async (req, res) => {
     try {
         const requestPath = decodeURIComponent(req.params.filename);
         const resolved = resolveRequestPath(requestPath);
@@ -343,7 +348,7 @@ app.get('/api/archive/:filename(*)/list', async (req, res) => {
         // ファイルの存在確認
         await fs.access(filePath);
 
-        const imageFiles = await getImagesFromArchive(filePath);
+        const imageFiles = await getImagesFromBook(filePath);
 
         res.json({
             filename: path.basename(filePath),
@@ -355,8 +360,8 @@ app.get('/api/archive/:filename(*)/list', async (req, res) => {
     }
 });
 
-// アーカイブファイルから特定の画像を取得
-app.get('/api/archive/:filename(*)/image/:index', async (req, res) => {
+// 本（アーカイブ）から特定の画像を取得
+app.get('/api/book/:filename(*)/image/:index', async (req, res) => {
     try {
         const requestPath = decodeURIComponent(req.params.filename);
         const index = parseInt(req.params.index);
@@ -371,14 +376,14 @@ app.get('/api/archive/:filename(*)/image/:index', async (req, res) => {
         // ファイルの存在確認
         await fs.access(filePath);
 
-        const imageFiles = await getImagesFromArchive(filePath);
+        const imageFiles = await getImagesFromBook(filePath);
 
         if (index < 0 || index >= imageFiles.length) {
             return res.status(404).json({ error: 'インデックスが範囲外です' });
         }
 
         const imageName = imageFiles[index];
-        const imageBuffer = await extractFileFromArchive(filePath, imageName);
+        const imageBuffer = await extractFileFromBook(filePath, imageName);
 
         // MIMEタイプの判定
         const ext = path.extname(imageName).toLowerCase();
@@ -391,8 +396,8 @@ app.get('/api/archive/:filename(*)/image/:index', async (req, res) => {
     }
 });
 
-// アーカイブファイルのサムネイル(1枚目の画像)を取得
-app.get('/api/archive/:filename(*)/thumbnail', async (req, res) => {
+// 本のサムネイル（1枚目の画像）を取得
+app.get('/api/book/:filename(*)/thumbnail', async (req, res) => {
     try {
         const requestPath = decodeURIComponent(req.params.filename);
         const resolved = resolveRequestPath(requestPath);
@@ -432,14 +437,14 @@ app.get('/api/archive/:filename(*)/thumbnail', async (req, res) => {
         // ファイルの存在確認
         await fs.access(filePath);
 
-        const imageFiles = await getImagesFromArchive(filePath);
+        const imageFiles = await getImagesFromBook(filePath);
 
         if (imageFiles.length === 0) {
             return res.status(404).json({ error: '画像が見つかりません' });
         }
 
         const firstImage = imageFiles[0];
-        const imageBuffer = await extractFileFromArchive(filePath, firstImage);
+        const imageBuffer = await extractFileFromBook(filePath, firstImage);
 
         // MIMEタイプの判定
         const ext = path.extname(firstImage).toLowerCase();

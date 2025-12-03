@@ -799,7 +799,7 @@
 
         const thumbnail = document.createElement('img');
         thumbnail.className = 'page-grid-thumbnail';
-        thumbnail.src = `/api/archive/${currentFile}/image/${index}`;
+        thumbnail.src = `/api/book/${currentFile}/image/${index}`;
         thumbnail.alt = `Page ${index + 1}`;
 
         const pageNumber = document.createElement('div');
@@ -896,7 +896,7 @@
           filenameDisplay.textContent = basename;
         }
 
-        const response = await fetch(`/api/archive/${encodeURIComponent(fileInfo.rootName)}/${fileInfo.relativePath}/list`);
+        const response = await fetch(`/api/book/${encodeURIComponent(fileInfo.rootName)}/${fileInfo.relativePath}/list`);
         const data = await response.json();
         console.log('画像リスト:', data);
 
@@ -943,7 +943,7 @@
         return imageCache[index];
       }
 
-      const url = `/api/archive/${encodeURIComponent(currentFile)}/image/${index}`;
+      const url = `/api/book/${encodeURIComponent(currentFile)}/image/${index}`;
 
       return new Promise((resolve, reject) => {
         const img = new Image();
