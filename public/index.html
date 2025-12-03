@@ -160,7 +160,6 @@
 
     .file-list-view li {
       padding: 6px 20px;
-      transition: background-color 0.1s ease;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -205,9 +204,11 @@
     .file-list-view li::before {
       content: '';
       font-size: 1.4rem;
-      width: 20px;
+      min-width: 24px;
+      width: 24px;
       text-align: center;
       flex-shrink: 0;
+      display: inline-block;
     }
 
     .file-list-view li.directory::before {
@@ -218,8 +219,24 @@
       content: '📃';
     }
 
-    .file-list-view li.media-file::before {
-      content: '';
+    .file-list-view li.video::before {
+      content: '🎬';
+    }
+
+    .file-list-view li.audio::before {
+      content: '🎵';
+    }
+
+    .file-list-view li.book::before {
+      content: '📚';
+    }
+
+    .file-list-view li.image::before {
+      content: '🖼️';
+    }
+
+    .file-list-view li.text::before {
+      content: '📄';
     }
 
     .file-item-content {
@@ -564,103 +581,57 @@
           return;
         }
 
-        // ディレクトリとファイルを分けて、表示順に並べる
-        const directories = files.filter(f => f.type === 'directory');
-        const cbzFiles = files.filter(f => f.type === 'book');
-        const videoFiles = files.filter(f => f.type === 'video');
-        const audioFiles = files.filter(f => f.type === 'audio');
-        const otherFiles = files.filter(f => f.type === 'file');
+        // タイプ別にファイルを分類
+        const filesByType = {
+          directory: files.filter(f => f.type === 'directory'),
+          book: files.filter(f => f.type === 'book'),
+          video: files.filter(f => f.type === 'video'),
+          audio: files.filter(f => f.type === 'audio'),
+          file: files.filter(f => f.type === 'file')
+        };
 
         // 表示順に並べた配列を作成（これがカーソル移動の順序になる）
-        files = [...directories, ...cbzFiles, ...videoFiles, ...audioFiles, ...otherFiles];
+        files = [...filesByType.directory, ...filesByType.book, ...filesByType.video, ...filesByType.audio, ...filesByType.file];
 
-        // ディレクトリのリスト表示
         let displayIndex = 0;
 
-        if (directories.length > 0) {
-          const dirSection = document.createElement('div');
-          dirSection.className = 'list-section';
+        // リスト表示のヘルパー関数
+        const createListSection = (fileList) => {
+          if (fileList.length === 0) return;
 
+          const section = document.createElement('div');
+          section.className = 'list-section';
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
 
-          directories.forEach((file) => {
-            const li = createListItem(file, displayIndex);
-            ul.appendChild(li);
-            displayIndex++;
+          fileList.forEach((file) => {
+            ul.appendChild(createListItem(file, displayIndex++));
           });
 
-          dirSection.appendChild(ul);
-          fileListDiv.appendChild(dirSection);
-        }
+          section.appendChild(ul);
+          fileListDiv.appendChild(section);
+        };
 
-        // CBZファイルのタイル表示
-        if (cbzFiles.length > 0) {
-          const cbzSection = document.createElement('div');
-          cbzSection.className = 'tile-section';
+        // タイル表示のヘルパー関数
+        const createTileSection = (fileList) => {
+          if (fileList.length === 0) return;
 
-          cbzFiles.forEach((file) => {
-            const tile = createTileItem(file, displayIndex);
-            cbzSection.appendChild(tile);
-            displayIndex++;
+          const section = document.createElement('div');
+          section.className = 'tile-section';
+
+          fileList.forEach((file) => {
+            section.appendChild(createTileItem(file, displayIndex++));
           });
 
-          fileListDiv.appendChild(cbzSection);
-        }
+          fileListDiv.appendChild(section);
+        };
 
-        // 動画ファイルのリスト表示
-        if (videoFiles.length > 0) {
-          const videoSection = document.createElement('div');
-          videoSection.className = 'list-section';
-
-          const ul = document.createElement('ul');
-          ul.className = 'file-list-view';
-
-          videoFiles.forEach((file) => {
-            const li = createListItem(file, displayIndex);
-            ul.appendChild(li);
-            displayIndex++;
-          });
-
-          videoSection.appendChild(ul);
-          fileListDiv.appendChild(videoSection);
-        }
-
-        // 音声ファイルのリスト表示
-        if (audioFiles.length > 0) {
-          const audioSection = document.createElement('div');
-          audioSection.className = 'list-section';
-
-          const ul = document.createElement('ul');
-          ul.className = 'file-list-view';
-
-          audioFiles.forEach((file) => {
-            const li = createListItem(file, displayIndex);
-            ul.appendChild(li);
-            displayIndex++;
-          });
-
-          audioSection.appendChild(ul);
-          fileListDiv.appendChild(audioSection);
-        }
-
-        // その他のファイルのリスト表示
-        if (otherFiles.length > 0) {
-          const otherSection = document.createElement('div');
-          otherSection.className = 'list-section';
-
-          const ul = document.createElement('ul');
-          ul.className = 'file-list-view';
-
-          otherFiles.forEach((file) => {
-            const li = createListItem(file, displayIndex);
-            ul.appendChild(li);
-            displayIndex++;
-          });
-
-          otherSection.appendChild(ul);
-          fileListDiv.appendChild(otherSection);
-        }
+        // 各タイプのファイルを表示
+        createListSection(filesByType.directory);
+        createTileSection(filesByType.book);
+        createListSection(filesByType.video);
+        createListSection(filesByType.audio);
+        createListSection(filesByType.file);
 
         // パンくずリストを更新
         updateBreadcrumb();
@@ -694,15 +665,17 @@
     function createListItem(file, index) {
       const li = document.createElement('li');
 
-      // メディアファイルの場合はクラスを変更してデフォルトアイコンを非表示
-      if (file.type === 'directory') {
-        li.className = 'directory';
-      } else if (file.type === 'video' || file.type === 'audio' || file.type === 'archive' || isImageFile(file.name) || isTextFile(file.name)) {
-        li.className = 'media-file';
-      } else {
-        li.className = 'file';
+      // クラス名を設定（CSSでアイコンを表示）
+      let className = file.type;
+      if (file.type === 'file') {
+        // ファイルタイプをさらに細分化
+        if (isImageFile(file.name)) {
+          className = 'image';
+        } else if (isTextFile(file.name)) {
+          className = 'text';
+        }
       }
-
+      li.className = className;
       li.dataset.index = index;
 
       const contentWrapper = document.createElement('div');
@@ -713,23 +686,8 @@
         link.href = `/?dir=${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
         contentWrapper.appendChild(link);
-      } else if (file.type === 'video') {
-        const span = document.createElement('span');
-        span.textContent = '🎬 ' + file.name;
-        contentWrapper.appendChild(span);
-      } else if (file.type === 'audio') {
-        const span = document.createElement('span');
-        span.textContent = '🎵 ' + file.name;
-        contentWrapper.appendChild(span);
-      } else if (isImageFile(file.name)) {
-        const span = document.createElement('span');
-        span.textContent = '🖼️ ' + file.name;
-        contentWrapper.appendChild(span);
-      } else if (isTextFile(file.name)) {
-        const span = document.createElement('span');
-        span.textContent = '📄 ' + file.name;
-        contentWrapper.appendChild(span);
       } else {
+        // テキストのみ表示（アイコンはCSSで）
         const span = document.createElement('span');
         span.textContent = file.name;
         contentWrapper.appendChild(span);
@@ -782,81 +740,47 @@
     // パンくずリストを更新
     function updateBreadcrumb() {
       const breadcrumbDiv = document.getElementById('breadcrumb');
-
-      // テーマトグルボタンを保持
       const themeToggle = document.getElementById('theme-toggle');
 
       breadcrumbDiv.innerHTML = '';
 
-      // パンくず部分のコンテナ
       const breadcrumbContent = document.createElement('div');
-      breadcrumbContent.style.display = 'flex';
-      breadcrumbContent.style.alignItems = 'center';
-      breadcrumbContent.style.gap = '4px';
-      breadcrumbContent.style.flex = '1';
+      breadcrumbContent.style.cssText = 'display:flex;align-items:center;gap:4px;flex:1';
 
-      // ホームアイコン
-      const home = document.createElement('a');
-      home.href = '/';
-      home.className = 'breadcrumb-item';
-      home.textContent = 'Home';
-      breadcrumbContent.appendChild(home);
+      // パンくず要素を作成するヘルパー
+      const addItem = (text, href = null, isCurrent = false) => {
+        const elem = document.createElement(href ? 'a' : 'span');
+        elem.textContent = text;
+        elem.className = isCurrent ? 'breadcrumb-current' : 'breadcrumb-item';
+        if (href) elem.href = href;
+        breadcrumbContent.appendChild(elem);
+      };
 
-      if (!currentRootName) {
-        // トップレベルの場合はホームのみ
-        breadcrumbDiv.appendChild(breadcrumbContent);
-        breadcrumbDiv.appendChild(themeToggle);
-        return;
-      }
+      const addSeparator = () => {
+        const sep = document.createElement('span');
+        sep.className = 'breadcrumb-separator';
+        sep.textContent = '›';
+        breadcrumbContent.appendChild(sep);
+      };
 
-      // ルート名を追加
-      const separator1 = document.createElement('span');
-      separator1.className = 'breadcrumb-separator';
-      separator1.textContent = '›';
-      breadcrumbContent.appendChild(separator1);
+      // ホーム
+      addItem('Home', '/');
 
-      if (!currentRelativePath) {
-        // ルートレベルの場合（現在地）
-        const rootCurrent = document.createElement('span');
-        rootCurrent.className = 'breadcrumb-current';
-        rootCurrent.textContent = currentRootName;
-        breadcrumbContent.appendChild(rootCurrent);
-      } else {
-        // ルート名（クリック可能）
-        const rootLink = document.createElement('a');
-        rootLink.href = `/?dir=${encodeURIComponent(currentRootName)}`;
-        rootLink.className = 'breadcrumb-item';
-        rootLink.textContent = currentRootName;
-        breadcrumbContent.appendChild(rootLink);
-      }
+      if (currentRootName) {
+        addSeparator();
+        addItem(currentRootName, currentRelativePath ? `/?dir=${encodeURIComponent(currentRootName)}` : null, !currentRelativePath);
 
-      if (currentRelativePath) {
-        // 相対パスを分割して各階層を表示
-        const pathParts = currentRelativePath.split('/').filter(p => p);
-        let accumulatedPath = currentRootName;
+        // 相対パスの各階層
+        if (currentRelativePath) {
+          const pathParts = currentRelativePath.split('/').filter(p => p);
+          let accumulatedPath = currentRootName;
 
-        for (let i = 0; i < pathParts.length; i++) {
-          const separator = document.createElement('span');
-          separator.className = 'breadcrumb-separator';
-          separator.textContent = '›';
-          breadcrumbContent.appendChild(separator);
-
-          accumulatedPath = accumulatedPath + '/' + pathParts[i];
-
-          if (i === pathParts.length - 1) {
-            // 最後の要素（現在のフォルダ）
-            const item = document.createElement('span');
-            item.textContent = pathParts[i];
-            item.className = 'breadcrumb-current';
-            breadcrumbContent.appendChild(item);
-          } else {
-            // クリック可能な親フォルダ
-            const item = document.createElement('a');
-            item.href = `/?dir=${encodeURIComponent(accumulatedPath)}`;
-            item.className = 'breadcrumb-item';
-            item.textContent = pathParts[i];
-            breadcrumbContent.appendChild(item);
-          }
+          pathParts.forEach((part, i) => {
+            addSeparator();
+            accumulatedPath += '/' + part;
+            const isLast = i === pathParts.length - 1;
+            addItem(part, isLast ? null : `/?dir=${encodeURIComponent(accumulatedPath)}`, isLast);
+          });
         }
       }
 

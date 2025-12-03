@@ -971,6 +971,17 @@
       return window.innerHeight > window.innerWidth;
     }
 
+    // オフセットを適用した表示ページを計算
+    function getDisplayPage(page = currentPage) {
+      const actualPage = (page + offset) % images.length;
+      return actualPage < 0 ? images.length + actualPage : actualPage;
+    }
+
+    // 現在の表示モードを判定（1ページか見開きか）
+    function isForceOnePageMode() {
+      return isPortraitViewport() || forceSinglePageMode;
+    }
+
     // 現在のページを表示
     async function displayCurrentPages(isInitialLoad = false) {
       console.log('displayCurrentPages 開始: currentPage=', currentPage, 'offset=', offset);
@@ -978,17 +989,14 @@
       const displayDiv = document.getElementById('image-display');
       const pageInfoDiv = document.getElementById('page-info');
 
-      // オフセットを適用した実際の表示ページ
-      const actualPage = (currentPage + offset) % images.length;
-      const displayPage = actualPage < 0 ? images.length + actualPage : actualPage;
+      const displayPage = getDisplayPage();
       console.log('displayPage:', displayPage);
 
       // ページ位置とオフセットを保存
       localStorage.setItem(`viewer_page_${currentFile}`, currentPage);
       localStorage.setItem(`viewer_offset_${currentFile}`, offset);
 
-      // ブラウザが縦長かどうかをチェック、または強制1ページモード
-      const forceOnePageMode = isPortraitViewport() || forceSinglePageMode;
+      const forceOnePageMode = isForceOnePageMode();
 
       try {
         // 最初の画像を読み込み
@@ -1099,18 +1107,15 @@
     // 次のページセットへ移動
     async function nextPages() {
       console.log('nextPages 呼び出し: currentPage=', currentPage);
-      const actualPage = (currentPage + offset) % images.length;
-      const displayPage = actualPage < 0 ? images.length + actualPage : actualPage;
+      const displayPage = getDisplayPage();
       console.log('nextPages: displayPage=', displayPage);
 
-      // 現在表示中のページ数を判定
       if (displayPage >= images.length) {
         console.log('最後のページです');
-        return; // 最後のページ
+        return;
       }
 
-      // ブラウザが縦長かどうかをチェック、または強制1ページモード
-      const forceOnePageMode = isPortraitViewport() || forceSinglePageMode;
+      const forceOnePageMode = isForceOnePageMode();
 
       // 画像を読み込んで判定
       console.log('nextPages: 画像判定開始');
@@ -1143,11 +1148,7 @@
 
     // 前のページセットへ移動
     async function prevPages() {
-      const actualPage = (currentPage + offset) % images.length;
-      const displayPage = actualPage < 0 ? images.length + actualPage : actualPage;
-
-      // ブラウザが縦長かどうかをチェック、または強制1ページモード
-      const forceOnePageMode = isPortraitViewport() || forceSinglePageMode;
+      const forceOnePageMode = isForceOnePageMode();
 
       if (forceOnePageMode) {
         currentPage -= 1; // 1ページモードの場合1ページ戻る
