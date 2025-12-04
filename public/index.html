@@ -850,6 +850,21 @@
         const link = document.createElement('a');
         link.href = `/media.html#/${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
+        link.addEventListener('click', (e) => {
+          // リンククリック時もsessionStorageに保存
+          sessionStorage.setItem('fileListIndex', index);
+          sessionStorage.setItem('fileListPath', currentRelativePath);
+        });
+        contentWrapper.appendChild(link);
+      } else if (isPreviewableFile(file.name)) {
+        // プレビュー可能なファイルもリンクとして扱う
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = file.name;
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          showPreview(file);
+        });
         contentWrapper.appendChild(link);
       } else {
         // その他のファイルはテキストのみ表示（アイコンはCSSで）
@@ -976,28 +991,7 @@
     // 選択中のアイテムを開く
     function openSelected() {
       if (currentIndex < 0 || currentIndex >= files.length) return;
-
-      const file = files[currentIndex];
-
-      if (file.type === 'book') {
-        // カーソル位置と現在のパスを保存
-        sessionStorage.setItem('fileListIndex', currentIndex);
-        sessionStorage.setItem('fileListPath', currentRelativePath);
-        // アーカイブファイルをビューアで開く
-        window.location.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
-      } else if (file.type === 'video' || file.type === 'audio') {
-        // カーソル位置と現在のパスを保存
-        sessionStorage.setItem('fileListIndex', currentIndex);
-        sessionStorage.setItem('fileListPath', currentRelativePath);
-        // メディアファイルをプレーヤーで開く
-        window.location.href = `/media.html#/${encodeURIComponent(file.path)}`;
-      } else if (isPreviewableFile(file.name)) {
-        // 画像・テキストファイルをプレビュー
-        showPreview(file);
-      } else if (file.type === 'directory') {
-        // ディレクトリに入る
-        window.location.href = `/?dir=${encodeURIComponent(file.path)}`;
-      }
+      document.querySelector(`[data-index="${currentIndex}"]`)?.querySelector('a')?.click();
     }
 
     // キーボードイベントハンドラ

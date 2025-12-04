@@ -27,10 +27,10 @@ const IMAGE_EXTENSIONS = Object.keys(IMAGE_MIME_TYPES);
 const ARCHIVE_EXTENSIONS = ['.cbz', '.zip', '.cbr', '.rar', '.cb7', '.7z', '.epub'];
 
 // サポートする動画拡張子
-const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.webm', '.avi', '.mov'];
+const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.webm', '.avi', '.mov', '.m2ts', '.ts', '.wmv', '.flv', '.mpg', '.mpeg'];
 
 // サポートする音声拡張子
-const AUDIO_EXTENSIONS = ['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac'];
+const AUDIO_EXTENSIONS = ['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac', '.wma', '.opus'];
 
 // 動画のMIMEタイプマッピング
 const VIDEO_MIME_TYPES = {
@@ -38,7 +38,13 @@ const VIDEO_MIME_TYPES = {
     '.mkv': 'video/x-matroska',
     '.webm': 'video/webm',
     '.avi': 'video/x-msvideo',
-    '.mov': 'video/quicktime'
+    '.mov': 'video/quicktime',
+    '.m2ts': 'video/mp2t',
+    '.ts': 'video/mp2t',
+    '.wmv': 'video/x-ms-wmv',
+    '.flv': 'video/x-flv',
+    '.mpg': 'video/mpeg',
+    '.mpeg': 'video/mpeg'
 };
 
 // 音声のMIMEタイプマッピング
@@ -48,7 +54,9 @@ const AUDIO_MIME_TYPES = {
     '.wav': 'audio/wav',
     '.ogg': 'audio/ogg',
     '.m4a': 'audio/mp4',
-    '.aac': 'audio/aac'
+    '.aac': 'audio/aac',
+    '.wma': 'audio/x-ms-wma',
+    '.opus': 'audio/opus'
 };
 
 // アーカイブ形式の判定
@@ -267,10 +275,45 @@ async function extractFileFromBook(filePath, entryName) {
 }
 
 // 設定ファイルの読み込み
-let config = { roots: ['/data'] };
+const defaultConfig = {
+    roots: ['/data'],
+    handlers: {
+        ios: {
+            VLC: {
+                ext: ['.mkv', '.avi', '.flac', '.m2ts', '.ts', '.wmv'],
+                url: 'vlc-x-callback://x-callback-url/stream?url={url}'
+            }
+        },
+        android: {
+            VLC: {
+                ext: ['.mkv', '.m2ts', '.ts'],
+                url: 'vlc://x-callback-url/stream?url={url}'
+            }
+        },
+        mac: {
+            IINA: {
+                ext: ['.avi', '.flac', '.mkv', '.m2ts', '.ts', '.wmv'],
+                url: 'iina://weblink?url={url}'
+            }
+        },
+        windows: {
+            VLC: {
+                ext: ['.avi', '.flac', '.mkv', '.m2ts', '.ts', '.wmv'],
+                url: 'vlc://{url}'
+            }
+        }
+    }
+};
+
+let config = { ...defaultConfig };
+
 try {
     const configData = require('./config.json');
-    config = configData;
+    config = {
+        ...defaultConfig,
+        ...configData,
+        handlers: configData.handlers || defaultConfig.handlers
+    };
 } catch (err) {
     console.warn('config.json could not be loaded. Using default settings:', err.message);
 }
@@ -645,6 +688,80 @@ app.get('/api/file/:filename(*)', async (req, res) => {
 
         const stream = fssync.createReadStream(filePath);
         stream.pipe(res);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// メディアファイル用のURL取得API（デバイス判定込み）
+app.get('/api/media-url/:filename(*)', async (req, res) => {
+    try {
+        const requestPath = decodeURIComponent(req.params.filename);
+        const resolved = resolveRequestPath(requestPath);
+
+        if (!resolved) {
+            return res.status(404).json({ error: '無効なルート名です' });
+        }
+
+        const filePath = resolved.fullPath;
+
+        // ファイルの存在確認
+        const stat = await fs.stat(filePath);
+        if (!stat.isFile()) {
+            return res.status(404).json({ error: 'ファイルが見つかりません' });
+        }
+
+        // User-Agentからデバイスを判定
+        const userAgent = req.headers['user-agent'] || '';
+        const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+        const isAndroid = /Android/i.test(userAgent);
+        const isMac = /Macintosh|Mac OS X/i.test(userAgent) && !/iPhone|iPad|iPod/i.test(userAgent);
+        const isWindows = /Windows/i.test(userAgent);
+
+        // ファイル拡張子を取得
+        const ext = path.extname(filePath).toLowerCase();
+
+        // configからmediaHandlersを取得
+        const mediaHandlers = config.handlers || {};
+        let customUrl = null;
+        let handler = null;
+
+        // デバイスタイプに応じたハンドラーを検索
+        let handlers = null;
+        if (isIOS) {
+            handlers = mediaHandlers.ios;
+        } else if (isAndroid) {
+            handlers = mediaHandlers.android;
+        } else if (isMac) {
+            handlers = mediaHandlers.mac;
+        } else if (isWindows) {
+            handlers = mediaHandlers.windows;
+        }
+
+        if (handlers) {
+            // オブジェクト形式の場合、各ハンドラーをチェック
+            for (const [name, h] of Object.entries(handlers)) {
+                if (h.ext && h.ext.includes(ext)) {
+                    customUrl = h.url;
+                    handler = { ...h, name };
+                    break;
+                }
+            }
+        }
+
+        // レスポンスを構築
+        const mediaPath = `/api/media/${encodeURIComponent(requestPath)}`;
+        const fullUrl = `${req.protocol}://${req.get('host')}${mediaPath}`;
+
+        if (customUrl) {
+            // カスタムハンドラーのURLを生成({url}プレースホルダーを置換)
+            const url = customUrl.replace('{url}', encodeURIComponent(fullUrl));
+            const name = handler.name || null;
+            res.json({ url, custom: true, name });
+        } else {
+            // 通常のメディアURL
+            res.json({ url: fullUrl });
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -179,6 +179,27 @@
             return audioExtensions.includes('.' + ext);
         }
 
+        function setupMediaPlayer(basename, url) {
+            const filenameDisplay = document.getElementById('media-filename');
+            if (filenameDisplay) {
+                filenameDisplay.textContent = basename;
+            }
+
+            const mediaPlayer = document.getElementById('media-player');
+            mediaPlayer.src = url;
+
+            if (isAudioFile(basename)) {
+                mediaPlayer.classList.remove('video-player');
+                mediaPlayer.classList.add('audio-player');
+                const audioInfo = document.getElementById('audio-info');
+                audioInfo.classList.add('visible');
+                document.getElementById('audio-title').textContent = basename;
+            } else {
+                mediaPlayer.classList.add('video-player');
+                mediaPlayer.classList.remove('audio-player');
+            }
+        }
+
         function loadMedia() {
             try {
                 const fileInfo = getFileFromURL();
@@ -188,27 +209,26 @@
 
                 currentFile = `${fileInfo.rootName}/${fileInfo.relativePath}`;
                 const basename = fileInfo.relativePath.split('/').pop();
+                const fallbackUrl = `/api/media/${encodeURIComponent(currentFile)}`;
 
-                const filenameDisplay = document.getElementById('media-filename');
-                if (filenameDisplay) {
-                    filenameDisplay.textContent = basename;
-                }
-
-                const mediaPlayer = document.getElementById('media-player');
-                const mediaUrl = `/api/media/${encodeURIComponent(currentFile)}`;
-                mediaPlayer.src = mediaUrl;
-
-                // 音声ファイルの場合は表示を変更
-                if (isAudioFile(basename)) {
-                    mediaPlayer.classList.remove('video-player');
-                    mediaPlayer.classList.add('audio-player');
-                    const audioInfo = document.getElementById('audio-info');
-                    audioInfo.classList.add('visible');
-                    document.getElementById('audio-title').textContent = basename;
-                } else {
-                    mediaPlayer.classList.add('video-player');
-                    mediaPlayer.classList.remove('audio-player');
-                }
+                // 外部アプリ判定を先に行う(APIがなくてもfallbackで再生するので問題ない)
+                fetch(`/api/media-url/${encodeURIComponent(currentFile)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.custom) {
+                            // 外部アプリで開く場合は確認
+                            const appName = data.name || '外部アプリ';
+                            if (confirm(`${appName}で開きますか？`)) {
+                                window.location.href = data.url;
+                                history.back();
+                                return
+                            }
+                        }
+                        setupMediaPlayer(basename, fallbackUrl);
+                    })
+                    .catch(err => {
+                        setupMediaPlayer(basename, fallbackUrl);
+                    });
 
             } catch (err) {
                 console.error('loadMedia エラー:', err);
