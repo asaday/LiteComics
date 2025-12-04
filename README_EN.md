@@ -1,23 +1,34 @@
 # LiteComics
 
-A simple and feature-rich web-based comic and media viewer built with vanilla JavaScript. Browse CBZ/ZIP/CBR/RAR/7Z files and play video/audio files comfortably in your browser.
+**The lightest comic viewer ever.** No build process, no frameworks, just vanilla JavaScript + HTML.
+
+Browse CBZ/ZIP/CBR/RAR/7Z files and play video/audio files comfortably in your browser.
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen.svg)
+![Size](https://img.shields.io/badge/bundle-0KB-brightgreen.svg)
+![Dependencies](https://img.shields.io/badge/frontend-0%20dependencies-brightgreen.svg)
 
 [日本語](README.md) | **English**
 
 ## ✨ Features
 
-- 📚 **Multiple Format Support**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB (images only)
-- 🎬 **Media Playback**: Video & audio file support (MP4, MKV, WebM, MP3, FLAC, etc.)
-- 📖 **Spread View**: Natural right-to-left spread display (wide images automatically shown as single page)
-- 🖼️ **Thumbnail Grid**: Quick page browsing with grid layout
-- 📋 **File List**: Sidebar with page name list
-- ⌨️ **Keyboard Shortcuts**: Comfortable navigation
-- 🚀 **Fast Display**: Thumbnail and file list caching
-- 🎨 **Dark Mode**: Light/dark theme switching
-- 🔍 **Zoom Function**: UI scaling (50-200%)
+### 🪶 Ultra-Lightweight Design
+- **Zero Frontend Dependencies**: No React/Vue/Angular needed
+- **No Build Process**: No webpack/Vite/Rollup required, runs directly
+- **Vanilla JS + HTML**: Pure JavaScript/HTML/CSS only
+- **Minimal Backend**: Express.js + 2 archive libraries only
+
+### 📚 Rich Features
+- **Multiple Format Support**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB (images only)
+- **Media Playback**: Video & audio file support (MP4, MKV, WebM, MP3, FLAC, etc.)
+- **Spread View**: Natural right-to-left spread display (wide images automatically shown as single page)
+- **Thumbnail Grid**: Quick page browsing with grid layout
+- **File List**: Sidebar with page name list
+- **Keyboard Shortcuts**: Comfortable navigation
+- **Fast Display**: Thumbnail and file list caching
+- **Dark Mode**: Light/dark theme switching
+- **Zoom Function**: UI scaling (50-200%)
 
 ## 🚀 Quick Start
 
