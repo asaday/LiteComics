@@ -220,7 +220,6 @@
                             const appName = data.name || '外部アプリ';
                             if (confirm(`${appName}で開きますか？`)) {
                                 window.location.href = data.url;
-                                history.back();
                                 return
                             }
                         }

@@ -59,6 +59,36 @@ const AUDIO_MIME_TYPES = {
     '.opus': 'audio/opus'
 };
 
+const defaultConfig = {
+    roots: ['/data'],
+    handlers: {
+        ios: {
+            VLC: {
+                ext: ['.mkv', '.avi', '.flac', '.m2ts', '.ts', '.wmv'],
+                url: 'vlc-x-callback://x-callback-url/stream?url={url}'
+            }
+        },
+        android: {
+            VLC: {
+                ext: ['.mkv', '.m2ts', '.ts'],
+                url: 'vlc://x-callback-url/stream?url={url}'
+            }
+        },
+        mac: {
+            IINA: {
+                ext: ['.avi', '.flac', '.mkv', '.m2ts', '.ts', '.wmv'],
+                url: 'iina://weblink?url={url}'
+            }
+        },
+        windows: {
+            VLC: {
+                ext: ['.avi', '.flac', '.mkv', '.m2ts', '.ts', '.wmv'],
+                url: 'vlc://{url}'
+            }
+        }
+    }
+};
+
 // アーカイブ形式の判定
 function isRarArchive(filePath) {
     const ext = path.extname(filePath).toLowerCase();
@@ -275,35 +305,6 @@ async function extractFileFromBook(filePath, entryName) {
 }
 
 // 設定ファイルの読み込み
-const defaultConfig = {
-    roots: ['/data'],
-    handlers: {
-        ios: {
-            VLC: {
-                ext: ['.mkv', '.avi', '.flac', '.m2ts', '.ts', '.wmv'],
-                url: 'vlc-x-callback://x-callback-url/stream?url={url}'
-            }
-        },
-        android: {
-            VLC: {
-                ext: ['.mkv', '.m2ts', '.ts'],
-                url: 'vlc://x-callback-url/stream?url={url}'
-            }
-        },
-        mac: {
-            IINA: {
-                ext: ['.avi', '.flac', '.mkv', '.m2ts', '.ts', '.wmv'],
-                url: 'iina://weblink?url={url}'
-            }
-        },
-        windows: {
-            VLC: {
-                ext: ['.avi', '.flac', '.mkv', '.m2ts', '.ts', '.wmv'],
-                url: 'vlc://{url}'
-            }
-        }
-    }
-};
 
 let config = { ...defaultConfig };
 
