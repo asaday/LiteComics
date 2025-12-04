@@ -144,6 +144,9 @@
 
     .breadcrumb-current {
       color: #e0e0e0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     body[data-theme="light"] .breadcrumb-current {
@@ -198,12 +201,11 @@
     }
 
     .file-list-view li {
-      padding: 2px 20px;
+      padding: 5px 20px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 10px;
-      min-height: 32px;
     }
 
     .file-list-view li:nth-child(even) {
@@ -373,6 +375,7 @@
 
     .file-list li a:hover {
       text-decoration: none;
+      color: #409cff;
     }
 
     .file-list .directory span {
@@ -757,8 +760,13 @@
         link.href = `/?dir=${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
         contentWrapper.appendChild(link);
+      } else if (file.type === 'video' || file.type === 'audio') {
+        const link = document.createElement('a');
+        link.href = `/media.html#/${encodeURIComponent(file.path)}`;
+        link.textContent = file.name;
+        contentWrapper.appendChild(link);
       } else {
-        // テキストのみ表示（アイコンはCSSで）
+        // その他のファイルはテキストのみ表示（アイコンはCSSで）
         const span = document.createElement('span');
         span.textContent = file.name;
         contentWrapper.appendChild(span);
@@ -817,7 +825,7 @@
       breadcrumbDiv.innerHTML = '';
 
       const breadcrumbContent = document.createElement('div');
-      breadcrumbContent.style.cssText = 'display:flex;align-items:center;gap:4px;flex:1';
+      breadcrumbContent.style.cssText = 'display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden';
 
       // パンくず要素を作成するヘルパー
       const addItem = (text, href = null, isCurrent = false) => {
