@@ -419,7 +419,7 @@
     }
 
     .tile-title {
-      padding: 8px 0;
+      padding: 8px 2px;
       font-size: 1rem;
       color: #e0e0e0;
       line-height: 1.1;
@@ -578,6 +578,7 @@
           <div class="menu-item">
             <div class="menu-item-controls">
               <button id="font-size-decrease" class="menu-btn" title="縮小 (Ctrl + -)">A-</button>
+              <button id="font-size-reset" class="menu-btn" title="リセット">A</button>
               <button id="font-size-increase" class="menu-btn" title="拡大 (Ctrl + +)">A+</button>
             </div>
           </div>
@@ -674,6 +675,12 @@
 
     function changeZoom(delta) {
       zoomLevel = Math.max(50, Math.min(200, zoomLevel + delta));
+      applyZoom();
+      localStorage.setItem('zoomLevel', zoomLevel);
+    }
+
+    function resetZoom() {
+      zoomLevel = 100;
       applyZoom();
       localStorage.setItem('zoomLevel', zoomLevel);
     }
@@ -1070,6 +1077,7 @@
     });
     document.getElementById('menu-theme').addEventListener('click', toggleTheme);
     document.getElementById('font-size-decrease').addEventListener('click', () => changeZoom(-10));
+    document.getElementById('font-size-reset').addEventListener('click', resetZoom);
     document.getElementById('font-size-increase').addEventListener('click', () => changeZoom(10));
     document.getElementById('preview-close').addEventListener('click', hidePreview);
     document.getElementById('preview-overlay').addEventListener('click', (e) => {
