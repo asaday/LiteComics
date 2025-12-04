@@ -1009,8 +1009,6 @@
           return;
         }
 
-        displayDiv.innerHTML = '';
-
         // 横長画像の場合、またはブラウザが縦長の場合、または強制1ページモードの場合は1ページのみ表示
         if (isWideImage(img1) || forceOnePageMode) {
           const container = document.createElement('div');
@@ -1018,6 +1016,8 @@
 
           const imgClone = img1.cloneNode();
           container.appendChild(imgClone);
+
+          displayDiv.innerHTML = '';
           displayDiv.appendChild(container);
 
           if (isWideImage(img1)) {
@@ -1066,6 +1066,7 @@
             pageInfoDiv.textContent = `${displayPage + 1} / ${images.length}`;
           }
 
+          displayDiv.innerHTML = '';
           displayDiv.appendChild(container);
         }
 

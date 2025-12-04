@@ -73,55 +73,116 @@
       display: flex;
     }
 
-    .theme-toggle {
+    .menu-container {
+      position: relative;
+      margin-left: auto;
+    }
+
+    .menu-button {
       background: none;
       border: none;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       cursor: pointer;
       padding: 4px 8px;
       border-radius: 4px;
       transition: background-color 0.2s;
-      margin-left: auto;
+      color: #e0e0e0;
     }
 
-    .theme-toggle:hover {
+    body[data-theme="light"] .menu-button {
+      color: #1d1d1f;
+    }
+
+    .menu-button:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
 
-    body[data-theme="light"] .theme-toggle:hover {
+    body[data-theme="light"] .menu-button:hover {
       background-color: rgba(0, 0, 0, 0.05);
     }
 
-    .font-size-controls {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      margin-left: 8px;
+    .menu-popup {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background-color: #2d2d2d;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 8px;
+      min-width: 120px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
-    .font-size-btn {
+    body[data-theme="light"] .menu-popup {
+      background-color: #ffffff;
+      border-color: #c7c7cc;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .menu-popup.visible {
+      display: block;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      color: #e0e0e0;
+      transition: background-color 0.2s;
+    }
+
+    body[data-theme="light"] .menu-item {
+      color: #1d1d1f;
+    }
+
+    .menu-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="light"] .menu-item:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .menu-item-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-item-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .menu-btn {
       background: none;
       border: 1px solid #666;
       color: #e0e0e0;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       cursor: pointer;
       padding: 2px 8px;
       border-radius: 4px;
       transition: background-color 0.2s, border-color 0.2s;
-      min-width: 32px;
+      min-width: 28px;
     }
 
-    body[data-theme="light"] .font-size-btn {
+    body[data-theme="light"] .menu-btn {
       color: #1d1d1f;
       border-color: #c7c7cc;
     }
 
-    .font-size-btn:hover {
+    .menu-btn:hover {
       background-color: rgba(255, 255, 255, 0.1);
       border-color: #999;
     }
 
-    body[data-theme="light"] .font-size-btn:hover {
+    body[data-theme="light"] .menu-btn:hover {
       background-color: rgba(0, 0, 0, 0.05);
       border-color: #86868b;
     }
@@ -500,11 +561,22 @@
 <body class="file-list">
   <div class="container">
     <div id="breadcrumb" class="breadcrumb">
-      <div class="font-size-controls">
-        <button id="font-size-decrease" class="font-size-btn" title="縮小 (Ctrl + -)">A-</button>
-        <button id="font-size-increase" class="font-size-btn" title="拡大 (Ctrl + +)">A+</button>
+      <div class="menu-container">
+        <button id="menu-button" class="menu-button" title="メニュー">☰</button>
+        <div id="menu-popup" class="menu-popup">
+          <div class="menu-item" id="menu-theme">
+            <div class="menu-item-label">
+              <span id="theme-icon">🌓</span>
+            </div>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-controls">
+              <button id="font-size-decrease" class="menu-btn" title="縮小 (Ctrl + -)">A-</button>
+              <button id="font-size-increase" class="menu-btn" title="拡大 (Ctrl + +)">A+</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <button id="theme-toggle" class="theme-toggle" title="テーマ切り替え">🌓</button>
     </div>
     <div id="file-list" class="file-list">
       <p>読み込み中...</p>
@@ -617,9 +689,9 @@
     // テーマアイコンの更新
     function updateThemeIcon() {
       const theme = document.body.getAttribute('data-theme');
-      const toggle = document.getElementById('theme-toggle');
-      if (toggle) {
-        toggle.textContent = theme === 'light' ? '🌙' : '☀️';
+      const icon = document.getElementById('theme-icon');
+      if (icon) {
+        icon.textContent = theme === 'light' ? '🌙' : '☀️';
       }
     }
 
@@ -630,6 +702,17 @@
       document.body.setAttribute('data-theme', newTheme);
       localStorage.setItem('theme', newTheme);
       updateThemeIcon();
+    }
+
+    // メニューの表示/非表示
+    function toggleMenu() {
+      const menu = document.getElementById('menu-popup');
+      menu.classList.toggle('visible');
+    }
+
+    function hideMenu() {
+      const menu = document.getElementById('menu-popup');
+      menu.classList.remove('visible');
     }
 
     // ファイル一覧を取得して表示
@@ -822,8 +905,7 @@
     // パンくずリストを更新
     function updateBreadcrumb() {
       const breadcrumbDiv = document.getElementById('breadcrumb');
-      const fontSizeControls = document.querySelector('.font-size-controls');
-      const themeToggle = document.getElementById('theme-toggle');
+      const menuContainer = breadcrumbDiv.querySelector('.menu-container');
 
       breadcrumbDiv.innerHTML = '';
 
@@ -868,8 +950,7 @@
       }
 
       breadcrumbDiv.appendChild(breadcrumbContent);
-      breadcrumbDiv.appendChild(fontSizeControls);
-      breadcrumbDiv.appendChild(themeToggle);
+      breadcrumbDiv.appendChild(menuContainer);
     }
 
     // 選択状態を更新
@@ -979,13 +1060,26 @@
     initTheme();
     initZoom();
 
-    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    document.getElementById('menu-button').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu();
+    });
+    document.getElementById('menu-theme').addEventListener('click', toggleTheme);
     document.getElementById('font-size-decrease').addEventListener('click', () => changeZoom(-10));
     document.getElementById('font-size-increase').addEventListener('click', () => changeZoom(10));
     document.getElementById('preview-close').addEventListener('click', hidePreview);
     document.getElementById('preview-overlay').addEventListener('click', (e) => {
       if (e.target.id === 'preview-overlay') {
         hidePreview();
+      }
+    });
+
+    // メニュー外クリックで閉じる
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('menu-popup');
+      const button = document.getElementById('menu-button');
+      if (!menu.contains(e.target) && e.target !== button) {
+        hideMenu();
       }
     });
 
