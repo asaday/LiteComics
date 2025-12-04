@@ -3,7 +3,7 @@ version: '3.8'
 services:
   viewer:
     build: .
-    container_name: comic-viewer
+    container_name: litecomics
     ports:
       - "8539:8539"
     volumes:
@@ -12,7 +12,7 @@ services:
       # 設定ファイルをマウント（オプション）
       # - ./config.json:/app/config.json:ro
       # サムネイルキャッシュを永続化
-      - thumbnail-cache:/app/.thumbnail-cache
+      # - thumbnail-cache:/app/.thumbnail-cache
     restart: unless-stopped
     environment:
       - NODE_ENV=production

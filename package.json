@@ -1,14 +1,16 @@
 {
-  "name": "viewer",
+  "name": "litecomics",
   "version": "1.0.0",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "bin": {
+    "litecomics": "./server.js"
   },
-  "author": "",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "asaday",
   "license": "ISC",
-  "description": "CBZ File Viewer",
+  "description": "LiteComics - Comics/Media Server",
   "dependencies": {
     "express": "^4.18.2",
     "adm-zip": "^0.5.10"

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const express = require('express');
 const fs = require('fs').promises;
 const fssync = require('fs');
@@ -5,9 +6,9 @@ const path = require('path');
 const crypto = require('crypto');
 const AdmZip = require('adm-zip');
 const { execSync } = require('child_process');
+const os = require('os');
 
 const app = express();
-const PORT = process.env.PORT || 8539;
 
 // 画像のMIMEタイプマッピング（共通定義）
 const IMAGE_MIME_TYPES = {
@@ -60,6 +61,7 @@ const AUDIO_MIME_TYPES = {
 };
 
 const defaultConfig = {
+    port: 8539,
     roots: ['/data'],
     handlers: {
         ios: {
@@ -306,17 +308,87 @@ async function extractFileFromBook(filePath, entryName) {
 
 // 設定ファイルの読み込み
 
+// CLIオプションの解析
+const args = process.argv.slice(2);
+let configPath = './config.json';
+let cliPort = null;
+let cliRoots = [];
+
+for (let i = 0; i < args.length; i++) {
+    if (args[i] === '-c' || args[i] === '--config') {
+        configPath = args[i + 1];
+        i++;
+    } else if (args[i] === '-p' || args[i] === '--port') {
+        cliPort = parseInt(args[i + 1]);
+        i++;
+    } else if (args[i] === '-r' || args[i] === '--root') {
+        cliRoots.push(args[i + 1]);
+        i++;
+    } else if (args[i] === '-h' || args[i] === '--help') {
+        console.log(`
+LiteComics Server
+
+Usage:
+  litecomics [options]
+
+Options:
+  -c, --config <path>  Specify config file path (default: ./config.json)
+  -p, --port <number>  Specify port number (default: 8539)
+  -r, --root <path>    Add root directory (can be used multiple times)
+  -h, --help           Show this help message
+
+Examples:
+  litecomics
+  litecomics -p 3000
+  litecomics -r /path/to/comics -r /another/path
+  litecomics -c custom-config.json -p 3000
+
+Config file format (JSON):
+{
+  "port": 8539,
+  "roots": [
+    "/path/to/comics",
+    { "path": "/another/path", "name": "Custom Name" }
+  ]
+}
+`);
+        process.exit(0);
+    }
+}
+
 let config = { ...defaultConfig };
 
-try {
-    const configData = require('./config.json');
-    config = {
-        ...defaultConfig,
-        ...configData,
-        handlers: configData.handlers || defaultConfig.handlers
-    };
-} catch (err) {
-    console.warn('config.json could not be loaded. Using default settings:', err.message);
+// 設定ファイルの読み込み（-rオプションがない場合のみ）
+if (cliRoots.length === 0) {
+    try {
+        const configData = require(path.resolve(configPath));
+        config = {
+            ...defaultConfig,
+            ...configData,
+            handlers: configData.handlers || defaultConfig.handlers
+        };
+        console.log(`Config loaded from: ${path.resolve(configPath)}`);
+    } catch (err) {
+        console.warn(`config.json could not be loaded. Using default settings: ${err.message}`);
+    }
+}
+
+// CLIオプションで上書き
+if (cliPort !== null) {
+    config.port = cliPort;
+}
+if (cliRoots.length > 0) {
+    config.roots = cliRoots;
+}
+
+const PORT = process.env.PORT || config.port || 8539;
+
+// rootConfig から path と name を取得するヘルパー関数
+function parseRootConfig(rootConfig) {
+    const dirPath = typeof rootConfig === 'string' ? rootConfig : rootConfig.path;
+    const customName = typeof rootConfig === 'object' ? rootConfig.name : null;
+    const name = customName || path.basename(dirPath);
+    return { dirPath, name };
 }
 
 // 名前→パスのマッピングを作成
@@ -324,10 +396,7 @@ const nameToPath = new Map();
 const pathToName = new Map();
 
 for (const pathConfig of config.roots) {
-    const dirPath = typeof pathConfig === 'string' ? pathConfig : pathConfig.path;
-    const customName = typeof pathConfig === 'object' ? pathConfig.name : null;
-    const name = customName || path.basename(dirPath);
-
+    const { dirPath, name } = parseRootConfig(pathConfig);
     nameToPath.set(name, dirPath);
     pathToName.set(dirPath, name);
 }
@@ -357,12 +426,9 @@ app.get('/api/roots', async (req, res) => {
 
         for (const pathConfig of config.roots) {
             try {
-                // 文字列またはオブジェクトをサポート
-                const dirPath = typeof pathConfig === 'string' ? pathConfig : pathConfig.path;
-                const customName = typeof pathConfig === 'object' ? pathConfig.name : null;
+                const { dirPath, name: pathName } = parseRootConfig(pathConfig);
 
                 const stats = await fs.stat(dirPath);
-                const pathName = customName || path.basename(dirPath);
 
                 rootItems.push({
                     name: pathName,
@@ -768,6 +834,53 @@ app.get('/api/media-url/:filename(*)', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server started: http://localhost:${PORT}`);
+// ネットワークインターフェースからローカルIPを取得
+function getLocalIPs() {
+    const interfaces = os.networkInterfaces();
+    const ips = [];
+
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // IPv4でかつ内部アドレスでないもの
+            if (iface.family === 'IPv4' && !iface.internal) {
+                ips.push(iface.address);
+            }
+        }
+    }
+
+    return ips;
+}
+
+const server = app.listen(PORT, () => {
+    console.log('\nLiteComics Server Started!\n');
+    console.log('Access URLs:');
+    console.log(`  http://localhost:${PORT}`);
+    console.log(`  http://127.0.0.1:${PORT}`);
+
+    const localIPs = getLocalIPs();
+    if (localIPs.length > 0) {
+        localIPs.forEach(ip => {
+            console.log(`  http://${ip}:${PORT}`);
+        });
+    }
+
+    console.log('\nRoot Directories:');
+    if (config.roots && config.roots.length > 0) {
+        config.roots.forEach((root) => {
+            const { dirPath, name } = parseRootConfig(root);
+            console.log(`  ${name} > ${dirPath}`);
+        });
+    }
+
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`\nError: Port ${PORT} is already in use.`);
+        console.error(`Please try a different port with: litecomics -p <port>\n`);
+        process.exit(1);
+    } else {
+        console.error(`Server error: ${err.message}`);
+        process.exit(1);
+    }
 });

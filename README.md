@@ -1,63 +1,65 @@
 # LiteComics
 
-シンプルで高機能な Web ベースのコミックアーカイブビューア。CBZ/ZIP/CBR/RAR ファイルをブラウザで快適に閲覧できます。
+バニラJavaScriptで作成したシンプルで高機能なWebベースのコミック・メディアビューア。CBZ/ZIP/CBR/RAR/7Zファイルをブラウザで快適に閲覧したり、動画・音声ファイルを再生できます。
 
-A simple and feature-rich web-based comic archive viewer built with vanilla JavaScript. Browse CBZ/ZIP/CBR/RAR files comfortably in your browser.
-
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen.svg)
 
 **日本語** | [English](README_EN.md)
 
 ## ✨ 特徴
 
-- 📚 **複数フォーマット対応**: CBZ, ZIP, CBR, RAR, (EPUB)
-- 📖 **見開き表示**: 右から左への自然な見開き表示（横長画像は自動的に1ページ表示）
-- 🖼️ **サムネイル一覧**: 全ページをグリッド表示で素早く閲覧
-- 📋 **ファイル名リスト**: サイドバーでページ一覧を確認
-- ⌨️ **キーボードショートカット**: 快適な操作性
-- 🚀 **高速表示**: 画像キャッシュとスムーズな読み込み
-- 🎬 **メディア再生**: 動画・音声ファイルにも対応
+- 📚 **複数フォーマット対応**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB（画像のみ）
+- 🎬 **メディア再生**: 動画・音声ファイルに対応（MP4, MKV, WebM, MP3, FLAC など）
+- 📖 **見開き表示**: 右開き見開きの自然な表示（横長画像は自動的に単ページ表示）
+- 🖼️ **サムネイル一覧**: グリッドレイアウトでページを素早く確認
+- 📋 **ファイル一覧**: サイドバーにページ名リスト表示
+- ⌨️ **キーボードショートカット**: 快適な操作
+- 🚀 **高速表示**: サムネイルとファイルリストのキャッシュ
+- 🎨 **ダークモード**: ライト/ダークテーマ切り替え
+- 🔍 **ズーム機能**: UI全体の拡大縮小（50-200%）
 
 ## 🚀 クイックスタート
 
-### 必要な環境
+### 必要要件
 
 - Node.js 14.0.0 以上
-- unrar コマンド（RAR/CBR ファイルを扱う場合）
+- unrar コマンド（RAR/CBRファイル用）
+- 7z コマンド（7Z/CB7ファイル用）
 
 ### インストール
 
 ```bash
-# リポジトリをクローン
+# リポジトリのクローン
 git clone <repository-url>
-cd viewer
+cd LiteComics
 
-# 依存パッケージをインストール
+# 依存関係のインストール
 npm install
 
-# unrar コマンドのインストール（RAR/CBR 対応に必要）
-# Ubuntu/Debian の場合:
-sudo apt install unrar
+# コマンドラインツールとしてインストール（オプション）
+npm link
 
-# macOS の場合:
-brew install unrar
+# 必要なコマンドのインストール
+# Ubuntu/Debian:
+sudo apt install unrar p7zip-full
+
+# macOS:
+brew install unrar p7zip
 ```
 
 ### 設定
 
-`config.json` を作成し、コミックファイルの保存場所を指定します：
+`config.json` を作成し、コミックファイルの場所とポート番号を指定します:
 
 ```json
 {
+  "port": 8539,
   "roots": [
+    "/path/to/your/comics",
     {
-      "name": "comics",
-      "path": "/path/to/your/comics"
-    },
-    {
-      "name": "manga",
-      "path": "/path/to/your/manga"
+      "path": "/path/to/your/manga",
+      "name": "Manga"
     }
   ]
 }
@@ -66,68 +68,102 @@ brew install unrar
 ### 起動
 
 ```bash
-node server.js
+# 設定ファイルを使用
+litecomics
+
+# ポートを指定
+litecomics -p 3000
+
+# ルートディレクトリを直接指定
+litecomics -r /path/to/comics -r /path/to/movies
+
+# カスタム設定ファイルを使用
+litecomics -c /path/to/config.json
+
+# ヘルプを表示
+litecomics --help
 ```
 
-ブラウザで http://localhost:8539 にアクセスしてください。
+表示されたURLにブラウザでアクセスします。
 
-## 🔄 PM2 でのバックグラウンド起動
+## 📝 コマンドラインオプション
 
-本番環境やサーバーで常時起動させる場合は PM2 の使用を推奨します。
+```
+litecomics [options]
 
-### PM2 のインストール
+Options:
+  -c, --config <path>  設定ファイルのパスを指定（デフォルト: ./config.json）
+  -p, --port <number>  ポート番号を指定（デフォルト: 8539）
+  -r, --root <path>    ルートディレクトリを追加（複数回使用可能）
+  -h, --help           ヘルプメッセージを表示
+
+Examples:
+  litecomics
+  litecomics -p 3000
+  litecomics -r /path/to/comics -r /another/path
+  litecomics -c custom-config.json -p 3000
+```
+
+## 🔄 PM2でバックグラウンド実行
+
+本番環境やサーバーで継続実行する場合はPM2の使用を推奨します。
+
+### PM2のインストール
 
 ```bash
 npm install -g pm2
 ```
 
-### PM2 で起動
+### PM2での起動
 
 ```bash
 # アプリケーションを起動
-pm2 start server.js --name comic-viewer
+pm2 start server.js --name litecomics
 
-# 起動状態を確認
+# カスタムポートで起動
+pm2 start server.js --name litecomics -- -p 3000
+
+# 状態確認
 pm2 status
 
-# ログを確認
-pm2 logs comic-viewer
+# ログ表示
+pm2 logs litecomics
 
 # 再起動
-pm2 restart comic-viewer
+pm2 restart litecomics
 
 # 停止
-pm2 stop comic-viewer
+pm2 stop litecomics
 
 # 削除
-pm2 delete comic-viewer
+pm2 delete litecomics
 ```
 
-### システム起動時の自動起動設定
+### システム起動時の自動起動
 
 ```bash
-# 現在の PM2 プロセスを保存
+# 現在のPM2プロセスを保存
 pm2 save
 
-# システム起動時に PM2 を自動起動
+# システム起動時にPM2を自動起動
 pm2 startup
-# 表示されたコマンドを実行（sudo権限が必要な場合があります）
+# 表示されたコマンドを実行（sudoが必要な場合があります）
 ```
 
-## 🐳 Docker での起動
+## 🐳 Dockerで実行
 
-Docker Compose を使用すると、依存関係のインストールが不要で簡単に起動できます。
+Docker Composeを使用すると依存関係のインストールなしで簡単に起動できます。
 
-### Docker Compose で起動
+### Docker Composeで起動
 
-1. `docker-compose.yml` を編集して、コミックファイルのパスを設定：
+1. `docker-compose.yml` を編集してコミックファイルのパスを設定:
 
 ```yaml
 volumes:
   - /path/to/your/comics:/data:ro
 ```
 
-2. コンテナをビルド・起動：
+2. コンテナをビルド・起動:
 
 ```bash
 docker-compose up -d
@@ -135,10 +171,10 @@ docker-compose up -d
 
 3. ブラウザで http://localhost:8539 にアクセス
 
-### Docker コマンド
+### Dockerコマンド
 
 ```bash
-# ログ確認
+# ログ表示
 docker-compose logs -f
 
 # 停止
@@ -151,9 +187,9 @@ docker-compose restart
 docker-compose up -d --build
 ```
 
-### カスタム設定を使用する場合
+### カスタム設定の使用
 
-`docker-compose.yml` のコメントを解除して、`config.json` をマウント：
+`docker-compose.yml` で `config.json` をマウントするには、以下をアンコメント:
 
 ```yaml
 volumes:
@@ -162,12 +198,25 @@ volumes:
 
 ## 🎮 使い方
 
-### ファイル一覧画面
+### ファイルリスト画面
 
-- **↑/↓**: カーソル移動
-- **Enter**: ファイルを開く
-- **ESC/Backspace**: 親ディレクトリに戻る
-- **クリック**: ファイルやフォルダを開く
+#### キーボード操作
+
+| キー | 機能 |
+|------|------|
+| `↑` / `↓` | カーソル移動 |
+| `←` / `→` | カーソル移動 |
+| `PageUp` / `PageDown` | 10個ずつ移動 |
+| `Enter` | ファイルを開く |
+| `ESC` / `Backspace` | 親ディレクトリに戻る |
+| `Ctrl` + `-` | UI サイズ縮小 |
+| `Ctrl` + `+` | UI サイズ拡大 |
+
+#### マウス操作
+
+- **クリック**: ファイル/フォルダを開く
+- **A-/A+ ボタン**: UI 全体のズーム
+- **🌓 ボタン**: ライト/ダークテーマ切り替え
 
 ### ビューア画面
 
@@ -176,64 +225,99 @@ volumes:
 | キー | 機能 |
 |------|------|
 | `←` / `→` | ページ送り（右綴じ） |
-| `↑` / `↓` | 配置修正（ページオフセット調整） |
-| `S` | 単/複表示モード切り替え |
-| `Enter` | 全画面モード切り替え |
-| `T` | サムネイル一覧を表示 |
-| `L` | ファイル名リストを表示/非表示 |
-| `H` | ヘルプを表示/非表示 |
-| `ESC` / `Backspace` | ファイル一覧に戻る |
+| `↑` / `↓` | ページオフセット調整 |
+| `S` | シングル/見開き表示切替 |
+| `Enter` | フルスクリーン切替 |
+| `T` | サムネイル一覧表示 |
+| `L` | ファイル名リスト表示/非表示 |
+| `H` | ヘルプ表示/非表示 |
+| `ESC` / `Backspace` | ファイルリストに戻る |
 
 #### マウス操作
 
-- **画面左半分クリック**: 次のページ
-- **画面右半分クリック**: 前のページ
-- **画面上部にホバー**: ツールバー表示
-- **画面下部にホバー**: ページ情報表示
+- **左半分クリック**: 次ページ
+- **右半分クリック**: 前ページ
+- **上部ホバー**: ツールバー表示
+- **下部ホバー**: ページ情報表示
 
 ### ツールバー
 
-- **✕ 閉じる**: ファイル一覧に戻る
-- **📋 リスト**: ファイル名リストを表示
-- **🖼️ サムネイル**: サムネイル一覧を表示
+- **✕ 閉じる**: ファイルリストに戻る
+- **📋 リスト**: ファイル名リスト表示
+- **🖼️ サムネイル**: サムネイル一覧表示
 - **◀◀ / ▶▶**: ページ送り
 - **◀ / ▶**: ページオフセット調整
-- **単/複**: 表示モード切り替え
+- **シングル/見開き**: 表示モード切替
 - **全画面**: フルスクリーンモード
 - **ヘルプ**: ヘルプ表示
 
 ## 🏗️ 技術スタック
 
-- **Backend**: Express.js 4.18.2
-- **Archive Handling**: adm-zip 0.5.10, unrar (command-line)
-- **Frontend**: Vanilla JavaScript, HTML5, CSS3（各HTMLファイルは完全独立）
-- **Routing**: Hash-based client-side routing
-- **Storage**: localStorage (設定保持), sessionStorage (ナビゲーション状態)
+- **バックエンド**: Express.js 4.18.2
+- **アーカイブ処理**: adm-zip 0.5.10, unrar（コマンドライン）, 7z（コマンドライン）
+- **フロントエンド**: Vanilla JavaScript, HTML5, CSS3（各HTMLファイルは独立動作）
+- **ルーティング**: ハッシュベースのクライアントサイドルーティング
+- **ストレージ**: localStorage（設定）, sessionStorage（ナビゲーション状態）
 
-## 📁 プロジェクト構成
+## 📁 プロジェクト構造
 
 ```
 .
-├── server.js          # Express サーバー
+├── server.js          # Expressサーバー
 ├── config.json        # 設定ファイル
 ├── package.json       # 依存関係
 ├── README.md          # このファイル
+├── README_EN.md       # 英語版ドキュメント
 └── public/
-    ├── index.html     # ファイル一覧画面
+    ├── index.html     # ファイルリスト画面
     ├── viewer.html    # コミックビューア画面
     ├── media.html     # メディアプレイヤー画面
     └── favicon.svg    # アイコン
 ```
 
-## 🔧 API エンドポイント
+## 🔧 APIエンドポイント
 
 | エンドポイント | 説明 |
 |---------------|------|
-| `GET /api/roots` | ルート一覧取得 |
-| `GET /api/dir/*` | ディレクトリ内容取得 |
-| `GET /api/book/:filename(*)/list` | 本（アーカイブ）内ファイル一覧 |
-| `GET /api/book/:filename(*)/image/:index` | 本から画像取得 |
-| `GET /api/book/:filename(*)/thumbnail` | 本のサムネイル取得 |
-| `GET /api/media/:filename(*)` | メディアファイル取得（動画・音声） |
+| `GET /api/roots` | ルート一覧を取得 |
+| `GET /api/dir/*` | ディレクトリ内容を取得 |
+| `GET /api/book/:filename(*)/list` | アーカイブ内ファイル一覧取得 |
+| `GET /api/book/:filename(*)/image/:index` | アーカイブから画像取得 |
+| `GET /api/book/:filename(*)/thumbnail` | サムネイル取得（LRUキャッシュ） |
+| `GET /api/media/:filename(*)` | メディアファイル取得（動画・音声、Range対応） |
+| `GET /api/media-url/:filename(*)` | メディアURL取得（デバイス判定、外部プレイヤー対応） |
 | `GET /api/file/:filename(*)` | 任意のファイル取得 |
 
+## �� 対応フォーマット
+
+### アーカイブ（コミック）
+- **CBZ, ZIP**: JavaScript（adm-zip）
+- **CBR, RAR**: unrarコマンド
+- **CB7, 7Z**: 7zコマンド
+- **EPUB**: 部分対応
+
+### メディア
+- **動画**: MP4, MKV, WebM, AVI, MOV, M2TS, TS, WMV, FLV, MPG, MPEG
+- **音声**: MP3, FLAC, WAV, OGG, M4A, AAC, WMA, Opus
+
+### 画像
+- JPG, JPEG, PNG, GIF, WebP, BMP, AVIF
+
+## 💾 キャッシュ設定
+
+- **サムネイルキャッシュ**: 最大4096個（LRU）
+- **ファイルリストキャッシュ**: 最大256個（メモリ）
+- **キャッシュディレクトリ**: `.thumbnail-cache/`
+
+## 🌐 外部プレイヤー対応
+
+デバイスに応じて特定のフォーマットを外部プレイヤーで開くことができます（config.jsonで設定）:
+
+- **iOS**: VLC（MKV, AVI, FLAC など）
+- **Android**: VLC（MKV, M2TS など）
+- **macOS**: IINA（AVI, FLAC, MKV など）
+- **Windows**: VLC（AVI, FLAC, MKV など）
+
+## 📄 ライセンス
+
+ISC License
