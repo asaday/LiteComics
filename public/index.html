@@ -224,6 +224,14 @@
       background-color: #fafafa;
     }
 
+    .file-list-view li:hover:not(.selected) {
+      background-color: #2d2d2d;
+    }
+
+    body[data-theme="light"] .file-list-view li:hover:not(.selected) {
+      background-color: #e5e5ea;
+    }
+
     .file-list-view li.selected {
       background-color: #0058d0;
       color: #fff;
@@ -371,11 +379,6 @@
 
     body[data-theme="light"] .file-list li a {
       color: #1d1d1f;
-    }
-
-    .file-list li a:hover {
-      text-decoration: none;
-      color: #409cff;
     }
 
     .file-list .directory span {

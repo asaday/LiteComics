@@ -79,8 +79,12 @@ function isAudioFile(filename) {
 
 // サムネイルキャッシュの設定
 const CACHE_DIR = path.join(__dirname, '.thumbnail-cache');
-const MAX_CACHE_SIZE = 1024;
+const MAX_CACHE_SIZE = 4096;
 const cacheMetadata = new Map(); // { hash: { path, lastAccess, size } }
+
+// 画像リストのメモリキャッシュ
+const MAX_IMAGE_LIST_CACHE = 256;
+const imageListCache = new Map(); // { filePath: { imageFiles, lastAccess } }
 
 // キャッシュディレクトリの初期化
 if (!fssync.existsSync(CACHE_DIR)) {
@@ -123,6 +127,20 @@ function cleanupCache() {
     }
 }
 
+// 画像リストキャッシュのクリーンアップ
+function cleanupImageListCache() {
+    if (imageListCache.size <= MAX_IMAGE_LIST_CACHE) return;
+
+    const entries = Array.from(imageListCache.entries())
+        .sort((a, b) => a[1].lastAccess - b[1].lastAccess);
+
+    const toDelete = entries.slice(0, imageListCache.size - MAX_IMAGE_LIST_CACHE);
+
+    for (const [filePath] of toDelete) {
+        imageListCache.delete(filePath);
+    }
+}
+
 // ファイルパスからハッシュを生成
 function generateCacheKey(filePath) {
     return crypto.createHash('md5').update(filePath).digest('hex');
@@ -130,6 +148,15 @@ function generateCacheKey(filePath) {
 
 // 本（アーカイブ）から画像ファイルリストを取得
 async function getImagesFromBook(filePath) {
+    // キャッシュチェック
+    if (imageListCache.has(filePath)) {
+        const cached = imageListCache.get(filePath);
+        cached.lastAccess = Date.now();
+        imageListCache.set(filePath, cached);
+        return cached.imageFiles;
+    }
+
+    let imageFiles;
 
     if (isRarArchive(filePath)) {
         // RAR/CBRの処理 - unrarコマンドを使用
@@ -137,7 +164,7 @@ async function getImagesFromBook(filePath) {
             const output = execSync(`unrar lb "${filePath}"`, { encoding: 'utf8' });
             const files = output.split('\n').filter(line => line.trim());
 
-            return files
+            imageFiles = files
                 .filter(filename => {
                     const fileExt = path.extname(filename).toLowerCase();
                     return IMAGE_EXTENSIONS.includes(fileExt);
@@ -172,7 +199,7 @@ async function getImagesFromBook(filePath) {
                 }
             }
 
-            return files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+            imageFiles = files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
         } catch (err) {
             throw new Error(`7Zファイルの読み込みに失敗: ${err.message}`);
         }
@@ -181,7 +208,7 @@ async function getImagesFromBook(filePath) {
         const zip = new AdmZip(filePath);
         const zipEntries = zip.getEntries();
 
-        return zipEntries
+        imageFiles = zipEntries
             .filter(entry => {
                 if (entry.isDirectory) return false;
                 const entryExt = path.extname(entry.entryName).toLowerCase();
@@ -190,6 +217,15 @@ async function getImagesFromBook(filePath) {
             .map(entry => entry.entryName)
             .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     }
+
+    // キャッシュに保存
+    imageListCache.set(filePath, {
+        imageFiles: imageFiles,
+        lastAccess: Date.now()
+    });
+    cleanupImageListCache();
+
+    return imageFiles;
 }
 
 // 本（アーカイブ）からファイルを抽出
