@@ -376,8 +376,8 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    /* レスポンシブ対応: ウィンドウリサイズ時も最適なサイズで表示 */
-    @media (max-width: 768px) {
+    /* レスポンシブ対応: 縦長のビューポートのみ縦並びにする */
+    @media (max-width: 768px) and (orientation: portrait) {
       .double-page {
         flex-direction: column;
       }
