@@ -2,7 +2,7 @@ const { ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-function setupIpcHandlers(app) {
+function setupIpcHandlers(app, restartServerCallback) {
     const configPath = path.join(app.getPath('userData'), 'config.json');
 
     // 設定を読み込む
@@ -26,6 +26,12 @@ function setupIpcHandlers(app) {
     ipcMain.handle('save-config', async (event, config) => {
         try {
             fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+
+            // サーバーを再起動
+            if (restartServerCallback) {
+                await restartServerCallback();
+            }
+
             return { success: true };
         } catch (error) {
             console.error('Config save error:', error);

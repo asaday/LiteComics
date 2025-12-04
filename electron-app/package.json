@@ -22,11 +22,24 @@
             "menu.js",
             "ipc-handlers.js",
             "settings.html",
-            "settings.js",
-            "../server.js",
-            "../public/**/*",
-            "../node_modules/**/*",
-            "!../node_modules/.bin"
+            "settings.js"
+        ],
+        "extraResources": [
+            {
+                "from": "../server.js",
+                "to": "server.js"
+            },
+            {
+                "from": "../public",
+                "to": "public"
+            },
+            {
+                "from": "../node_modules",
+                "to": "node_modules",
+                "filter": [
+                    "!node_modules/.bin/**"
+                ]
+            }
         ],
         "win": {
             "target": "nsis",
@@ -45,5 +58,8 @@
         "electron": "^28.0.0",
         "electron-builder": "^24.9.1"
     },
-    "dependencies": {}
+    "dependencies": {
+        "express": "^4.18.2",
+        "adm-zip": "^0.5.10"
+    }
 }

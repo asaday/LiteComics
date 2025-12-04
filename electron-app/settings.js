@@ -91,7 +91,7 @@ document.getElementById('save').addEventListener('click', async () => {
 
         const result = await window.electronAPI.saveConfig(config);
         if (result.success) {
-            alert('設定を保存しました。\n変更を反映するには、アプリケーションを再起動してください。');
+            alert('設定を保存しました。\nサーバーを再起動しています...');
             window.close();
         } else {
             alert(`設定の保存に失敗しました: ${result.error}`);

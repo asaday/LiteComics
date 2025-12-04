@@ -5,3 +5,4 @@ config.json
 # Electron build output
 electron-app/dist
 electron-app/node_modules
+.DS_Store
