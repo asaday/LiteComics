@@ -51,7 +51,7 @@
     .breadcrumb {
       margin: 0;
       padding: 8px 20px;
-      background-color: #282828;
+      background-color: #353535;
       border-bottom: 1px solid #3a3a3a;
       font-size: 1rem;
       color: #8e8e93;
@@ -64,8 +64,8 @@
     }
 
     body[data-theme="light"] .breadcrumb {
-      background-color: #ffffff;
-      border-bottom: 1px solid #c7c7cc;
+      background-color: #ebebed;
+      border-bottom: 1px solid #d1d1d6;
       color: #6e6e73;
     }
 
@@ -201,6 +201,11 @@
 
     .breadcrumb-item:hover {
       color: #409cff;
+    }
+
+    .breadcrumb-home {
+      font-size: 1.2rem;
+      padding: 2px 0px;
     }
 
     .breadcrumb-current {
@@ -944,7 +949,11 @@
       };
 
       // ホーム
-      addItem('📂', '/');
+      const homeLink = document.createElement('a');
+      homeLink.textContent = '🗂️';
+      homeLink.className = 'breadcrumb-item breadcrumb-home';
+      homeLink.href = '/';
+      breadcrumbContent.appendChild(homeLink);
 
       if (currentRootName) {
         addSeparator();
