@@ -1,3 +1,7 @@
 node_modules
 config.json
 .thumbnail-cache
+
+# Electron build output
+electron-app/dist
+electron-app/node_modules
