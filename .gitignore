@@ -6,3 +6,10 @@ config.json
 electron-app/dist
 electron-app/node_modules
 .DS_Store
+
+# Tray app build output
+tray-app/litecomics-tray
+tray-app/litecomics-tray.exe
+tray-app/packages/
+tray-app/dist/
+tray-app/node_modules/
