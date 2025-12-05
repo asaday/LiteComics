@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   viewer:
-    build: https://github.com/asaday/LiteComics.git
+    build: . #https://github.com/asaday/LiteComics.git
     container_name: litecomics
     ports:
       - "8539:8539"
     volumes:
       # Mount your comics directory (modify as needed)
       - /path/to/your/comics:/data:ro
-      - ./config:/app/config
+      - ./config.json:/app/config/config.json:ro
       - cache:/app/cache
     environment:
       - CONFIG_PATH=/app/config/config.json

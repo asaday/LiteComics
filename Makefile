@@ -6,6 +6,7 @@ BUILD_DIR = build
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 SERVICE_FILE = /etc/systemd/system/litecomics.service
+CONFIG_DIR = /etc/litecomics
 
 # Note: Cross-platform builds from macOS may fail due to platform-specific dependencies
 # (systray, autostart). Use GitHub Actions or build on each platform for production releases.
@@ -133,12 +134,19 @@ install-service: install
 		echo "Error: litecomics not found in $(BINDIR). Run 'make install' first."; \
 		exit 1; \
 	fi
+	@echo "Creating config directory..."
+	@sudo mkdir -p $(CONFIG_DIR)
+	@if [ ! -f $(CONFIG_DIR)/config.json ] && [ -f config.json.example ]; then \
+		sudo cp config.json.example $(CONFIG_DIR)/config.json; \
+		echo "✓ Created default config at $(CONFIG_DIR)/config.json"; \
+	fi
 	@echo "[Unit]" > /tmp/litecomics.service
 	@echo "Description=LiteComics Server" >> /tmp/litecomics.service
 	@echo "After=network.target" >> /tmp/litecomics.service
 	@echo "" >> /tmp/litecomics.service
 	@echo "[Service]" >> /tmp/litecomics.service
 	@echo "Type=simple" >> /tmp/litecomics.service
+	@echo "Environment=CONFIG_PATH=$(CONFIG_DIR)/config.json" >> /tmp/litecomics.service
 	@echo "ExecStart=$(BINDIR)/litecomics" >> /tmp/litecomics.service
 	@echo "Restart=on-failure" >> /tmp/litecomics.service
 	@echo "User=$(USER)" >> /tmp/litecomics.service
@@ -150,11 +158,13 @@ install-service: install
 	@sudo systemctl enable litecomics
 	@sudo systemctl start litecomics
 	@echo "✓ Service installed and started"
+	@echo "✓ Config location: $(CONFIG_DIR)/config.json"
 	@echo ""
 	@echo "Useful commands:"
 	@echo "  sudo systemctl status litecomics   # Check status"
 	@echo "  sudo systemctl restart litecomics  # Restart"
 	@echo "  sudo journalctl -u litecomics -f   # View logs"
+	@echo "  sudo nano $(CONFIG_DIR)/config.json # Edit config"
 
 uninstall-service:
 	@echo "Uninstalling systemd service..."

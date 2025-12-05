@@ -1,6 +1,6 @@
 {
     "port": 8539,
     "roots": [
-        "/data"
+        "/home"
     ]
 }

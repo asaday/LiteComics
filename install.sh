@@ -106,6 +106,16 @@ if [ "$INSTALL_SERVICE" = true ]; then
         
         if [ "$EUID" -eq 0 ] || sudo -n true 2>/dev/null; then
             SERVICE_FILE="/etc/systemd/system/litecomics.service"
+            CONFIG_DIR="/etc/litecomics"
+            
+            # Create config directory
+            sudo mkdir -p "$CONFIG_DIR"
+            
+            # Copy example config if it doesn't exist
+            if [ ! -f "$CONFIG_DIR/config.json" ] && [ -f "$EXTRACTED_DIR/config.json.example" ]; then
+                sudo cp "$EXTRACTED_DIR/config.json.example" "$CONFIG_DIR/config.json"
+                echo "✓ Created default config at $CONFIG_DIR/config.json"
+            fi
             
             sudo tee "$SERVICE_FILE" > /dev/null << EOF
 [Unit]
@@ -115,6 +125,7 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
+Environment="CONFIG_PATH=$CONFIG_DIR/config.json"
 ExecStart=$INSTALL_DIR/litecomics
 Restart=on-failure
 
@@ -127,6 +138,7 @@ EOF
             sudo systemctl start litecomics
             
             echo "✓ Systemd service installed and started"
+            echo "✓ Config location: $CONFIG_DIR/config.json"
             echo ""
             echo "Service commands:"
             echo "  sudo systemctl status litecomics"
@@ -143,19 +155,7 @@ EOF
         echo "Warning: systemctl not found. Service installation skipped."
         echo ""
     fi
+else
+    CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/LiteComics"
+    echo "Configuration will be created at: $CONFIG_DIR/config.json"
 fi
-
-echo "To run manually:"
-echo "  $INSTALL_DIR/litecomics"
-echo ""
-
-# Check if in PATH
-if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
-    echo "Note: $INSTALL_DIR is not in your PATH"
-    echo "Add this to your ~/.bashrc or ~/.zshrc:"
-    echo "  export PATH=\"\$PATH:$INSTALL_DIR\""
-    echo ""
-fi
-
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/LiteComics"
-echo "Configuration will be created at: $CONFIG_DIR/config.json"
