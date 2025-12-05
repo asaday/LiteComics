@@ -188,13 +188,13 @@ func defaultConfig() *Config {
 			},
 			"mac": {
 				"IINA": {
-					Ext: []string{".avi", ".flac", ".mkv", ".m2ts", ".ts", ".wmv"},
+					Ext: []string{".avi", ".flac", ".m2ts", ".ts", ".wmv"},
 					URL: "iina://weblink?url={url}",
 				},
 			},
 			"windows": {
 				"VLC": {
-					Ext: []string{".avi", ".flac", ".mkv", ".m2ts", ".ts", ".wmv"},
+					Ext: []string{".avi", ".flac", ".m2ts", ".ts", ".wmv"},
 					URL: "vlc://{url}",
 				},
 			},
