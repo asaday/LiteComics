@@ -280,18 +280,16 @@ func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
 
 	// Check for custom handler
 	var customURL, handlerName string
-	if handlers != nil {
-		for name, handler := range handlers {
-			for _, handlerExt := range handler.Ext {
-				if ext == handlerExt {
-					customURL = handler.URL
-					handlerName = name
-					break
-				}
-			}
-			if customURL != "" {
+	for name, handler := range handlers {
+		for _, handlerExt := range handler.Ext {
+			if ext == handlerExt {
+				customURL = handler.URL
+				handlerName = name
 				break
 			}
+		}
+		if customURL != "" {
+			break
 		}
 	}
 

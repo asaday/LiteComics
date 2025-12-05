@@ -70,7 +70,7 @@ func main() {
 	}
 
 	go func() {
-		fmt.Println("\nLiteComics Server Started!\n")
+		fmt.Println("\nLiteComics Server Started!")
 		fmt.Println("Access URLs:")
 		fmt.Printf("  http://localhost:%d\n", cfg.Port)
 		fmt.Printf("  http://127.0.0.1:%d\n", cfg.Port)
