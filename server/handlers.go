@@ -1,0 +1,412 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/gorilla/mux"
+	"net/http"
+)
+
+func (s *Server) handleRoots(w http.ResponseWriter, r *http.Request) {
+	type rootItem struct {
+		Name     string    `json:"name"`
+		Path     string    `json:"path"`
+		Type     string    `json:"type"`
+		Size     int64     `json:"size"`
+		Modified time.Time `json:"modified"`
+	}
+
+	items := make([]rootItem, 0, len(s.config.Roots))
+	for i := range s.config.Roots {
+		if info, err := os.Stat(s.config.Roots[i].Path); err == nil {
+			items = append(items, rootItem{
+				Name: s.config.Roots[i].Name, Path: s.config.Roots[i].Name, Type: "directory",
+				Size: info.Size(), Modified: info.ModTime(),
+			})
+		}
+	}
+	respondJSON(w, items)
+}
+
+func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
+	type fileItem struct {
+		Name     string    `json:"name"`
+		Path     string    `json:"path"`
+		Type     string    `json:"type"`
+		Size     int64     `json:"size"`
+		Modified time.Time `json:"modified"`
+	}
+
+	requestPath := mux.Vars(r)["path"]
+	resolved, err := s.resolveRequestPath(requestPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	info, err := os.Stat(resolved.FullPath)
+	if err != nil || !info.IsDir() {
+		http.Error(w, "ディレクトリではありません", http.StatusBadRequest)
+		return
+	}
+
+	entries, err := os.ReadDir(resolved.FullPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var files []fileItem
+	for _, entry := range entries {
+		info, _ := entry.Info()
+		itemRelativePath := entry.Name()
+		if resolved.RelativePath != "" {
+			itemRelativePath = filepath.Join(resolved.RelativePath, entry.Name())
+		}
+		itemPath := filepath.Join(resolved.RootName, itemRelativePath)
+
+		fileType := "file"
+		if entry.IsDir() {
+			fileType = "directory"
+		} else if isArchiveFile(entry.Name()) {
+			fileType = "book"
+		} else if isVideoFile(entry.Name()) {
+			fileType = "video"
+		} else if isAudioFile(entry.Name()) {
+			fileType = "audio"
+		}
+
+		files = append(files, fileItem{
+			Name: entry.Name(), Path: itemPath, Type: fileType,
+			Size: info.Size(), Modified: info.ModTime(),
+		})
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].Type == "directory" && files[j].Type != "directory" {
+			return true
+		}
+		if files[i].Type != "directory" && files[j].Type == "directory" {
+			return false
+		}
+		return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
+	})
+
+	respondJSON(w, struct {
+		RootName     string     `json:"rootName"`
+		RelativePath string     `json:"relativePath"`
+		Files        []fileItem `json:"files"`
+	}{
+		RootName: resolved.RootName, RelativePath: resolved.RelativePath, Files: files,
+	})
+}
+
+func (s *Server) handleBookList(w http.ResponseWriter, r *http.Request) {
+	requestPath, _ := url.PathUnescape(mux.Vars(r)["path"])
+	resolved, err := s.resolveRequestPath(requestPath)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if _, err := os.Stat(resolved.FullPath); err != nil {
+		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		return
+	}
+
+	images, err := s.getImagesFromBook(resolved.FullPath)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, struct {
+		Filename string   `json:"filename"`
+		Images   []string `json:"images"`
+		Count    int      `json:"count"`
+	}{
+		Filename: filepath.Base(resolved.FullPath),
+		Images:   images,
+		Count:    len(images),
+	})
+}
+
+func (s *Server) handleBookImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	requestPath, _ := url.PathUnescape(vars["path"])
+	index, _ := strconv.Atoi(vars["index"])
+
+	resolved, err := s.resolveRequestPath(requestPath)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	images, err := s.getImagesFromBook(resolved.FullPath)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if index < 0 || index >= len(images) {
+		respondError(w, "インデックスが範囲外です", http.StatusNotFound)
+		return
+	}
+
+	imageName := images[index]
+	data, err := s.extractFileFromBook(resolved.FullPath, imageName)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(imageName))
+	mimeType := getMimeType(ext, imageMimeTypes)
+	w.Header().Set("Content-Type", mimeType)
+	w.Write(data)
+}
+
+func (s *Server) handleThumbnail(w http.ResponseWriter, r *http.Request) {
+	requestPath, _ := url.PathUnescape(mux.Vars(r)["path"])
+	resolved, err := s.resolveRequestPath(requestPath)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	cacheKey := generateCacheKey(resolved.FullPath)
+
+	// Check cache
+	if data, ok := s.thumbnailCache.Get(cacheKey); ok {
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.Header().Set("X-Cache", "HIT")
+		w.Write(data)
+		return
+	}
+
+	// Generate thumbnail
+	images, err := s.getImagesFromBook(resolved.FullPath)
+	if err != nil || len(images) == 0 {
+		respondError(w, "画像が見つかりません", http.StatusNotFound)
+		return
+	}
+
+	firstImage := images[0]
+	data, err := s.extractFileFromBook(resolved.FullPath, firstImage)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Save to cache
+	s.thumbnailCache.Set(cacheKey, data)
+
+	ext := strings.ToLower(filepath.Ext(firstImage))
+	mimeType := getMimeType(ext, imageMimeTypes)
+	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("X-Cache", "MISS")
+	w.Write(data)
+}
+
+func (s *Server) handleMedia(w http.ResponseWriter, r *http.Request) {
+	requestPath, _ := url.PathUnescape(mux.Vars(r)["path"])
+	resolved, err := s.resolveRequestPath(requestPath)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	stat, err := os.Stat(resolved.FullPath)
+	if err != nil || !stat.Mode().IsRegular() {
+		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(resolved.FullPath))
+	mimeType := getMimeType(ext, videoMimeTypes)
+	if mimeType == "application/octet-stream" {
+		mimeType = getMimeType(ext, audioMimeTypes)
+	}
+
+	// Handle range requests
+	rangeHeader := r.Header.Get("Range")
+	if rangeHeader != "" {
+		s.serveFileRange(w, r, resolved.FullPath, stat.Size(), mimeType)
+		return
+	}
+	s.serveFile(w, resolved.FullPath, stat.Size(), mimeType)
+}
+
+func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
+	requestPath, _ := url.PathUnescape(mux.Vars(r)["path"])
+	resolved, err := s.resolveRequestPath(requestPath)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	stat, err := os.Stat(resolved.FullPath)
+	if err != nil || !stat.Mode().IsRegular() {
+		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		return
+	}
+
+	userAgent := r.Header.Get("User-Agent")
+	ext := strings.ToLower(filepath.Ext(resolved.FullPath))
+
+	// Detect device
+	var handlers map[string]HandlerConfig
+	if strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iPad") || strings.Contains(userAgent, "iPod") {
+		handlers = s.config.Handlers["ios"]
+	} else if strings.Contains(userAgent, "Android") {
+		handlers = s.config.Handlers["android"]
+	} else if strings.Contains(userAgent, "Macintosh") || strings.Contains(userAgent, "Mac OS X") {
+		if !strings.Contains(userAgent, "iPhone") && !strings.Contains(userAgent, "iPad") {
+			handlers = s.config.Handlers["mac"]
+		}
+	} else if strings.Contains(userAgent, "Windows") {
+		handlers = s.config.Handlers["windows"]
+	}
+
+	// Check for custom handler
+	var customURL, handlerName string
+	if handlers != nil {
+		for name, handler := range handlers {
+			for _, handlerExt := range handler.Ext {
+				if ext == handlerExt {
+					customURL = handler.URL
+					handlerName = name
+					break
+				}
+			}
+			if customURL != "" {
+				break
+			}
+		}
+	}
+
+	mediaPath := "/api/media/" + url.PathEscape(requestPath)
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	fullURL := fmt.Sprintf("%s://%s%s", scheme, r.Host, mediaPath)
+
+	if customURL != "" {
+		finalURL := strings.ReplaceAll(customURL, "{url}", url.QueryEscape(fullURL))
+		respondJSON(w, struct {
+			URL    string `json:"url"`
+			Custom bool   `json:"custom,omitempty"`
+			Name   string `json:"name,omitempty"`
+		}{URL: finalURL, Custom: true, Name: handlerName})
+	} else {
+		respondJSON(w, struct {
+			URL string `json:"url"`
+		}{URL: fullURL})
+	}
+}
+
+func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
+	requestPath, _ := url.PathUnescape(mux.Vars(r)["path"])
+	resolved, err := s.resolveRequestPath(requestPath)
+	if err != nil {
+		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		return
+	}
+
+	stat, err := os.Stat(resolved.FullPath)
+	if err != nil || !stat.Mode().IsRegular() {
+		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(resolved.FullPath))
+	mimeType := getMimeType(ext, imageMimeTypes)
+	if mimeType == "application/octet-stream" {
+		switch ext {
+		case ".txt", ".log", ".nfo":
+			mimeType = "text/plain; charset=utf-8"
+		case ".json":
+			mimeType = "application/json"
+		case ".xml":
+			mimeType = "application/xml"
+		case ".md":
+			mimeType = "text/markdown; charset=utf-8"
+		case ".csv":
+			mimeType = "text/csv; charset=utf-8"
+		}
+	}
+
+	s.serveFile(w, resolved.FullPath, stat.Size(), mimeType)
+}
+
+// handleGetConfig returns the current configuration
+func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	respondJSON(w, s.config)
+}
+
+// handleUpdateConfig updates the configuration
+func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		respondError(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	var newConfig Config
+	if err := json.Unmarshal(body, &newConfig); err != nil {
+		respondError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Validate port
+	if newConfig.Port < 1 || newConfig.Port > 65535 {
+		respondError(w, "Invalid port number", http.StatusBadRequest)
+		return
+	}
+
+	// Validate roots
+	if len(newConfig.Roots) == 0 {
+		respondError(w, "At least one root directory is required", http.StatusBadRequest)
+		return
+	}
+
+	// Save to config.json
+	configData, err := json.MarshalIndent(newConfig, "", "  ")
+	if err != nil {
+		respondError(w, "Failed to marshal config", http.StatusInternalServerError)
+		return
+	}
+
+	configPath := getConfigPath()
+	if err := os.WriteFile(configPath, configData, 0644); err != nil {
+		respondError(w, "Failed to write config file", http.StatusInternalServerError)
+		return
+	}
+
+	s.config = &newConfig
+	respondJSON(w, map[string]string{"status": "ok"})
+}
+
+// handleRestart triggers a server restart
+func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
+	respondJSON(w, map[string]string{"status": "restarting"})
+	
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		if s.restartFunc != nil {
+			s.restartFunc()
+		}
+	}()
+}

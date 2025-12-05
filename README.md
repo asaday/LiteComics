@@ -3,16 +3,16 @@
 軽量かつ高機能なWebベースのコミック・メディアビューアシステム。標準的なブラウザ環境で、CBZ/ZIP/CBR/RAR/7Z形式のアーカイブファイルの閲覧、および各種動画・音声ファイルの再生を実現します。
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen.svg)
+![Go](https://img.shields.io/badge/go-%3E%3D1.23-00ADD8.svg)
 
 **日本語** | [English](README_EN.md)
 
 ## 特徴
 
 ### アーキテクチャ
-- **標準技術による構築**: フレームワークに依存しない純粋なJavaScript/HTML/CSS実装
-- **ビルドプロセス不要**: トランスパイル・バンドル処理を経ずに直接実行可能
-- **最小限の依存関係**: サーバーサイドはExpress.jsと必要最小限のアーカイブ処理ライブラリのみで構成
+- **Go言語による高速実行**: シングルバイナリで動作する軽量なサーバー実装
+- **純粋なGo標準ライブラリ**: ZIP処理は標準ライブラリのみで実現
+- **最小限の依存関係**: RAR/7Z処理用の必要最小限のライブラリのみで構成
 
 ### 機能
 - **多様なフォーマットへの対応**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB（画像抽出）
@@ -25,38 +25,164 @@
 - **テーマ切替**: ライトモード・ダークモードの選択
 - **UI スケーリング**: 全体表示の拡大縮小機能（50-200%）
 
-## セットアップ
+## インストール
 
-### システム要件
+### 方法1: Dockerで実行
 
-- Node.js 14.0.0 以上
-- unrar コマンド（RAR/CBR形式の処理に必要）
-- 7z コマンド（7Z/CB7形式の処理に必要）
+Docker環境があれば、Go環境や依存関係のインストールなしで簡単に起動できます。
 
-### インストール手順
+#### セットアップ
+
+1. **docker-compose.yml をダウンロード:**
 
 ```bash
-# リポジトリの取得
-git clone <repository-url>
-cd LiteComics
-
-# 依存パッケージのインストール
-npm install
-
-# グローバルコマンドとして登録（任意）
-npm link
-
-# アーカイブ処理コマンドのインストール
-# Ubuntu/Debian環境:
-sudo apt install unrar p7zip-full
-
-# macOS環境:
-brew install unrar p7zip
+curl -O https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.yml
 ```
 
-### 設定ファイル
+または手動でダウンロード: [docker-compose.yml](https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.yml)
 
-プロジェクトルートに `config.json` を作成し、コンテンツディレクトリとポート番号を定義します：
+2. **フォルダのパスを設定:**
+
+`docker-compose.yml` を開いて、あなたのフォルダのパスに変更します:
+
+```yaml
+services:
+  viewer:
+    # ...
+    volumes:
+      # ↓ここを変更
+      - /path/to/your/comics:/data:ro
+```
+
+**例:**
+- macOS: `- /Users/username/Comics:/data:ro`
+- Windows: `- C:/Users/username/Comics:/data:ro`
+- Linux: `- /home/username/comics:/data:ro`
+
+`:ro` は読み取り専用マウントを意味します（ファイルの誤削除を防ぐため）。
+
+**注意:** 設定ファイルは自動的に永続化されます（`config-data` ボリューム）。初回起動後、ブラウザの Settings から設定を変更できます。
+
+3. **起動:**
+
+```bash
+docker-compose up -d
+```
+
+初回は数分かかる場合があります（GitHubからのダウンロードとDockerイメージのビルド）。
+
+起動後、ブラウザで http://localhost:8539 にアクセスしてください。
+
+#### ポート番号を変更する
+
+デフォルトはポート8539ですが、`docker-compose.yml` で変更できます:
+
+```yaml
+ports:
+  - "8080:8539"  # ホスト側のポート:コンテナ内のポート
+```
+
+この例では http://localhost:8080 でアクセスできます。
+
+#### トラブルシューティング
+
+**ポートが使用中:**
+```bash
+# 別のポートを使用するか、競合しているプロセスを停止
+docker-compose down
+# docker-compose.ymlのポートを変更してから再起動
+```
+
+**フォルダが表示されない:**
+- `docker-compose.yml` のパスが正しいか確認
+- フォルダの読み取り権限があるか確認
+- コンテナを再起動: `docker-compose restart`
+
+---
+
+### 方法2: バイナリを手動ダウンロード
+
+デスクトップやRaspberry Piで使いたい場合:
+
+**macOS:**
+1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-mac-*.dmg`をダウンロード
+2. DMGをマウントして`LiteComics.app`をApplicationsフォルダにドラッグ
+3. アプリを起動（メニューバーにアイコンが表示されます）
+
+**Windows:**
+1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-windows-*.zip`をダウンロード
+2. ZIPを解凍
+3. `litecomics.exe`をダブルクリック（システムトレイにアイコンが表示されます）
+
+**Linux / Raspberry Pi:**
+1. [Releases](https://github.com/asaday/LiteComics/releases)から適切なファイルをダウンロード
+   - Intel/AMD: `litecomics-linux-amd64-*.tar.gz`
+   - Raspberry Pi: `litecomics-linux-arm64-*.tar.gz`
+2. 解凍して実行:
+```bash
+tar xzf litecomics-linux-*.tar.gz
+cd litecomics-linux-*/
+./litecomics
+```
+
+---
+
+### 方法3: ワンライナーインストール（Linux）
+
+Linux環境なら、1行のコマンドで自動インストール:
+
+```bash
+# 通常インストール（手動起動）
+curl -fsSL https://raw.githubusercontent.com/asaday/LiteComics/main/install.sh | bash
+
+# systemdサービスとして自動起動
+curl -fsSL https://raw.githubusercontent.com/asaday/LiteComics/main/install.sh | sudo bash -s -- --service
+```
+
+インストール後:
+```bash
+# 手動起動の場合
+litecomics
+
+# サービスの場合
+sudo systemctl status litecomics
+```
+
+---
+
+### ソースからビルド（開発者向け）
+
+```bash
+git clone https://github.com/asaday/LiteComics.git
+cd LiteComics
+make build
+cd server && ./litecomics
+```
+
+または開発用に直接実行:
+```bash
+make run
+```
+
+#### システムにインストール（Linux）
+
+```bash
+# バイナリをインストール
+sudo make install
+
+# systemdサービスとして登録（Linuxのみ）
+sudo make install-service
+
+# アンインストール
+sudo make uninstall
+sudo make uninstall-service  # サービスも削除する場合
+```
+
+## 設定
+
+### 最初の起動
+
+初回起動時は、ブラウザで設定画面が開きます。または手動で `config.json` を作成:
 
 ```json
 {
@@ -71,136 +197,17 @@ brew install unrar p7zip
 }
 ```
 
-### 起動方法
+### 設定の変更
 
-```bash
-# デフォルト設定で起動
-litecomics
+- **GUI（Desktop版）**: メニューバー/システムトレイのアイコン → Settings
+- **ブラウザ**: 右上のメニュー(☰) → ⚙️ Settings
+- **ファイル**: `config.json` を直接編集
 
-# ポート番号の指定
-litecomics -p 3000
+## システム要件
 
-# ルートディレクトリの直接指定
-litecomics -r /path/to/comics -r /path/to/movies
-
-# カスタム設定ファイルの使用
-litecomics -c /path/to/config.json
-
-# ヘルプの表示
-litecomics --help
-```
-
-起動後、コンソールに表示されるURLにブラウザからアクセスしてください。
-
-## コマンドラインインターフェース
-
-```
-litecomics [options]
-
-Options:
-  -c, --config <path>  設定ファイルのパスを指定（デフォルト: ./config.json）
-  -p, --port <number>  ポート番号を指定（デフォルト: 8539）
-  -r, --root <path>    ルートディレクトリを追加（複数回使用可能）
-  -h, --help           ヘルプメッセージを表示
-
-Examples:
-  litecomics
-  litecomics -p 3000
-  litecomics -r /path/to/comics -r /another/path
-  litecomics -c custom-config.json -p 3000
-```
-
-## PM2でバックグラウンド実行
-
-本番環境やサーバーで継続実行する場合はPM2の使用を推奨します。
-
-### PM2のインストール
-
-```bash
-npm install -g pm2
-```
-
-### PM2での起動
-
-```bash
-# アプリケーションを起動
-pm2 start server.js --name litecomics
-
-# カスタムポートで起動
-pm2 start server.js --name litecomics -- -p 3000
-
-# 状態確認
-pm2 status
-
-# ログ表示
-pm2 logs litecomics
-
-# 再起動
-pm2 restart litecomics
-
-# 停止
-pm2 stop litecomics
-
-# 削除
-pm2 delete litecomics
-```
-
-### システム起動時の自動起動
-
-```bash
-# 現在のPM2プロセスを保存
-pm2 save
-
-# システム起動時にPM2を自動起動
-pm2 startup
-# 表示されたコマンドを実行（sudoが必要な場合があります）
-```
-
-## Dockerで実行
-
-Docker Composeを使用すると依存関係のインストールなしで簡単に起動できます。
-
-### Docker Composeで起動
-
-1. `docker-compose.yml` を編集してコミックファイルのパスを設定:
-
-```yaml
-volumes:
-  - /path/to/your/comics:/data:ro
-```
-
-2. コンテナをビルド・起動:
-
-```bash
-docker-compose up -d
-```
-
-3. ブラウザで http://localhost:8539 にアクセス
-
-### Dockerコマンド
-
-```bash
-# ログ表示
-docker-compose logs -f
-
-# 停止
-docker-compose down
-
-# 再起動
-docker-compose restart
-
-# 再ビルド
-docker-compose up -d --build
-```
-
-### カスタム設定の使用
-
-`docker-compose.yml` で `config.json` をマウントするには、以下をアンコメント:
-
-```yaml
-volumes:
-  - ./config.json:/app/config.json:ro
-```
+- **メモリ**: 最小256MB、推奨512MB以上
+- **ストレージ**: サムネイルキャッシュ用に数百MB
+- **ブラウザ**: Chrome、Firefox、Safari、Edge等のモダンブラウザ
 
 ## 使い方
 
@@ -259,8 +266,12 @@ volumes:
 
 ## 技術スタック
 
-- **バックエンド**: Express.js 4.18.2
-- **アーカイブ処理**: adm-zip 0.5.10, unrar（コマンドライン）, 7z（コマンドライン）
+- **バックエンド**: Go 1.23+
+- **HTTPルーター**: gorilla/mux
+- **アーカイブ処理**: 
+  - ZIP: Go標準ライブラリ（archive/zip）
+  - RAR: github.com/nwaples/rardecode/v2
+  - 7Z: github.com/bodgit/sevenzip
 - **フロントエンド**: Vanilla JavaScript, HTML5, CSS3（各HTMLファイルは独立動作）
 - **ルーティング**: ハッシュベースのクライアントサイドルーティング
 - **ストレージ**: localStorage（設定）, sessionStorage（ナビゲーション状態）
@@ -269,11 +280,18 @@ volumes:
 
 ```
 .
-├── server.js          # Expressサーバー
-├── config.json        # 設定ファイル
-├── package.json       # 依存関係
 ├── README.md          # このファイル
 ├── README_EN.md       # 英語版ドキュメント
+├── server/            # Goサーバー実装
+│   ├── main.go        # エントリーポイント
+│   ├── server.go      # サーバー設定・ルーティング
+│   ├── handlers.go    # HTTPハンドラ
+│   ├── cache.go       # キャッシュ管理
+│   ├── archive.go     # アーカイブ処理
+│   ├── utils.go       # ユーティリティ関数
+│   ├── config.json    # 設定ファイル
+│   ├── go.mod         # Go依存関係
+│   └── litecomics     # ビルド済みバイナリ
 └── public/
     ├── index.html     # ファイルリスト画面
     ├── viewer.html    # コミックビューア画面
@@ -297,9 +315,9 @@ volumes:
 ## 対応フォーマット
 
 ### アーカイブ（コミック）
-- **CBZ, ZIP**: JavaScript（adm-zip）
-- **CBR, RAR**: unrarコマンド
-- **CB7, 7Z**: 7zコマンド
+- **CBZ, ZIP**: Go標準ライブラリ（archive/zip）
+- **CBR, RAR**: github.com/nwaples/rardecode/v2
+- **CB7, 7Z**: github.com/bodgit/sevenzip
 - **EPUB**: 部分対応
 
 ### メディア

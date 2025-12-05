@@ -570,6 +570,11 @@
       <div class="menu-container">
         <button id="menu-button" class="menu-button" title="メニュー">☰</button>
         <div id="menu-popup" class="menu-popup">
+          <div class="menu-item" id="menu-settings">
+            <div class="menu-item-label">
+              <span>⚙️ Settings</span>
+            </div>
+          </div>
           <div class="menu-item" id="menu-theme">
             <div class="menu-item-label">
               <span id="theme-icon">🌓</span>
@@ -1074,6 +1079,9 @@
     document.getElementById('menu-button').addEventListener('click', (e) => {
       e.stopPropagation();
       toggleMenu();
+    });
+    document.getElementById('menu-settings').addEventListener('click', () => {
+      location.href = '/settings.html';
     });
     document.getElementById('menu-theme').addEventListener('click', toggleTheme);
     document.getElementById('font-size-decrease').addEventListener('click', () => changeZoom(-10));

@@ -1,24 +1,32 @@
-FROM node:18-slim
+# ビルドステージ
+FROM golang:1.23-alpine AS builder
 
-# unrar のインストール
-RUN apt-get update && \
-    apt-get install -y unrar && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /build
 
-# 作業ディレクトリを設定
+# 依存関係をコピーしてダウンロード
+COPY server/go.mod server/go.sum ./
+RUN go mod download
+
+# ソースコードをコピーしてビルド
+COPY server/*.go ./
+RUN CGO_ENABLED=0 GOOS=linux go build -o litecomics .
+
+# 実行ステージ
+FROM alpine:latest
+
 WORKDIR /app
 
-# package.json と package-lock.json をコピー
-COPY package*.json ./
+# ビルド済みバイナリをコピー
+COPY --from=builder /build/litecomics .
 
-# 依存関係をインストール
-RUN npm install --production
+# 静的ファイルをコピー
+COPY public ./public
 
-# アプリケーションのファイルをコピー
-COPY . .
+# サンプル設定ファイルをコピー
+COPY config.json.example ./config.json.example
 
 # ポート 8539 を公開
 EXPOSE 8539
 
 # アプリケーションを起動
-CMD ["node", "server.js"]
+CMD ["./litecomics"]

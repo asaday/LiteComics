@@ -1,3 +1,8 @@
 node_modules
 config.json
 .thumbnail-cache
+
+# Build outputs
+build/
+dist/
+.DS_Store
