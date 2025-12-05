@@ -42,85 +42,57 @@ This creates:
 ## Building on Windows
 
 ### Prerequisites
-1. Install Go 1.21 or later
-2. Install Git for Windows
-3. Install Inno Setup 6 (for installer creation)
-   - Download from: https://jrsoftware.org/isdl.php
-   - Add to PATH: `C:\Program Files (x86)\Inno Setup 6`
+1. **Install Go 1.21 or later**
+   - Download from: https://go.dev/dl/
+   - Or use winget: `winget install GoLang.Go`
 
-### Build Steps
+2. **Install MinGW-w64 (for CGO support)**
+   - Use winget: `winget install MartinStorsjo.LLVM-MinGW.UCRT`
+   - Required for systray and autostart features
+
+3. **Install Inno Setup 6** (for installer creation)
+   - Use winget: `winget install JRSoftware.InnoSetup`
+   - Or download from: https://jrsoftware.org/isdl.php
+
+### Quick Build with Make (Recommended)
 
 ```powershell
-# Build Windows binary
-cd server
+# Build binary and create distribution packages (ZIP + installer)
+mingw32-make dist-windows
+```
+
+This single command will:
+- Build the Windows binary with CGO enabled
+- Create a ZIP package
+- Create a Windows installer (.exe)
+- Output files to `dist/` directory
+
+### Manual Build Steps
+
+If you need to build manually:
+
+```powershell
+# Set CGO and build
+cd src
+$env:CGO_ENABLED = "1"
 go build -ldflags="-s -w" -o ../build/litecomics-windows-amd64.exe
 
 # Create zip package
 cd ..
-$version = (git describe --tags --always --dirty)
-mkdir -p dist
-Compress-Archive -Path build/litecomics-windows-amd64.exe -DestinationPath "dist/litecomics-windows-$version.zip"
+$version = git describe --tags --always
+New-Item -ItemType Directory -Force -Path dist
+Compress-Archive -Force -Path build/litecomics-windows-amd64.exe -DestinationPath "dist/litecomics-windows-$version.zip"
+
+# Build installer
+$env:VERSION = $version
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\iscc.exe" installer.iss
 ```
 
-### Create Windows Installer
-
-Create `installer.iss`:
-
-```ini
-#define MyAppName "LiteComics"
-#define MyAppVersion GetEnv("VERSION")
-#define MyAppPublisher "Your Name"
-#define MyAppURL "https://github.com/asaday/LiteComics"
-#define MyAppExeName "litecomics-windows-amd64.exe"
-
-[Setup]
-AppId={{YOUR-GUID-HERE}}
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-AppPublisher={#MyAppPublisher}
-AppPublisherURL={#MyAppURL}
-AppSupportURL={#MyAppURL}
-AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\{#MyAppName}
-DefaultGroupName={#MyAppName}
-AllowNoIcons=yes
-OutputDir=dist
-OutputBaseFilename=litecomics-windows-{#MyAppVersion}-setup
-Compression=lzma
-SolidCompression=yes
-WizardStyle=modern
-PrivilegesRequired=lowest
-ArchitecturesInstallIn64BitMode=x64
-
-[Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
-
-[Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startupicon"; Description: "Start at Windows startup"; GroupDescription: "Startup:"; Flags: unchecked
-
-[Files]
-Source: "build\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-
-[Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
-
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-```
-
-Build installer:
-
-```powershell
-# Set version
-$env:VERSION = (git describe --tags --always --dirty)
-
-# Compile installer
-& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-```
+### Notes
+- CGO is **required** for systray and autostart features on Windows
+- The `installer.iss` file is already configured in the repository
+- Default install location: `C:\Program Files\LiteComics`
+- Requires administrator privileges for installation
 
 ## GitHub Actions (Recommended)
 

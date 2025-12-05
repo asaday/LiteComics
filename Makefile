@@ -26,8 +26,12 @@ build-linux-arm64:
 	cd src && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-arm64
 
 build-windows:
-	mkdir -p $(BUILD_DIR)
-	cd src && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
+	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
+	cd src && set CGO_ENABLED=1 && go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
+
+build-windows-nocgo:
+	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
+	cd src && set CGO_ENABLED=0 && go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
 
 build-mac-arm64:
 	mkdir -p $(BUILD_DIR)
@@ -115,20 +119,22 @@ dist: clean build-all
 # Windows配布パッケージ作成（Windows環境でのみ実行）
 dist-windows: build-windows
 	@echo "Creating Windows distribution package (version: $(VERSION))..."
-	@mkdir -p $(DIST_DIR)
-	
-	# Windows ZIP
-	@mkdir -p $(DIST_DIR)/litecomics-windows-$(VERSION)
-	@cp $(BUILD_DIR)/litecomics-windows-amd64.exe $(DIST_DIR)/litecomics-windows-$(VERSION)/litecomics.exe
-	@cp config.json.example $(DIST_DIR)/litecomics-windows-$(VERSION)/config.json.example
-	@cp README.md $(DIST_DIR)/litecomics-windows-$(VERSION)/
-	@cd $(DIST_DIR) && powershell Compress-Archive -Path litecomics-windows-$(VERSION) -DestinationPath litecomics-windows-$(VERSION).zip -Force || zip -r litecomics-windows-$(VERSION).zip litecomics-windows-$(VERSION)
-	@rm -rf $(DIST_DIR)/litecomics-windows-$(VERSION)
-	
-	@echo "\n✓ Windows distribution package created in $(DIST_DIR)/"
-	@echo "  Windows: .zip"
-	@echo "  Note: For setup.exe, compile installer.iss with Inno Setup"
-	@ls -lh $(DIST_DIR)/*.zip 2>/dev/null || true
+	@if not exist $(DIST_DIR) mkdir $(DIST_DIR)
+	@echo "Creating ZIP package..."
+	@powershell -Command "Compress-Archive -Force -Path '$(BUILD_DIR)/litecomics-windows-amd64.exe' -DestinationPath '$(DIST_DIR)/litecomics-windows-$(VERSION).zip'"
+	@echo "Building Windows installer with Inno Setup..."
+	@set VERSION=$(VERSION)
+	@if exist "$(LOCALAPPDATA)\Programs\Inno Setup 6\iscc.exe" ( \
+		"$(LOCALAPPDATA)\Programs\Inno Setup 6\iscc.exe" installer.iss \
+	) else if exist "C:\Program Files (x86)\Inno Setup 6\iscc.exe" ( \
+		"C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer.iss \
+	) else ( \
+		echo Warning: Inno Setup not found. Skipping installer creation. && \
+		echo Install from: https://jrsoftware.org/isdl.php \
+	)
+	@echo.
+	@echo Distribution packages created in $(DIST_DIR)/
+	@dir /B $(DIST_DIR)\litecomics-windows-*
 
 run:
 	cd src && go run .
