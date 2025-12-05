@@ -318,7 +318,7 @@ volumes:
 
 - **Thumbnail Cache**: Maximum 4096 items (LRU)
 - **File List Cache**: Maximum 256 items (memory)
-- **Cache Directory**: `.thumbnail-cache/`
+- **Cache Directory**: `.cache/thumbnail/`
 
 ## 🌐 External Player Support
 

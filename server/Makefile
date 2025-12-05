@@ -1,34 +1,34 @@
 .PHONY: build run clean dist install uninstall install-service uninstall-service
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-DIST_DIR = dist
-BUILD_DIR = build
+DIST_DIR = ../dist
+BUILD_DIR = ../build
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 SERVICE_FILE = /etc/systemd/system/litecomics.service
 
 build:
-	cd server && go build -o litecomics
+	go build -o litecomics
 
 build-linux:
 	mkdir -p $(BUILD_DIR)
-	cd server && GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -tags linux -o ../$(BUILD_DIR)/litecomics-linux-amd64
+	GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -tags linux -o $(BUILD_DIR)/litecomics-linux-amd64
 
 build-linux-arm64:
 	mkdir -p $(BUILD_DIR)
-	cd server && GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -tags linux -o ../$(BUILD_DIR)/litecomics-linux-arm64
+	GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -tags linux -o $(BUILD_DIR)/litecomics-linux-arm64
 
 build-windows:
 	mkdir -p $(BUILD_DIR)
-	cd server && CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -ldflags "-s -w -H=windowsgui" -tags windows -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -ldflags "-s -w -H=windowsgui" -tags windows -o $(BUILD_DIR)/litecomics-windows-amd64.exe
 
 build-mac:
 	mkdir -p $(BUILD_DIR)
-	cd server && go build -ldflags "-s -w" -tags darwin -o ../$(BUILD_DIR)/litecomics-darwin-$(shell uname -m)
+	go build -ldflags "-s -w" -tags darwin -o $(BUILD_DIR)/litecomics-darwin-$(shell uname -m)
 
 build-mac-arm64:
 	mkdir -p $(BUILD_DIR)
-	cd server && GOARCH=arm64 go build -ldflags "-s -w" -tags darwin -o ../$(BUILD_DIR)/litecomics-darwin-arm64
+	GOARCH=arm64 go build -ldflags "-s -w" -tags darwin -o $(BUILD_DIR)/litecomics-darwin-arm64
 
 build-all-local: build-linux build-linux-arm64 build-mac build-windows
 
@@ -42,9 +42,9 @@ dist: clean build-all-local
 	# Linux AMD64
 	@mkdir -p $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)
 	@cp $(BUILD_DIR)/litecomics-linux-amd64 $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/litecomics
-	@cp -r public $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/
-	@cp config.json.example $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/config.json.example
-	@cp install.sh $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/
+	@cp -r ../public $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/
+	@cp config.json $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/config.json.example
+	@cp ../install.sh $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/
 	@chmod +x $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/litecomics
 	@chmod +x $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/install.sh
 	cd $(DIST_DIR) && tar czf litecomics-linux-amd64-$(VERSION).tar.gz litecomics-linux-amd64-$(VERSION)
@@ -53,9 +53,9 @@ dist: clean build-all-local
 	# Linux ARM64 (Raspberry Pi)
 	@mkdir -p $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)
 	@cp $(BUILD_DIR)/litecomics-linux-arm64 $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/litecomics
-	@cp -r public $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/
-	@cp config.json.example $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/config.json.example
-	@cp install.sh $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/
+	@cp -r ../public $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/
+	@cp config.json $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/config.json.example
+	@cp ../install.sh $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/
 	@chmod +x $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/litecomics
 	@chmod +x $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/install.sh
 	cd $(DIST_DIR) && tar czf litecomics-linux-arm64-$(VERSION).tar.gz litecomics-linux-arm64-$(VERSION)
@@ -66,8 +66,8 @@ dist: clean build-all-local
 	@mkdir -p $(DIST_DIR)/LiteComics.app/Contents/Resources
 	@cp $(BUILD_DIR)/litecomics-darwin-* $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics 2>/dev/null || true
 	@chmod +x $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics
-	@cp -r public $(DIST_DIR)/LiteComics.app/Contents/Resources/
-	@cp config.json.example $(DIST_DIR)/LiteComics.app/Contents/Resources/config.json.example
+	@cp -r ../public $(DIST_DIR)/LiteComics.app/Contents/Resources/
+	@cp config.json $(DIST_DIR)/LiteComics.app/Contents/Resources/config.json.example
 	@echo '<?xml version="1.0" encoding="UTF-8"?>\n\
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n\
 <plist version="1.0">\n\
@@ -102,8 +102,8 @@ dist: clean build-all-local
 	# Windows
 	@mkdir -p $(DIST_DIR)/litecomics-windows-$(VERSION)
 	@cp $(BUILD_DIR)/litecomics-windows-amd64.exe $(DIST_DIR)/litecomics-windows-$(VERSION)/litecomics.exe
-	@cp -r public $(DIST_DIR)/litecomics-windows-$(VERSION)/
-	@cp config.json.example $(DIST_DIR)/litecomics-windows-$(VERSION)/config.json.example
+	@cp -r ../public $(DIST_DIR)/litecomics-windows-$(VERSION)/
+	@cp config.json $(DIST_DIR)/litecomics-windows-$(VERSION)/config.json.example
 	@printf "@echo off\r\nstart litecomics.exe\r\n" > $(DIST_DIR)/litecomics-windows-$(VERSION)/start.bat
 	cd $(DIST_DIR) && zip -r litecomics-windows-amd64-$(VERSION).zip litecomics-windows-$(VERSION)
 	@rm -rf $(DIST_DIR)/litecomics-windows-$(VERSION)
@@ -112,12 +112,12 @@ dist: clean build-all-local
 	@ls -lh $(DIST_DIR)/*.{tar.gz,dmg,zip} 2>/dev/null || true
 
 run:
-	cd server && go run .
+	go run .
 
 install: build
 	@echo "Installing litecomics to $(BINDIR)..."
 	@mkdir -p $(BINDIR)
-	@install -m 755 server/litecomics $(BINDIR)/litecomics
+	@install -m 755 litecomics $(BINDIR)/litecomics
 	@echo "✓ Installed to $(BINDIR)/litecomics"
 	@echo ""
 	@echo "To uninstall, run: make uninstall"
@@ -165,8 +165,8 @@ uninstall-service:
 	@echo "✓ Service uninstalled"
 
 clean:
-	cd server && rm -f litecomics litecomics-*
-	rm -rf server/.cache/ $(BUILD_DIR)/ $(DIST_DIR)/
+	rm -f litecomics litecomics-*
+	rm -rf .cache/ $(BUILD_DIR)/ $(DIST_DIR)/
 
 mod:
-	cd server && go mod tidy
+	go mod tidy

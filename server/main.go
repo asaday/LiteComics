@@ -21,7 +21,7 @@ func main() {
 	cfg := loadConfig()
 
 	// Initialize caches
-	cacheDir := ".thumbnail-cache"
+	cacheDir := ".cache/thumbnail"
 	os.MkdirAll(cacheDir, 0755)
 
 	srv := &Server{

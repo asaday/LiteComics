@@ -118,7 +118,7 @@ function isAudioFile(filename) {
 }
 
 // サムネイルキャッシュの設定
-const CACHE_DIR = path.join(__dirname, '.thumbnail-cache');
+const CACHE_DIR = path.join(__dirname, '.cache/thumbnail');
 const MAX_CACHE_SIZE = 4096;
 const cacheMetadata = new Map(); // { hash: { path, lastAccess, size } }
 

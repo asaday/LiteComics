@@ -11,8 +11,8 @@ services:
       - /path/to/your/comics:/data:ro
       # 設定ファイルを永続化（初回起動時に config.json.example からコピーされる）
       - config-data:/app/config
-      # サムネイルキャッシュを永続化
-      - thumbnail-cache:/app/.thumbnail-cache
+      # キャッシュディレクトリを永続化（サムネイルなど）
+      - cache-data:/app/.cache
     environment:
       # config.json の場所を指定
       - CONFIG_PATH=/app/config/config.json
@@ -20,4 +20,4 @@ services:
 
 volumes:
   config-data:
-  thumbnail-cache:
+  cache-data:
