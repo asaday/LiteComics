@@ -736,12 +736,18 @@
         if (dirPath) {
           response = await fetch(`/api/dir/${encodeURIComponent(dirPath)}`);
           data = await response.json();
+          if (data.error) {
+            throw new Error(data.error);
+          }
           files = data.files;
           currentRootName = data.rootName;
           currentRelativePath = data.relativePath || '';
         } else {
           response = await fetch('/api/roots');
           files = await response.json();
+          if (!Array.isArray(files)) {
+            throw new Error(files.error || 'Failed to load roots');
+          }
           currentRootName = null;
           currentRelativePath = '';
         }

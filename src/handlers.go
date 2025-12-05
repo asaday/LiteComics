@@ -48,19 +48,19 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 	requestPath := mux.Vars(r)["path"]
 	resolved, err := s.resolveRequestPath(requestPath)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		respondError(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	info, err := os.Stat(resolved.FullPath)
 	if err != nil || !info.IsDir() {
-		http.Error(w, "ディレクトリではありません", http.StatusBadRequest)
+		respondError(w, "ディレクトリではありません", http.StatusBadRequest)
 		return
 	}
 
 	entries, err := os.ReadDir(resolved.FullPath)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
