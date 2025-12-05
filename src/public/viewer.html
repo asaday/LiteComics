@@ -644,8 +644,8 @@
         </div>
         <!-- ナビゲーション -->
         <div class="toolbar-group">
-          <button id="btn-list" class="toolbar-btn" title="File name list (L)">List</button>
-          <button id="btn-thumbnails" class="toolbar-btn" title="Thumbnail list (T)">Thumbnails</button>
+          <button id="btn-thumbnails" class="toolbar-btn" title="Page list (P)">Pages</button>
+          <button id="btn-list" class="toolbar-btn" title="File name list (F)">Files</button>
         </div>
         <!-- 表示設定 -->
         <div class="toolbar-group">
@@ -688,9 +688,9 @@
         <li><strong>↑ / ↓</strong>: Adjust offset (Go forward/back 1 page)</li>
         <li><strong>Enter</strong>: Toggle fullscreen mode</li>
         <li><strong>S</strong>: Toggle single/double page mode</li>
-        <li><strong>T</strong>: Show thumbnail list</li>
-        <li><strong>L</strong>: Show file name list</li>
-        <li><strong>ESC / Backspace</strong>: Back to file list</li>
+        <li><strong>P</strong>: Show page list</li>
+        <li><strong>F</strong>: Show file name list</li>
+        <li><strong>ESC / BS</strong>: Back to file list</li>
         <li><strong>H</strong>: Show/hide this help</li>
       </ul>
       <p class="help-hint">Press H or × button to close</p>
@@ -1309,13 +1309,13 @@
           e.preventDefault();
           toggleHelp();
           break;
-        case 't':
-        case 'T':
+        case 'p':
+        case 'P':
           e.preventDefault();
           showPageOverlay();
           break;
-        case 'l':
-        case 'L':
+        case 'f':
+        case 'F':
           e.preventDefault();
           togglePageSidebar();
           break;
