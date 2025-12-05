@@ -45,29 +45,57 @@ iconutil -c icns icon.iconset -o icon.icns
 rm -rf icon.iconset
 echo "✓ Created icon.icns"
 
-# Generate 32x32 PNG for systray (embedded in Go)
-echo "Generating icon.go..."
-sips -z 32 32 "$SOURCE" --out icon-32x32.png > /dev/null
+# Generate Windows .ico (16x16 for systray)
+echo "Generating Windows icon.ico..."
+if command -v magick &> /dev/null || command -v convert &> /dev/null; then
+    # Use ImageMagick if available
+    if command -v magick &> /dev/null; then
+        magick "$SOURCE" -resize 16x16 -define icon:auto-resize=16 icon.ico
+    else
+        convert "$SOURCE" -resize 16x16 -define icon:auto-resize=16 icon.ico
+    fi
+    echo "✓ Created icon.ico (using ImageMagick)"
+else
+    echo "⚠ ImageMagick not found. Run generate-windows-ico.ps1 on Windows to create icon.ico"
+fi
 
-# Convert to Go byte array
-echo "package main" > icon.go
-echo "" >> icon.go
-echo "// Icon data - 32x32 PNG icon for systray" >> icon.go
-echo "var iconData = []byte{" >> icon.go
+# Generate platform-specific Go files
+echo "Generating icon_darwin.go..."
+cat > ../icon_darwin.go << 'EOF'
+//go:build darwin && !cui
 
-# Convert PNG to hex bytes
-xxd -i < icon-32x32.png | sed 's/^/\t/' | sed 's/unsigned.*$//' >> icon.go
+package main
 
-echo "}" >> icon.go
+import _ "embed"
 
-rm icon-32x32.png
-echo "✓ Created icon.go"
+//go:embed icons/icon.icns
+var iconBytes []byte
+EOF
+echo "✓ Created icon_darwin.go"
+
+echo "Generating icon_windows.go..."
+cat > ../icon_windows.go << 'EOF'
+//go:build windows && !cui
+
+package main
+
+import _ "embed"
+
+//go:embed icons/icon.ico
+var iconBytes []byte
+EOF
+echo "✓ Created icon_windows.go"
 
 echo ""
 echo "Generated files:"
 echo "  - icon.icns (macOS app icon)"
-echo "  - icon.go (systray icon embedded in binary)"
+echo "  - icon.ico (Windows systray icon, if ImageMagick available)"
+echo "  - ../icon_darwin.go (macOS icon embed)"
+echo "  - ../icon_windows.go (Windows icon embed)"
 echo ""
-echo "Next steps:"
-echo "  1. Replace ../icon.go with the generated icon.go"
-echo "  2. Run 'make dist' to build with new icons"
+if ! command -v magick &> /dev/null && ! command -v convert &> /dev/null; then
+    echo "Note: To generate icon.ico on Windows, run:"
+    echo "  pwsh -File generate-windows-ico.ps1"
+    echo ""
+fi
+echo "Icons are now embedded via go:embed directives"

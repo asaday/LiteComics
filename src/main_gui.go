@@ -47,9 +47,12 @@ func main() {
 func onReady() {
 	systray.SetTooltip("LiteComics Server")
 
-	// Set icon (if iconData is populated)
-	if len(iconData) > 0 {
-		systray.SetIcon(iconData)
+	// Set icon from embedded ICO file
+	if len(iconBytes) > 0 {
+		systray.SetIcon(iconBytes)
+		log.Printf("Icon set successfully (%d bytes, ICO format)", len(iconBytes))
+	} else {
+		log.Printf("Warning: Icon data is empty")
 	}
 
 	// Start settings server (always on port 28539)
@@ -182,6 +185,12 @@ func startSettingsServer() *http.Server {
 			configPath := getConfigPath()
 			configData, err := os.ReadFile(configPath)
 			if err != nil {
+				// If config doesn't exist, return default empty config
+				if os.IsNotExist(err) {
+					w.Header().Set("Content-Type", "application/json")
+					w.Write([]byte(`{"port":8539,"roots":[]}`))
+					return
+				}
 				http.Error(w, "Failed to read config", http.StatusInternalServerError)
 				return
 			}

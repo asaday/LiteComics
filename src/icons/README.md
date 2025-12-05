@@ -6,11 +6,13 @@ This directory contains icon assets and generation scripts.
 
 - `icon.png` - Source icon (1024x1024 recommended)
 - `icon.icns` - macOS app icon (generated)
-- `generate.sh` - Icon generation script
+- `icon.ico` - Windows systray icon (generated, 16x16)
+- `generate.sh` - Icon generation script (macOS/Linux)
+- `generate-windows-ico.ps1` - Windows icon generation script
 
 ## Usage
 
-### Generate icons from source PNG
+### macOS/Linux: Generate icons from source PNG
 
 ```bash
 cd src/icons
@@ -18,15 +20,24 @@ cd src/icons
 ```
 
 This will create:
-- `icon.icns` - macOS app bundle icon
-- `icon.go` - Go source file with embedded systray icon (32x32)
+- `icon.icns` - macOS app bundle icon (multi-resolution)
+- `icon.ico` - Windows systray icon (16x16, if ImageMagick available)
+- `../icon_darwin.go` - macOS icon embed code
+- `../icon_windows.go` - Windows icon embed code
 
-### Replace icons in project
+### Windows: Generate icons from source PNG
 
-```bash
-# After running generate.sh
-cp icon.go ../icon.go
+```powershell
+cd src\icons
+.\generate-windows-ico.ps1
 ```
+
+This will create:
+- `icon.ico` - Windows systray icon (16x16 ICO format)
+- `..\icon_darwin.go` - macOS icon embed code
+- `..\icon_windows.go` - Windows icon embed code
+
+**Note**: Icons are embedded using `go:embed` directives. No need to manually copy files.
 
 Then rebuild:
 ```bash
