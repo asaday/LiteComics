@@ -1,19 +1,599 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LiteComics</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="style.css">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    /* 共通スタイル */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      color: #e0e0e0;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ファイル一覧画面の背景 */
+    body.file-list {
+      background: #1c1c1c;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body.file-list[data-theme="light"] {
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+
+    /* ファイル一覧画面のスタイル */
+    .container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* パンくずリスト */
+    .breadcrumb {
+      margin: 0;
+      padding: 8px 20px;
+      background-color: #353535;
+      border-bottom: 1px solid #3a3a3a;
+      font-size: 1rem;
+      color: #8e8e93;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    body[data-theme="light"] .breadcrumb {
+      background-color: #ebebed;
+      border-bottom: 1px solid #d1d1d6;
+      color: #6e6e73;
+    }
+
+    .breadcrumb:empty {
+      display: flex;
+    }
+
+    .menu-container {
+      position: relative;
+      margin-left: auto;
+    }
+
+    .menu-button {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      color: #e0e0e0;
+    }
+
+    body[data-theme="light"] .menu-button {
+      color: #1d1d1f;
+    }
+
+    .menu-button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="light"] .menu-button:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .menu-popup {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background-color: #2d2d2d;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 8px;
+      min-width: 120px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    body[data-theme="light"] .menu-popup {
+      background-color: #ffffff;
+      border-color: #c7c7cc;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .menu-popup.visible {
+      display: block;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      color: #e0e0e0;
+      transition: background-color 0.2s;
+    }
+
+    body[data-theme="light"] .menu-item {
+      color: #1d1d1f;
+    }
+
+    .menu-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="light"] .menu-item:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .menu-item-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-item-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .menu-btn {
+      background: none;
+      border: 1px solid #666;
+      color: #e0e0e0;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s, border-color 0.2s;
+      min-width: 28px;
+    }
+
+    body[data-theme="light"] .menu-btn {
+      color: #1d1d1f;
+      border-color: #c7c7cc;
+    }
+
+    .menu-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: #999;
+    }
+
+    body[data-theme="light"] .menu-btn:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      border-color: #86868b;
+    }
+
+    .breadcrumb-item {
+      color: #0a84ff;
+      cursor: pointer;
+      transition: color 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    body[data-theme="light"] .breadcrumb-item {
+      color: #007aff;
+    }
+
+    .breadcrumb-item:hover {
+      color: #409cff;
+    }
+
+    .breadcrumb-home {
+      font-size: 1.2rem;
+      padding: 2px 0px;
+    }
+
+    .breadcrumb-current {
+      color: #e0e0e0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body[data-theme="light"] .breadcrumb-current {
+      color: #1d1d1f;
+    }
+
+    .breadcrumb-separator {
+      color: #666;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    body[data-theme="light"] .breadcrumb-separator {
+      color: #86868b;
+    }
+
+    .file-list {
+      background-color: #1c1c1c;
+      border-radius: 0;
+      padding: 0;
+      margin: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 1;
+      min-height: 0;
+    }
+
+    body[data-theme="light"] .file-list {
+      background-color: #ffffff;
+    }
+
+    .list-section {
+      margin: 0;
+    }
+
+    .tile-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+      padding: 16px 20px;
+      background-color: #1c1c1c;
+    }
+
+    body[data-theme="light"] .tile-section {
+      background-color: #ffffff;
+    }
+
+    .file-list-view {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .file-list-view li {
+      padding: 5px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-list-view li:nth-child(even) {
+      background-color: #1c1c1c;
+    }
+
+    .file-list-view li:nth-child(odd) {
+      background-color: #242424;
+    }
+
+    body[data-theme="light"] .file-list-view li:nth-child(even) {
+      background-color: #ffffff;
+    }
+
+    body[data-theme="light"] .file-list-view li:nth-child(odd) {
+      background-color: #fafafa;
+    }
+
+    .file-list-view li:hover:not(.selected) {
+      background-color: #2d2d2d;
+    }
+
+    body[data-theme="light"] .file-list-view li:hover:not(.selected) {
+      background-color: #e5e5ea;
+    }
+
+    .file-list-view li.selected {
+      background-color: #0058d0;
+      color: #fff;
+      border-radius: 8px;
+    }
+
+    body[data-theme="light"] .file-list-view li.selected {
+      background-color: #0058d0;
+      color: #fff;
+      border-radius: 8px;
+    }
+
+    .file-list-view li.selected a,
+    .file-list-view li.selected span {
+      color: #fff !important;
+      font-weight: 400;
+    }
+
+    .file-list-view li::before {
+      content: '';
+      font-size: 1.2rem;
+      min-width: 20px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+      display: inline-block;
+      line-height: 1;
+    }
+
+    .file-list-view li.directory::before {
+      content: '📂';
+    }
+
+    .file-list-view li.file::before {
+      content: '📃';
+    }
+
+    .file-list-view li.video::before {
+      content: '🎬';
+    }
+
+    .file-list-view li.audio::before {
+      content: '🎵';
+    }
+
+    .file-list-view li.book::before {
+      content: '📚';
+    }
+
+    .file-list-view li.image::before {
+      content: '🖼️';
+    }
+
+    .file-list-view li.text::before {
+      content: '📄';
+    }
+
+    .file-item-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* タイル表示 */
+    .tile-item {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.2s, background-color 0.2s;
+      background-color: #242424;
+    }
+
+    body[data-theme="light"] .tile-item {
+      background-color: #f5f5f7;
+    }
+
+    .tile-item:hover {
+      transform: translateY(-2px);
+      background-color: #2d2d2d;
+    }
+
+    body[data-theme="light"] .tile-item:hover {
+      background-color: #e5e5ea;
+    }
+
+    .tile-item.selected {
+      background-color: #0058d0;
+      transform: translateY(-2px);
+    }
+
+    body[data-theme="light"] .tile-item.selected {
+      background-color: #0058d0;
+    }
+
+    .tile-item.selected .tile-title {
+      color: #fff;
+    }
+
+    .tile-item a {
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .tile-thumbnail {
+      width: 100%;
+      height: 240px;
+      object-fit: contain;
+      background-color: #1c1c1c;
+    }
+
+    body[data-theme="light"] .tile-thumbnail {
+      background-color: #e0e0e0;
+    }
+
+    .tile-title {
+      padding: 8px 2px;
+      font-size: 1rem;
+      color: #e0e0e0;
+      line-height: 1.1;
+      text-align: center;
+      word-break: break-word;
+    }
+
+    body[data-theme="light"] .tile-title {
+      color: #1d1d1f;
+    }
+
+    .file-list li a {
+      color: #e0e0e0;
+      text-decoration: none;
+      display: block;
+      font-size: 1rem;
+      flex: 1;
+      font-weight: 400;
+      white-space: normal;
+      overflow: hidden;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    body[data-theme="light"] .file-list li a {
+      color: #1d1d1f;
+    }
+
+    .file-list .directory span {
+      color: #e0e0e0;
+      font-weight: 400;
+      flex: 1;
+      white-space: normal;
+      overflow: hidden;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    body[data-theme="light"] .file-list .directory span {
+      color: #1d1d1f;
+    }
+
+    .file-list .file span {
+      color: #8e8e93;
+      flex: 1;
+      white-space: normal;
+      overflow: hidden;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    body[data-theme="light"] .file-list .file span {
+      color: #6e6e73;
+    }
+
+    .error {
+      color: #ff6b6b;
+      padding: 40px 20px;
+      text-align: center;
+      font-size: 1.1rem;
+      background-color: rgba(255, 107, 107, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
+
+    /* プレビューオーバーレイ */
+    #preview-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #preview-overlay.visible {
+      display: flex;
+    }
+
+    #preview-container {
+      max-width: 90%;
+      max-height: 90%;
+      background: white;
+      border-radius: 8px;
+      overflow: auto;
+      position: relative;
+    }
+
+    [data-theme="dark"] #preview-container {
+      background: #2d2d2d;
+      color: #e0e0e0;
+    }
+
+    #preview-close {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      color: #333;
+      font-size: 24px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10001;
+    }
+
+    [data-theme="dark"] #preview-close {
+      background: rgba(50, 50, 50, 0.9);
+      color: #e0e0e0;
+    }
+
+    #preview-close:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+
+    [data-theme="dark"] #preview-close:hover {
+      background: rgba(70, 70, 70, 1);
+    }
+
+    #preview-content {
+      padding: 20px;
+    }
+
+    #preview-content img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    #preview-content pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: monospace;
+      line-height: 1.5;
+    }
+  </style>
 </head>
+
 <body class="file-list">
   <div class="container">
     <div id="breadcrumb" class="breadcrumb">
-      <button id="theme-toggle" class="theme-toggle" title="テーマ切り替え">🌓</button>
+      <div class="menu-container">
+        <button id="menu-button" class="menu-button" title="メニュー">☰</button>
+        <div id="menu-popup" class="menu-popup">
+          <div class="menu-item" id="menu-theme">
+            <div class="menu-item-label">
+              <span id="theme-icon">🌓</span>
+            </div>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-controls">
+              <button id="font-size-decrease" class="menu-btn" title="縮小 (Ctrl + -)">A-</button>
+              <button id="font-size-reset" class="menu-btn" title="リセット">A</button>
+              <button id="font-size-increase" class="menu-btn" title="拡大 (Ctrl + +)">A+</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="file-list" class="file-list">
       <p>読み込み中...</p>
+    </div>
+  </div>
+
+  <div id="preview-overlay">
+    <button id="preview-close">×</button>
+    <div id="preview-container">
+      <div id="preview-content"></div>
     </div>
   </div>
 
@@ -23,26 +603,108 @@
     let currentRootName = null;
     let currentRelativePath = '';
 
+    // ファイル種類の判定
+    function isImageFile(filename) {
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'];
+      const ext = filename.toLowerCase().split('.').pop();
+      return imageExtensions.includes('.' + ext);
+    }
+
+    function isTextFile(filename) {
+      const textExtensions = ['.txt', '.md', '.json', '.xml', '.log', '.csv', '.nfo'];
+      const ext = filename.toLowerCase().split('.').pop();
+      return textExtensions.includes('.' + ext);
+    }
+
+    function isPreviewableFile(filename) {
+      return isImageFile(filename) || isTextFile(filename);
+    }
+
+    // プレビュー表示
+    async function showPreview(file) {
+      const overlay = document.getElementById('preview-overlay');
+      const content = document.getElementById('preview-content');
+
+      content.innerHTML = '<p>読み込み中...</p>';
+      overlay.classList.add('visible');
+
+      try {
+        const filePath = `/api/file/${encodeURIComponent(file.path)}`;
+
+        if (isImageFile(file.name)) {
+          const img = document.createElement('img');
+          img.src = filePath;
+          img.alt = file.name;
+          content.innerHTML = '';
+          content.appendChild(img);
+        } else if (isTextFile(file.name)) {
+          const response = await fetch(filePath);
+          const text = await response.text();
+          const pre = document.createElement('pre');
+          pre.textContent = text;
+          content.innerHTML = '';
+          content.appendChild(pre);
+        }
+      } catch (err) {
+        content.innerHTML = `<p>エラー: ${err.message}</p>`;
+      }
+    }
+
+    function hidePreview() {
+      const overlay = document.getElementById('preview-overlay');
+      overlay.classList.remove('visible');
+    }
+
+    // フォントサイズ(zoom)の初期化
+    let zoomLevel = 100;
+
+    function initZoom() {
+      const savedZoom = localStorage.getItem('zoomLevel');
+      if (savedZoom) {
+        zoomLevel = parseInt(savedZoom);
+      }
+      applyZoom();
+    }
+
+    function applyZoom() {
+      const container = document.querySelector('.container');
+      if (container) {
+        container.style.zoom = zoomLevel + '%';
+      }
+    }
+
+    function changeZoom(delta) {
+      zoomLevel = Math.max(50, Math.min(200, zoomLevel + delta));
+      applyZoom();
+      localStorage.setItem('zoomLevel', zoomLevel);
+    }
+
+    function resetZoom() {
+      zoomLevel = 100;
+      applyZoom();
+      localStorage.setItem('zoomLevel', zoomLevel);
+    }
+
     // テーマの初期化
     function initTheme() {
       const savedTheme = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
+
       if (savedTheme) {
         document.body.setAttribute('data-theme', savedTheme);
       } else if (!prefersDark) {
         document.body.setAttribute('data-theme', 'light');
       }
-      
+
       updateThemeIcon();
     }
 
     // テーマアイコンの更新
     function updateThemeIcon() {
       const theme = document.body.getAttribute('data-theme');
-      const toggle = document.getElementById('theme-toggle');
-      if (toggle) {
-        toggle.textContent = theme === 'light' ? '🌙' : '☀️';
+      const icon = document.getElementById('theme-icon');
+      if (icon) {
+        icon.textContent = theme === 'light' ? '🌙' : '☀️';
       }
     }
 
@@ -55,11 +717,22 @@
       updateThemeIcon();
     }
 
+    // メニューの表示/非表示
+    function toggleMenu() {
+      const menu = document.getElementById('menu-popup');
+      menu.classList.toggle('visible');
+    }
+
+    function hideMenu() {
+      const menu = document.getElementById('menu-popup');
+      menu.classList.remove('visible');
+    }
+
     // ファイル一覧を取得して表示
     async function loadFileList(dirPath = null) {
       try {
         let response, data;
-        
+
         if (dirPath) {
           response = await fetch(`/api/dir/${encodeURIComponent(dirPath)}`);
           data = await response.json();
@@ -72,70 +745,70 @@
           currentRootName = null;
           currentRelativePath = '';
         }
-        
+
         const fileListDiv = document.getElementById('file-list');
         fileListDiv.innerHTML = '';
-        
+
         if (files.length === 0) {
           fileListDiv.innerHTML = '<p>ファイルが見つかりません。config.jsonを確認してください。</p>';
           return;
         }
-        
-        // ディレクトリとファイルを分ける
-        const directories = files.filter(f => f.isDirectory);
-        const cbzFiles = files.filter(f => f.isCBZ);
-        const otherFiles = files.filter(f => !f.isDirectory && !f.isCBZ);
-        
-        // ディレクトリのリスト表示
-        if (directories.length > 0) {
-          const dirSection = document.createElement('div');
-          dirSection.className = 'list-section';
-          
+
+        // タイプ別にファイルを分類
+        const filesByType = {
+          directory: files.filter(f => f.type === 'directory'),
+          book: files.filter(f => f.type === 'book'),
+          video: files.filter(f => f.type === 'video'),
+          audio: files.filter(f => f.type === 'audio'),
+          file: files.filter(f => f.type === 'file')
+        };
+
+        // 表示順に並べた配列を作成（これがカーソル移動の順序になる）
+        files = [...filesByType.directory, ...filesByType.book, ...filesByType.video, ...filesByType.audio, ...filesByType.file];
+
+        let displayIndex = 0;
+
+        // リスト表示のヘルパー関数
+        const createListSection = (fileList) => {
+          if (fileList.length === 0) return;
+
+          const section = document.createElement('div');
+          section.className = 'list-section';
           const ul = document.createElement('ul');
           ul.className = 'file-list-view';
-          
-          directories.forEach((file, idx) => {
-            const li = createListItem(file, files.indexOf(file));
-            ul.appendChild(li);
+
+          fileList.forEach((file) => {
+            ul.appendChild(createListItem(file, displayIndex++));
           });
-          
-          dirSection.appendChild(ul);
-          fileListDiv.appendChild(dirSection);
-        }
-        
-        // CBZファイルのタイル表示
-        if (cbzFiles.length > 0) {
-          const cbzSection = document.createElement('div');
-          cbzSection.className = 'tile-section';
-          
-          cbzFiles.forEach((file, idx) => {
-            const tile = createTileItem(file, files.indexOf(file));
-            cbzSection.appendChild(tile);
+
+          section.appendChild(ul);
+          fileListDiv.appendChild(section);
+        };
+
+        // タイル表示のヘルパー関数
+        const createTileSection = (fileList) => {
+          if (fileList.length === 0) return;
+
+          const section = document.createElement('div');
+          section.className = 'tile-section';
+
+          fileList.forEach((file) => {
+            section.appendChild(createTileItem(file, displayIndex++));
           });
-          
-          fileListDiv.appendChild(cbzSection);
-        }
-        
-        // その他のファイルのリスト表示
-        if (otherFiles.length > 0) {
-          const otherSection = document.createElement('div');
-          otherSection.className = 'list-section';
-          
-          const ul = document.createElement('ul');
-          ul.className = 'file-list-view';
-          
-          otherFiles.forEach((file, idx) => {
-            const li = createListItem(file, files.indexOf(file));
-            ul.appendChild(li);
-          });
-          
-          otherSection.appendChild(ul);
-          fileListDiv.appendChild(otherSection);
-        }
-        
+
+          fileListDiv.appendChild(section);
+        };
+
+        // 各タイプのファイルを表示
+        createListSection(filesByType.directory);
+        createTileSection(filesByType.book);
+        createListSection(filesByType.video);
+        createListSection(filesByType.audio);
+        createListSection(filesByType.file);
+
         // パンくずリストを更新
         updateBreadcrumb();
-        
+
         // カーソル位置を復元
         // 1. sessionStorageから（ビューアから戻ってきた場合）
         const savedIndexSession = sessionStorage.getItem('fileListIndex');
@@ -143,7 +816,7 @@
         // 2. localStorageから（リロードした場合）
         const storageKey = currentRootName ? `${currentRootName}/${currentRelativePath}` : '';
         const savedIndexLocal = localStorage.getItem(`fileList_index_${storageKey}`);
-        
+
         if (savedIndexSession && savedPathSession === currentRelativePath) {
           currentIndex = parseInt(savedIndexSession);
           sessionStorage.removeItem('fileListIndex');
@@ -153,10 +826,10 @@
         } else {
           currentIndex = 0;
         }
-        
+
         updateSelection();
       } catch (err) {
-        document.getElementById('file-list').innerHTML = 
+        document.getElementById('file-list').innerHTML =
           `<p class="error">エラー: ${err.message}</p>`;
       }
     }
@@ -164,25 +837,57 @@
     // リスト形式のアイテムを作成
     function createListItem(file, index) {
       const li = document.createElement('li');
-      li.className = file.isDirectory ? 'directory' : 'file';
+
+      // クラス名を設定（CSSでアイコンを表示）
+      let className = file.type;
+      if (file.type === 'file') {
+        // ファイルタイプをさらに細分化
+        if (isImageFile(file.name)) {
+          className = 'image';
+        } else if (isTextFile(file.name)) {
+          className = 'text';
+        }
+      }
+      li.className = className;
       li.dataset.index = index;
-      
+
       const contentWrapper = document.createElement('div');
       contentWrapper.className = 'file-item-content';
-      
-      if (file.isDirectory) {
+
+      if (file.type === 'directory') {
         const link = document.createElement('a');
         link.href = `/?dir=${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
         contentWrapper.appendChild(link);
+      } else if (file.type === 'video' || file.type === 'audio') {
+        const link = document.createElement('a');
+        link.href = `/media.html#/${encodeURIComponent(file.path)}`;
+        link.textContent = file.name;
+        link.addEventListener('click', (e) => {
+          // リンククリック時もsessionStorageに保存
+          sessionStorage.setItem('fileListIndex', index);
+          sessionStorage.setItem('fileListPath', currentRelativePath);
+        });
+        contentWrapper.appendChild(link);
+      } else if (isPreviewableFile(file.name)) {
+        // プレビュー可能なファイルもリンクとして扱う
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = file.name;
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          showPreview(file);
+        });
+        contentWrapper.appendChild(link);
       } else {
+        // その他のファイルはテキストのみ表示（アイコンはCSSで）
         const span = document.createElement('span');
         span.textContent = file.name;
         contentWrapper.appendChild(span);
       }
-      
+
       li.appendChild(contentWrapper);
-      
+
       li.addEventListener('click', (e) => {
         currentIndex = index;
         updateSelection(false);
@@ -190,7 +895,7 @@
           e.preventDefault();
         }
       });
-      
+
       return li;
     }
 
@@ -199,115 +904,85 @@
       const tile = document.createElement('div');
       tile.className = 'tile-item';
       tile.dataset.index = index;
-      
+
       const link = document.createElement('a');
       link.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
-      
+
       const thumbnail = document.createElement('img');
       thumbnail.className = 'tile-thumbnail';
-      thumbnail.src = `/api/archive/${encodeURIComponent(file.path)}/thumbnail`;
+      thumbnail.src = `/api/book/${encodeURIComponent(file.path)}/thumbnail`;
       thumbnail.alt = file.name;
       thumbnail.loading = 'lazy';
-      
+
       const title = document.createElement('div');
       title.className = 'tile-title';
       title.textContent = file.name;
-      
+
       link.appendChild(thumbnail);
       link.appendChild(title);
       tile.appendChild(link);
-      
+
       tile.addEventListener('click', (e) => {
         currentIndex = index;
         updateSelection(false);
       });
-      
+
       return tile;
     }
 
     // パンくずリストを更新
     function updateBreadcrumb() {
       const breadcrumbDiv = document.getElementById('breadcrumb');
-      
-      // テーマトグルボタンを保持
-      const themeToggle = document.getElementById('theme-toggle');
-      
+      const menuContainer = breadcrumbDiv.querySelector('.menu-container');
+
       breadcrumbDiv.innerHTML = '';
-      
-      // パンくず部分のコンテナ
+
       const breadcrumbContent = document.createElement('div');
-      breadcrumbContent.style.display = 'flex';
-      breadcrumbContent.style.alignItems = 'center';
-      breadcrumbContent.style.gap = '4px';
-      breadcrumbContent.style.flex = '1';
-      
-      // ホームアイコン
-      const home = document.createElement('a');
-      home.href = '/';
-      home.className = 'breadcrumb-item';
-      home.textContent = 'Home';
-      breadcrumbContent.appendChild(home);
-      
-      if (!currentRootName) {
-        // トップレベルの場合はホームのみ
-        breadcrumbDiv.appendChild(breadcrumbContent);
-        breadcrumbDiv.appendChild(themeToggle);
-        return;
-      }
-      
-      // ルート名を追加
-      const separator1 = document.createElement('span');
-      separator1.className = 'breadcrumb-separator';
-      separator1.textContent = '›';
-      breadcrumbContent.appendChild(separator1);
-      
-      if (!currentRelativePath) {
-        // ルートレベルの場合（現在地）
-        const rootCurrent = document.createElement('span');
-        rootCurrent.className = 'breadcrumb-current';
-        rootCurrent.textContent = currentRootName;
-        breadcrumbContent.appendChild(rootCurrent);
-      } else {
-        // ルート名（クリック可能）
-        const rootLink = document.createElement('a');
-        rootLink.href = `/?dir=${encodeURIComponent(currentRootName)}`;
-        rootLink.className = 'breadcrumb-item';
-        rootLink.textContent = currentRootName;
-        breadcrumbContent.appendChild(rootLink);
-      }
-      
-      if (currentRelativePath) {
-        // 相対パスを分割して各階層を表示
-        const pathParts = currentRelativePath.split('/').filter(p => p);
-        let accumulatedPath = currentRootName;
-        
-        for (let i = 0; i < pathParts.length; i++) {
-          const separator = document.createElement('span');
-          separator.className = 'breadcrumb-separator';
-          separator.textContent = '›';
-          breadcrumbContent.appendChild(separator);
-          
-          accumulatedPath = accumulatedPath + '/' + pathParts[i];
-          
-          if (i === pathParts.length - 1) {
-            // 最後の要素（現在のフォルダ）
-            const item = document.createElement('span');
-            item.textContent = pathParts[i];
-            item.className = 'breadcrumb-current';
-            breadcrumbContent.appendChild(item);
-          } else {
-            // クリック可能な親フォルダ
-            const item = document.createElement('a');
-            item.href = `/?dir=${encodeURIComponent(accumulatedPath)}`;
-            item.className = 'breadcrumb-item';
-            item.textContent = pathParts[i];
-            breadcrumbContent.appendChild(item);
-          }
+      breadcrumbContent.style.cssText = 'display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden';
+
+      // パンくず要素を作成するヘルパー
+      const addItem = (text, href = null, isCurrent = false) => {
+        const elem = document.createElement(href ? 'a' : 'span');
+        elem.textContent = text;
+        elem.className = isCurrent ? 'breadcrumb-current' : 'breadcrumb-item';
+        if (href) elem.href = href;
+        breadcrumbContent.appendChild(elem);
+      };
+
+      const addSeparator = () => {
+        const sep = document.createElement('span');
+        sep.className = 'breadcrumb-separator';
+        sep.textContent = '›';
+        breadcrumbContent.appendChild(sep);
+      };
+
+      // ホーム
+      const homeLink = document.createElement('a');
+      homeLink.textContent = '🗂️';
+      homeLink.className = 'breadcrumb-item breadcrumb-home';
+      homeLink.href = '/';
+      breadcrumbContent.appendChild(homeLink);
+
+      if (currentRootName) {
+        addSeparator();
+        addItem(currentRootName, currentRelativePath ? `/?dir=${encodeURIComponent(currentRootName)}` : null, !currentRelativePath);
+
+        // 相対パスの各階層
+        if (currentRelativePath) {
+          const pathParts = currentRelativePath.split('/').filter(p => p);
+          let accumulatedPath = currentRootName;
+
+          pathParts.forEach((part, i) => {
+            addSeparator();
+            accumulatedPath += '/' + part;
+            const isLast = i === pathParts.length - 1;
+            addItem(part, isLast ? null : `/?dir=${encodeURIComponent(accumulatedPath)}`, isLast);
+          });
         }
       }
-      
+
       breadcrumbDiv.appendChild(breadcrumbContent);
-      breadcrumbDiv.appendChild(themeToggle);
+      breadcrumbDiv.appendChild(menuContainer);
     }
 
     // 選択状態を更新
@@ -324,7 +999,7 @@
           item.classList.remove('selected');
         }
       });
-      
+
       // カーソル位置をlocalStorageに保存
       const storageKey = currentRootName ? `${currentRootName}/${currentRelativePath}` : '';
       localStorage.setItem(`fileList_index_${storageKey}`, currentIndex);
@@ -333,24 +1008,12 @@
     // 選択中のアイテムを開く
     function openSelected() {
       if (currentIndex < 0 || currentIndex >= files.length) return;
-      
-      const file = files[currentIndex];
-      
-      if (file.isCBZ) {
-        // カーソル位置と現在のパスを保存
-        sessionStorage.setItem('fileListIndex', currentIndex);
-        sessionStorage.setItem('fileListPath', currentRelativePath);
-        // CBZファイルをビューアで開く
-        window.location.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
-      } else if (file.isDirectory) {
-        // ディレクトリに入る
-        window.location.href = `/?dir=${encodeURIComponent(file.path)}`;
-      }
+      document.querySelector(`[data-index="${currentIndex}"]`)?.querySelector('a')?.click();
     }
 
     // キーボードイベントハンドラ
     document.addEventListener('keydown', async (e) => {
-      switch(e.key) {
+      switch (e.key) {
         case 'ArrowDown':
         case 'ArrowRight':
           e.preventDefault();
@@ -386,6 +1049,12 @@
         case 'Escape':
         case 'Backspace':
           e.preventDefault();
+          // プレビューが開いている場合は閉じる
+          const overlay = document.getElementById('preview-overlay');
+          if (overlay.classList.contains('visible')) {
+            hidePreview();
+            break;
+          }
           // ルートレベルでは何もしない
           if (!currentRootName && !currentRelativePath) {
             break;
@@ -397,15 +1066,38 @@
           break;
       }
     });
-    
+
     // ページ読み込み時にファイル一覧を取得
     initTheme();
-    
-    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-    
+    initZoom();
+
+    document.getElementById('menu-button').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu();
+    });
+    document.getElementById('menu-theme').addEventListener('click', toggleTheme);
+    document.getElementById('font-size-decrease').addEventListener('click', () => changeZoom(-10));
+    document.getElementById('font-size-reset').addEventListener('click', resetZoom);
+    document.getElementById('font-size-increase').addEventListener('click', () => changeZoom(10));
+    document.getElementById('preview-close').addEventListener('click', hidePreview);
+    document.getElementById('preview-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'preview-overlay') {
+        hidePreview();
+      }
+    });
+
+    // メニュー外クリックで閉じる
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('menu-popup');
+      const button = document.getElementById('menu-button');
+      if (!menu.contains(e.target) && e.target !== button) {
+        hideMenu();
+      }
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     const dirParam = urlParams.get('dir');
-    
+
     if (dirParam) {
       loadFileList(dirParam);
     } else {
@@ -413,4 +1105,5 @@
     }
   </script>
 </body>
+
 </html>
