@@ -136,7 +136,17 @@ func onExit() {
 
 func startServer(cfg *Config) *http.Server {
 	// Initialize caches
-	cacheDir := ".cache/thumbnail"
+	// Use CACHE_DIR env var for Docker, otherwise use user cache dir
+	cacheDir := os.Getenv("CACHE_DIR")
+	if cacheDir == "" {
+		userCache, err := os.UserCacheDir()
+		if err != nil {
+			cacheDir = ".cache"
+		} else {
+			cacheDir = filepath.Join(userCache, "LiteComics")
+		}
+	}
+	cacheDir = filepath.Join(cacheDir, "thumbnail")
 	os.MkdirAll(cacheDir, 0755)
 
 	srv := &Server{

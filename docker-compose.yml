@@ -7,15 +7,17 @@ services:
     ports:
       - "8539:8539"
     volumes:
-      # コミックファイルのディレクトリをマウント（必要に応じて変更）
+      # Mount your comics directory (modify as needed)
       - /path/to/your/comics:/data:ro
-      # 設定ファイルを永続化（初回起動時に config.json.example からコピーされる）
+      # Persist config file (copied from config.json.example on first run)
       - config-data:/app/config
-      # キャッシュディレクトリを永続化（サムネイルなど）
+      # Persist cache directory (thumbnails, etc.)
       - cache-data:/app/.cache
     environment:
-      # config.json の場所を指定
+      # Specify config.json location
       - CONFIG_PATH=/app/config/config.json
+      # Specify cache directory location
+      - CACHE_DIR=/app/.cache
     restart: unless-stopped
 
 volumes:
