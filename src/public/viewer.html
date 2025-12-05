@@ -707,6 +707,55 @@
     let forceSinglePageMode = false; // 強制1ページモード
     let pageInfoTimer = null; // ページ情報の自動非表示タイマー
 
+    // localStorage管理設定
+    const MAX_FILE_HISTORY = 512; // 保持する最大ファイル数
+    const HISTORY_KEY = 'viewer_file_history'; // 履歴管理用キー
+
+    // ファイル履歴を取得
+    function getFileHistory() {
+      try {
+        const history = localStorage.getItem(HISTORY_KEY);
+        return history ? JSON.parse(history) : [];
+      } catch (e) {
+        console.error('Failed to load file history:', e);
+        return [];
+      }
+    }
+
+    // ファイル履歴を保存
+    function saveFileHistory(history) {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      } catch (e) {
+        console.error('Failed to save file history:', e);
+      }
+    }
+
+    // 古いファイルのデータを削除
+    function cleanupOldFiles(currentFile) {
+      const history = getFileHistory();
+
+      // 現在のファイルを履歴に追加（重複は削除）
+      const filteredHistory = history.filter(f => f !== currentFile);
+      filteredHistory.unshift(currentFile);
+
+      // MAX_FILE_HISTORYを超えた分を削除
+      if (filteredHistory.length > MAX_FILE_HISTORY) {
+        const removedFiles = filteredHistory.slice(MAX_FILE_HISTORY);
+
+        // 削除対象のファイルのlocalStorageエントリを削除
+        removedFiles.forEach(file => {
+          localStorage.removeItem(`viewer_page_${file}`);
+          localStorage.removeItem(`viewer_offset_${file}`);
+        });
+
+        // 履歴を更新
+        saveFileHistory(filteredHistory.slice(0, MAX_FILE_HISTORY));
+      } else {
+        saveFileHistory(filteredHistory);
+      }
+    }
+
     // ページ一覧サイドバーの表示/非表示
     let sidebarVisible = false;
     let sidebarTimer = null;
@@ -996,6 +1045,9 @@
       // ページ位置とオフセットを保存
       localStorage.setItem(`viewer_page_${currentFile}`, currentPage);
       localStorage.setItem(`viewer_offset_${currentFile}`, offset);
+
+      // 古いファイルのデータをクリーンアップ
+      cleanupOldFiles(currentFile);
 
       const forceOnePageMode = isForceOnePageMode();
 

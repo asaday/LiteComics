@@ -561,6 +561,230 @@
       font-family: monospace;
       line-height: 1.5;
     }
+
+    /* 履歴オーバーレイ */
+    #history-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      overflow-y: auto;
+    }
+
+    #history-overlay.visible {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background: rgba(28, 28, 28, 0.98);
+      border-bottom: 2px solid #3a3a3a;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    body[data-theme="light"] .history-header {
+      background: rgba(235, 235, 237, 0.98);
+      border-bottom-color: #d1d1d6;
+    }
+
+    .history-header h2 {
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    body[data-theme="light"] .history-header h2 {
+      color: #1d1d1f;
+    }
+
+    .history-header-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .history-clear-btn {
+      background: rgba(255, 59, 48, 0.9);
+      border: none;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+
+    .history-clear-btn:hover {
+      background: rgba(255, 59, 48, 1);
+    }
+
+    .history-close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 2.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    body[data-theme="light"] .history-close-btn {
+      color: #1d1d1f;
+    }
+
+    .history-close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="light"] .history-close-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .history-list {
+      padding: 20px 40px;
+      flex: 1;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: stretch;
+      gap: 12px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      transition: background 0.2s, transform 0.2s;
+      min-height: 60px;
+    }
+
+    body[data-theme="light"] .history-item {
+      background: #f5f5f7;
+    }
+
+    .history-item-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+      padding: 4px;
+      margin: -4px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .history-item-content:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    body[data-theme="light"] .history-item-content:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .history-item-folder-btn {
+      background: #4a4a4a;
+      border: 1px solid #666;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-weight: 500;
+      align-self: center;
+    }
+
+    body[data-theme="light"] .history-item-folder-btn {
+      background: #e8e8e8;
+      border-color: #c7c7cc;
+      color: #1d1d1f;
+    }
+
+    .history-item-folder-btn:hover {
+      background: #5a5a5a;
+      border-color: #888;
+      transform: translateY(-1px);
+    }
+
+    body[data-theme="light"] .history-item-folder-btn:hover {
+      background: #d8d8d8;
+      border-color: #86868b;
+    }
+
+    .history-item-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .history-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-item-name {
+      color: #e0e0e0;
+      font-size: 1rem;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body[data-theme="light"] .history-item-name {
+      color: #1d1d1f;
+    }
+
+    .history-item-path {
+      color: #8e8e93;
+      font-size: 0.85rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body[data-theme="light"] .history-item-path {
+      color: #6e6e73;
+    }
+
+    .history-item-time {
+      color: #666;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    body[data-theme="light"] .history-item-time {
+      color: #86868b;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: #8e8e93;
+      padding: 40px 20px;
+      font-size: 1.1rem;
+    }
+
+    body[data-theme="light"] .history-empty {
+      color: #6e6e73;
+    }
   </style>
 </head>
 
@@ -570,9 +794,16 @@
       <div class="menu-container">
         <button id="menu-button" class="menu-button" title="Menu">☰</button>
         <div id="menu-popup" class="menu-popup">
+          <div class="menu-item" id="menu-history">
+            <div class="menu-item-label">
+              <span>🕒</span>
+              <span>History</span>
+            </div>
+          </div>
           <div class="menu-item" id="menu-theme">
             <div class="menu-item-label">
               <span id="theme-icon">🌓</span>
+              <span>Theme</span>
             </div>
           </div>
           <div class="menu-item">
@@ -597,11 +828,178 @@
     </div>
   </div>
 
+  <div id="history-overlay">
+    <div class="history-header">
+      <h2>History</h2>
+      <div class="history-header-buttons">
+        <button id="history-clear" class="history-clear-btn">Clear All</button>
+        <button id="history-close" class="history-close-btn">×</button>
+      </div>
+    </div>
+    <div id="history-list" class="history-list"></div>
+  </div>
+
   <script>
     let files = [];
     let currentIndex = 0;
     let currentRootName = null;
     let currentRelativePath = '';
+
+    // 履歴管理
+    const MAX_HISTORY_ITEMS = 256;
+    const HISTORY_KEY = 'file_history';
+
+    // 履歴を取得
+    function getHistory() {
+      try {
+        const history = localStorage.getItem(HISTORY_KEY);
+        return history ? JSON.parse(history) : [];
+      } catch (e) {
+        console.error('Failed to load history:', e);
+        return [];
+      }
+    }
+
+    // 履歴を保存
+    function saveHistory(history) {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      } catch (e) {
+        console.error('Failed to save history:', e);
+      }
+    }
+
+    // 履歴に追加
+    function addToHistory(file) {
+      const history = getHistory();
+
+      // 既存のエントリを削除（重複を避ける）
+      const filteredHistory = history.filter(h => h.path !== file.path);
+
+      // 新しいエントリを先頭に追加
+      const newEntry = {
+        path: file.path,
+        name: file.name,
+        type: file.type,
+        timestamp: Date.now()
+      };
+
+      filteredHistory.unshift(newEntry);
+
+      // 最大数を超えた分を削除
+      if (filteredHistory.length > MAX_HISTORY_ITEMS) {
+        filteredHistory.splice(MAX_HISTORY_ITEMS);
+      }
+
+      saveHistory(filteredHistory);
+    }
+
+    // 履歴をクリア
+    function clearHistory() {
+      if (confirm('Are you sure you want to clear all history?')) {
+        localStorage.removeItem(HISTORY_KEY);
+        showHistoryOverlay();
+      }
+    }
+
+    // 履歴オーバーレイを表示
+    function showHistoryOverlay() {
+      const overlay = document.getElementById('history-overlay');
+      const listDiv = document.getElementById('history-list');
+
+      overlay.classList.add('visible');
+
+      const history = getHistory();
+
+      if (history.length === 0) {
+        listDiv.innerHTML = '<div class="history-empty">No history yet</div>';
+        return;
+      }
+
+      listDiv.innerHTML = '';
+
+      history.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+
+        // コンテンツへのリンク部分
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'history-item-content';
+
+        const icon = document.createElement('div');
+        icon.className = 'history-item-icon';
+        icon.textContent = item.type === 'book' ? '📚' : item.type === 'video' ? '🎬' : '🎵';
+
+        const info = document.createElement('div');
+        info.className = 'history-item-info';
+
+        const name = document.createElement('div');
+        name.className = 'history-item-name';
+        name.textContent = item.name;
+
+        const path = document.createElement('div');
+        path.className = 'history-item-path';
+        path.textContent = item.path;
+
+        info.appendChild(name);
+        info.appendChild(path);
+
+        const time = document.createElement('div');
+        time.className = 'history-item-time';
+        time.textContent = formatTime(item.timestamp);
+
+        contentDiv.appendChild(icon);
+        contentDiv.appendChild(info);
+        contentDiv.appendChild(time);
+
+        contentDiv.addEventListener('click', () => {
+          if (item.type === 'book') {
+            window.location.href = `/viewer.html#/${encodeURIComponent(item.path)}`;
+          } else if (item.type === 'video' || item.type === 'audio') {
+            window.location.href = `/media.html#/${encodeURIComponent(item.path)}`;
+          }
+        });
+
+        // フォルダボタン
+        const folderBtn = document.createElement('button');
+        folderBtn.className = 'history-item-folder-btn';
+        folderBtn.textContent = '📁 Folder';
+        folderBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // パスから親ディレクトリを取得
+          const parentPath = item.path.substring(0, item.path.lastIndexOf('/'));
+          window.location.href = `/?dir=${encodeURIComponent(parentPath)}`;
+        });
+
+        historyItem.appendChild(contentDiv);
+        historyItem.appendChild(folderBtn);
+        listDiv.appendChild(historyItem);
+      });
+    }
+
+    // 履歴オーバーレイを非表示
+    function hideHistoryOverlay() {
+      const overlay = document.getElementById('history-overlay');
+      overlay.classList.remove('visible');
+    }
+
+    // 時刻をフォーマット
+    function formatTime(timestamp) {
+      const now = Date.now();
+      const diff = now - timestamp;
+
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+
+      const date = new Date(timestamp);
+      return date.toLocaleDateString();
+    }
 
     // ファイル種類の判定
     function isImageFile(filename) {
@@ -873,6 +1271,8 @@
           // リンククリック時もsessionStorageに保存
           sessionStorage.setItem('fileListIndex', index);
           sessionStorage.setItem('fileListPath', currentRelativePath);
+          // 履歴に追加
+          addToHistory(file);
         });
         contentWrapper.appendChild(link);
       } else if (isPreviewableFile(file.name)) {
@@ -927,6 +1327,11 @@
       link.appendChild(thumbnail);
       link.appendChild(title);
       tile.appendChild(link);
+
+      // クリック時に履歴に追加
+      link.addEventListener('click', (e) => {
+        addToHistory(file);
+      });
 
       tile.addEventListener('click', (e) => {
         currentIndex = index;
@@ -1055,6 +1460,12 @@
         case 'Escape':
         case 'Backspace':
           e.preventDefault();
+          // 履歴オーバーレイが開いている場合は閉じる
+          const historyOverlay = document.getElementById('history-overlay');
+          if (historyOverlay.classList.contains('visible')) {
+            hideHistoryOverlay();
+            break;
+          }
           // プレビューが開いている場合は閉じる
           const overlay = document.getElementById('preview-overlay');
           if (overlay.classList.contains('visible')) {
@@ -1081,6 +1492,12 @@
       e.stopPropagation();
       toggleMenu();
     });
+    document.getElementById('menu-history').addEventListener('click', () => {
+      hideMenu();
+      showHistoryOverlay();
+    });
+    document.getElementById('history-close').addEventListener('click', hideHistoryOverlay);
+    document.getElementById('history-clear').addEventListener('click', clearHistory);
     document.getElementById('menu-theme').addEventListener('click', toggleTheme);
     document.getElementById('font-size-decrease').addEventListener('click', () => changeZoom(-10));
     document.getElementById('font-size-reset').addEventListener('click', resetZoom);
@@ -1089,6 +1506,11 @@
     document.getElementById('preview-overlay').addEventListener('click', (e) => {
       if (e.target.id === 'preview-overlay') {
         hidePreview();
+      }
+    });
+    document.getElementById('history-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'history-overlay') {
+        hideHistoryOverlay();
       }
     });
 
