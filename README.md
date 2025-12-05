@@ -9,10 +9,6 @@
 
 ## 特徴
 
-### アーキテクチャ
-- **Go言語による高速実行**: シングルバイナリで動作する軽量なサーバー実装
-- **純粋なGo標準ライブラリ**: ZIP処理は標準ライブラリのみで実現
-- **最小限の依存関係**: RAR/7Z処理用の必要最小限のライブラリのみで構成
 
 ### 機能
 - **多様なフォーマットへの対応**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB（画像抽出）
@@ -143,9 +139,11 @@ curl -fsSL https://raw.githubusercontent.com/asaday/LiteComics/main/install.sh |
 ```bash
 # 手動起動の場合
 litecomics
+# 設定ファイル: ~/.config/LiteComics/config.json
 
 # サービスの場合
 sudo systemctl status litecomics
+# 設定ファイル: /etc/litecomics/config.json
 ```
 
 ---
@@ -178,6 +176,7 @@ sudo make install
 
 # systemdサービスとして登録（Linuxのみ）
 sudo make install-service
+# 設定ファイルは /etc/litecomics/config.json に配置されます
 
 # アンインストール
 sudo make uninstall
@@ -186,28 +185,14 @@ sudo make uninstall-service  # サービスも削除する場合
 
 ## 設定
 
-### 最初の起動
-
-初回起動時は、ブラウザで設定画面が開きます。または手動で `config.json` を作成:
-
-```json
-{
-  "port": 8539,
-  "roots": [
-    "/path/to/your/comics",
-    {
-      "path": "/path/to/your/manga",
-      "name": "Manga"
-    }
-  ]
-}
-```
 
 ### 設定の変更
 
 - **GUI（Desktop版）**: メニューバー/システムトレイのアイコン → Settings
 - **ブラウザ**: 右上のメニュー(☰) → ⚙️ Settings
 - **ファイル**: `config.json` を直接編集
+  - systemdサービス: `/etc/litecomics/config.json`
+  - 手動実行: `~/.config/LiteComics/config.json`
 
 ## システム要件
 
