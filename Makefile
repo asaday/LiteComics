@@ -1,4 +1,4 @@
-.PHONY: build run clean dist install uninstall install-service uninstall-service
+.PHONY: build run clean dist dist-windows install uninstall install-service uninstall-service
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 DIST_DIR = dist
@@ -111,6 +111,24 @@ dist: clean build-all
 	@echo "  Linux: .tar.gz"
 	@echo "  Note: Windows package requires Windows environment to build"
 	@ls -lh $(DIST_DIR)/*.{tar.gz,zip,dmg} 2>/dev/null || true
+
+# Windows配布パッケージ作成（Windows環境でのみ実行）
+dist-windows: build-windows
+	@echo "Creating Windows distribution package (version: $(VERSION))..."
+	@mkdir -p $(DIST_DIR)
+	
+	# Windows ZIP
+	@mkdir -p $(DIST_DIR)/litecomics-windows-$(VERSION)
+	@cp $(BUILD_DIR)/litecomics-windows-amd64.exe $(DIST_DIR)/litecomics-windows-$(VERSION)/litecomics.exe
+	@cp config.json.example $(DIST_DIR)/litecomics-windows-$(VERSION)/config.json.example
+	@cp README.md $(DIST_DIR)/litecomics-windows-$(VERSION)/
+	@cd $(DIST_DIR) && powershell Compress-Archive -Path litecomics-windows-$(VERSION) -DestinationPath litecomics-windows-$(VERSION).zip -Force || zip -r litecomics-windows-$(VERSION).zip litecomics-windows-$(VERSION)
+	@rm -rf $(DIST_DIR)/litecomics-windows-$(VERSION)
+	
+	@echo "\n✓ Windows distribution package created in $(DIST_DIR)/"
+	@echo "  Windows: .zip"
+	@echo "  Note: For setup.exe, compile installer.iss with Inno Setup"
+	@ls -lh $(DIST_DIR)/*.zip 2>/dev/null || true
 
 run:
 	cd src && go run .
