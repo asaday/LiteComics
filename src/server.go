@@ -1,9 +1,11 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -17,11 +19,8 @@ import (
 
 var version = "dev" // Set via -ldflags at build time
 
-// Note: embed requires public directory to be inside server/ or at same level
-// For now, we'll rely on external public directory only
-// To enable embed, move or symlink public/ into server/public/
-// //go:embed public
-// var embeddedPublic embed.FS
+//go:embed public
+var embeddedPublic embed.FS
 
 // Config represents the application configuration
 type Config struct {
@@ -150,11 +149,18 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/file/{path:.*}", s.handleFile).Methods("GET")
 
 	// Serve static files (must be last)
+	// Try external public directory first (for development/customization)
+	var fileHandler http.Handler
 	publicDir := "public"
-	if _, err := os.Stat(publicDir); os.IsNotExist(err) {
-		publicDir = "../public"
+	if _, err := os.Stat(publicDir); err == nil {
+		log.Printf("Using external public directory: %s", publicDir)
+		fileHandler = http.FileServer(http.Dir(publicDir))
+	} else {
+		log.Printf("Using embedded public files")
+		publicFS, _ := fs.Sub(embeddedPublic, "public")
+		fileHandler = http.FileServer(http.FS(publicFS))
 	}
-	s.router.PathPrefix("/").Handler(http.FileServer(http.Dir(publicDir)))
+	s.router.PathPrefix("/").Handler(fileHandler)
 }
 
 func defaultConfig() *Config {

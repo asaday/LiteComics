@@ -159,7 +159,19 @@ func startSettingsServer() *http.Server {
 
 	// Serve settings.html
 	router.HandleFunc("/settings.html", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "../public/settings.html")
+		// Try external file first
+		if _, err := os.Stat("public/settings.html"); err == nil {
+			http.ServeFile(w, r, "public/settings.html")
+			return
+		}
+		// Use embedded file
+		data, err := embeddedPublic.ReadFile("public/settings.html")
+		if err != nil {
+			http.Error(w, "Settings page not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
 	})
 
 	// Config API

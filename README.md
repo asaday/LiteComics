@@ -156,17 +156,17 @@ sudo systemctl status litecomics
 git clone https://github.com/asaday/LiteComics.git
 cd LiteComics
 make build
-cd server && ./litecomics
+cd src && ./litecomics
 ```
 
 または開発用に直接実行:
 ```bash
 # GUI版（macOS/Windows）を実行
-cd server
+cd src
 go run .
 
 # CUI版（Linux用）をmacOSでデバッグ
-cd server
+cd src
 go run -tags cui .
 ```
 

@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+dist/
+src/litecomics
+src/.cache/
+
+# Development files
+.git/
+.github/
+.vscode/
+*.md
+!README.md
+
+# Demo files
+demo/
+misc/
+
+# Electron app
+electron-app/
+
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/

@@ -11,26 +11,26 @@ SERVICE_FILE = /etc/systemd/system/litecomics.service
 # (systray, autostart). Use GitHub Actions or build on each platform for production releases.
 
 build:
-	cd server && go build -ldflags "-X main.version=$(VERSION)" -o litecomics
+	cd src && go build -ldflags "-X main.version=$(VERSION)" -o litecomics
 
 build-cui:
-	cd server && go build -tags cui -ldflags "-X main.version=$(VERSION)" -o litecomics
+	cd src && go build -tags cui -ldflags "-X main.version=$(VERSION)" -o litecomics
 
 build-linux:
 	mkdir -p $(BUILD_DIR)
-	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-amd64
+	cd src && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-amd64
 
 build-linux-arm64:
 	mkdir -p $(BUILD_DIR)
-	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-arm64
+	cd src && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-arm64
 
 build-windows:
 	mkdir -p $(BUILD_DIR)
-	cd server && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
+	cd src && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
 
 build-mac-arm64:
 	mkdir -p $(BUILD_DIR)
-	cd server && GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-darwin-arm64
+	cd src && GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-darwin-arm64
 
 build-all-local: build-linux build-linux-arm64 build-mac-arm64
 
@@ -44,7 +44,6 @@ dist: clean build-all
 	# Linux AMD64
 	@mkdir -p $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)
 	@cp $(BUILD_DIR)/litecomics-linux-amd64 $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/litecomics
-	@cp -r public $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/
 	@cp config.json.example $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/config.json.example
 	@cp install.sh $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/
 	@chmod +x $(DIST_DIR)/litecomics-linux-amd64-$(VERSION)/litecomics
@@ -55,7 +54,6 @@ dist: clean build-all
 	# Linux ARM64 (Raspberry Pi)
 	@mkdir -p $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)
 	@cp $(BUILD_DIR)/litecomics-linux-arm64 $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/litecomics
-	@cp -r public $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/
 	@cp config.json.example $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/config.json.example
 	@cp install.sh $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/
 	@chmod +x $(DIST_DIR)/litecomics-linux-arm64-$(VERSION)/litecomics
@@ -68,7 +66,6 @@ dist: clean build-all
 	@mkdir -p $(DIST_DIR)/LiteComics.app/Contents/Resources
 	@cp $(BUILD_DIR)/litecomics-darwin-arm64 $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics
 	@chmod +x $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics
-	@cp -r public $(DIST_DIR)/LiteComics.app/Contents/Resources/
 	@cp config.json.example $(DIST_DIR)/LiteComics.app/Contents/Resources/config.json.example
 	@echo '<?xml version="1.0" encoding="UTF-8"?>\n\
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n\
@@ -108,12 +105,12 @@ dist: clean build-all
 	@ls -lh $(DIST_DIR)/*.{tar.gz,zip,dmg} 2>/dev/null || true
 
 run:
-	cd server && go run .
+	cd src && go run .
 
 install: build
 	@echo "Installing litecomics to $(BINDIR)..."
 	@mkdir -p $(BINDIR)
-	@install -m 755 server/litecomics $(BINDIR)/litecomics
+	@install -m 755 src/litecomics $(BINDIR)/litecomics
 	@echo "✓ Installed to $(BINDIR)/litecomics"
 	@echo ""
 	@echo "To uninstall, run: make uninstall"
@@ -161,8 +158,8 @@ uninstall-service:
 	@echo "✓ Service uninstalled"
 
 clean:
-	cd server && rm -f litecomics litecomics-*
-	rm -rf server/.cache/ $(BUILD_DIR)/ $(DIST_DIR)/
+	cd src && rm -f litecomics litecomics-*
+	rm -rf src/.cache/ $(BUILD_DIR)/ $(DIST_DIR)/
 
 mod:
-	cd server && go mod tidy
+	cd src && go mod tidy

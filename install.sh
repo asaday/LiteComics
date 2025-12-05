@@ -31,12 +31,19 @@ ARCH="$(uname -m)"
 
 case "$OS" in
     Linux*)
-        if [ "$ARCH" = "x86_64" ]; then
-            PLATFORM="linux-amd64"
-        else
-            echo "Unsupported architecture: $ARCH"
-            exit 1
-        fi
+        case "$ARCH" in
+            x86_64)
+                PLATFORM="linux-amd64"
+                ;;
+            aarch64|arm64)
+                PLATFORM="linux-arm64"
+                ;;
+            *)
+                echo "Unsupported architecture: $ARCH"
+                echo "Supported: x86_64, aarch64 (Raspberry Pi 64-bit)"
+                exit 1
+                ;;
+        esac
         ;;
     *)
         echo "Unsupported OS: $OS"
@@ -81,13 +88,7 @@ EXTRACTED_DIR=$(find "$TEMP_DIR" -type d -name "litecomics-*" | head -n 1)
 cp "$EXTRACTED_DIR/litecomics" "$INSTALL_DIR/litecomics"
 chmod +x "$INSTALL_DIR/litecomics"
 
-# Install public files
-DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/litecomics"
-mkdir -p "$DATA_DIR"
-cp -r "$EXTRACTED_DIR/public" "$DATA_DIR/"
-if [ -f "$EXTRACTED_DIR/config.json.example" ]; then
-    cp "$EXTRACTED_DIR/config.json.example" "$DATA_DIR/config.json.example"
-fi
+# Note: public files are embedded in the binary, no need to copy separately
 
 # Cleanup
 rm -rf "$TEMP_DIR"
@@ -96,7 +97,6 @@ echo ""
 echo "✓ LiteComics installed successfully!"
 echo ""
 echo "Location: $INSTALL_DIR/litecomics"
-echo "Data: $DATA_DIR"
 echo ""
 
 # Install systemd service if requested
@@ -115,7 +115,6 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$DATA_DIR
 ExecStart=$INSTALL_DIR/litecomics
 Restart=on-failure
 
@@ -158,4 +157,5 @@ if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
     echo ""
 fi
 
-echo "For configuration, edit: $DATA_DIR/config.json"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/LiteComics"
+echo "Configuration will be created at: $CONFIG_DIR/config.json"

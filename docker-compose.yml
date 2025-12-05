@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   viewer:
-    build: https://github.com/asaday/LiteComics.git#main
+    build: https://github.com/asaday/LiteComics.git
     container_name: litecomics
     ports:
       - "8539:8539"
