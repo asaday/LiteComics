@@ -161,7 +161,13 @@ cd server && ./litecomics
 
 または開発用に直接実行:
 ```bash
-make run
+# GUI版（macOS/Windows）を実行
+cd server
+go run .
+
+# CUI版（Linux用）をmacOSでデバッグ
+cd server
+go run -tags cui .
 ```
 
 #### システムにインストール（Linux）

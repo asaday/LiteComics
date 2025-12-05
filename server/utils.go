@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -181,28 +180,4 @@ func (s *Server) serveFileRange(w http.ResponseWriter, r *http.Request, path str
 	w.WriteHeader(http.StatusPartialContent)
 
 	io.CopyN(w, file, length)
-}
-
-func getLocalIPs() []string {
-	var ips []string
-	interfaces, _ := net.Interfaces()
-	for _, iface := range interfaces {
-		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		addrs, _ := iface.Addrs()
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip != nil && ip.To4() != nil {
-				ips = append(ips, ip.String())
-			}
-		}
-	}
-	return ips
 }

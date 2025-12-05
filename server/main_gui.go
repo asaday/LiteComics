@@ -1,4 +1,4 @@
-//go:build darwin || windows
+//go:build (darwin || windows) && !cui
 
 package main
 
@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 
@@ -65,6 +64,9 @@ func onReady() {
 	mOpen := systray.AddMenuItem("Open in Browser", "Open LiteComics in your browser")
 	mSettings := systray.AddMenuItem("Settings...", "Open settings page")
 	systray.AddSeparator()
+	mVersion := systray.AddMenuItem(fmt.Sprintf("Version: %s", version), "Application version")
+	mVersion.Disable()
+	systray.AddSeparator()
 	// AutoOpen defaults to true if not set
 	autoOpenEnabled := cfg.AutoOpen == nil || *cfg.AutoOpen
 	mAutoOpen := systray.AddMenuItemCheckbox("Auto-open Browser", "Open browser on startup", autoOpenEnabled)
@@ -73,6 +75,7 @@ func onReady() {
 	mQuit := systray.AddMenuItem("Quit", "Stop server and quit")
 
 	// Show config location
+	log.Printf("LiteComics version: %s", version)
 	log.Printf("Config location: %s\n", getConfigPath())
 	log.Printf("Main server: http://localhost:%d\n", cfg.Port)
 	log.Printf("Settings server: http://localhost:%d\n", settingsPort)
@@ -135,53 +138,11 @@ func onExit() {
 }
 
 func startServer(cfg *Config) *http.Server {
-	// Initialize caches
-	// Use CACHE_DIR env var for Docker, otherwise use user cache dir
-	cacheDir := os.Getenv("CACHE_DIR")
-	if cacheDir == "" {
-		userCache, err := os.UserCacheDir()
-		if err != nil {
-			cacheDir = ".cache"
-		} else {
-			cacheDir = filepath.Join(userCache, "LiteComics")
-		}
-	}
-	cacheDir = filepath.Join(cacheDir, "thumbnail")
-	os.MkdirAll(cacheDir, 0755)
-
-	srv := &Server{
-		config:     cfg,
-		router:     mux.NewRouter(),
-		nameToPath: make(map[string]string),
-		pathToName: make(map[string]string),
-		thumbnailCache: &ThumbnailCache{
-			dir:      cacheDir,
-			metadata: make(map[string]*CacheMetadata),
-			maxSize:  4096,
-		},
-		imageListCache: &ImageListCache{
-			cache:   make(map[string]*ImageListEntry),
-			maxSize: 256,
-		},
-		restartFunc: restartServer,
-	}
-
-	srv.thumbnailCache.loadExisting()
-
-	for i := range cfg.Roots {
-		srv.nameToPath[cfg.Roots[i].Name] = cfg.Roots[i].Path
-		srv.pathToName[cfg.Roots[i].Path] = cfg.Roots[i].Name
-	}
+	srv := initServer(cfg, restartServer)
 
 	srv.setupRoutes()
 
-	httpServer := &http.Server{
-		Addr:         net.JoinHostPort("", strconv.Itoa(cfg.Port)),
-		Handler:      srv.router,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
-	}
+	httpServer := createHTTPServer(srv)
 
 	go func() {
 		log.Printf("LiteComics Server started on port %d\n", cfg.Port)
@@ -287,7 +248,7 @@ func restartServer() {
 		}
 
 		// Reload config and start new server
-		cfg := loadConfigFromFile(getConfigPath())
+		cfg := loadConfigFromFile(getConfigPath(), false)
 		currentConfig = cfg
 		currentServer = startServer(cfg)
 

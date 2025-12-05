@@ -4,12 +4,18 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
+
+var version = "dev" // Set via -ldflags at build time
 
 // Config represents the application configuration
 type Config struct {
@@ -40,6 +46,62 @@ type Server struct {
 	thumbnailCache *ThumbnailCache
 	imageListCache *ImageListCache
 	restartFunc    func() // Function to call for restart
+}
+
+// initServer initializes a new Server with caches
+func initServer(cfg *Config, restartFunc func()) *Server {
+	// Initialize caches
+	// Use CACHE_DIR env var for Docker, otherwise use user cache dir
+	cacheDir := os.Getenv("CACHE_DIR")
+	if cacheDir == "" {
+		userCache, err := os.UserCacheDir()
+		if err != nil {
+			cacheDir = ".cache"
+		} else {
+			cacheDir = filepath.Join(userCache, "LiteComics")
+		}
+	}
+	cacheDir = filepath.Join(cacheDir, "thumbnail")
+	os.MkdirAll(cacheDir, 0755)
+
+	srv := &Server{
+		config:     cfg,
+		router:     mux.NewRouter(),
+		nameToPath: make(map[string]string),
+		pathToName: make(map[string]string),
+		thumbnailCache: &ThumbnailCache{
+			dir:      cacheDir,
+			metadata: make(map[string]*CacheMetadata),
+			maxSize:  4096,
+		},
+		imageListCache: &ImageListCache{
+			cache:   make(map[string]*ImageListEntry),
+			maxSize: 256,
+		},
+		restartFunc: restartFunc,
+	}
+
+	// Load existing cache metadata
+	srv.thumbnailCache.loadExisting()
+
+	// Build name/path maps
+	for i := range cfg.Roots {
+		srv.nameToPath[cfg.Roots[i].Name] = cfg.Roots[i].Path
+		srv.pathToName[cfg.Roots[i].Path] = cfg.Roots[i].Name
+	}
+
+	return srv
+}
+
+// createHTTPServer creates an HTTP server with the Server's router
+func createHTTPServer(srv *Server) *http.Server {
+	return &http.Server{
+		Addr:         net.JoinHostPort("", strconv.Itoa(srv.config.Port)),
+		Handler:      srv.router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 }
 
 // saveConfig saves the current config to file
@@ -158,42 +220,56 @@ func getConfigPath() string {
 	return filepath.Join(appConfigDir, "config.json")
 }
 
-func loadConfigFromFile(configPath string) *Config {
+func loadConfigFromFile(configPath string, showPath bool) *Config {
 	config := defaultConfig()
 	if data, err := os.ReadFile(configPath); err == nil {
-		json.Unmarshal(data, config)
-		fmt.Printf("Config loaded from: %s\n", configPath)
+		if err := json.Unmarshal(data, config); err != nil {
+			log.Printf("Warning: Failed to parse config file: %v\n", err)
+			log.Printf("Using default settings.\n")
+			return defaultConfig()
+		}
+		if showPath {
+			log.Printf("Config loaded from: %s\n", configPath)
+		}
 	} else {
-		fmt.Printf("Config file not found at %s. Using default settings.\n", configPath)
+		if showPath {
+			log.Printf("Config file not found. Using default settings.\nTo customize settings, create/edit: %s\n", configPath)
+		} else {
+			log.Printf("Config file not found at %s. Using default settings.\n", configPath)
+		}
 	}
 	return config
 }
 
 func loadConfig() *Config {
 	var (
-		configPath string
-		port       int
-		roots      []string
+		configPath  string
+		port        int
+		roots       []string
+		showVersion bool
 	)
 
 	defaultConfigPath := getConfigPath()
+	flag.BoolVar(&showVersion, "v", false, "Show version")
+	flag.BoolVar(&showVersion, "version", false, "")
 	flag.StringVar(&configPath, "c", defaultConfigPath, "Config file path")
-	flag.StringVar(&configPath, "config", defaultConfigPath, "Config file path")
-	flag.IntVar(&port, "p", 0, "Port number")
-	flag.IntVar(&port, "port", 0, "Port number")
-	flag.Func("r", "Root directory", func(s string) error { roots = append(roots, s); return nil })
-	flag.Func("root", "Root directory", func(s string) error { roots = append(roots, s); return nil })
+	flag.StringVar(&configPath, "config", defaultConfigPath, "")
+	flag.IntVar(&port, "p", 0, "Port number (overrides config)")
+	flag.IntVar(&port, "port", 0, "")
+	flag.Func("r", "Root directory (can be specified multiple times)", func(s string) error { roots = append(roots, s); return nil })
+	flag.Func("root", "", func(s string) error { roots = append(roots, s); return nil })
 	flag.Parse()
 
-	config := defaultConfig()
+	if showVersion {
+		fmt.Printf("LiteComics version %s\n", version)
+		os.Exit(0)
+	}
 
+	var config *Config
 	if len(roots) == 0 {
-		if data, err := os.ReadFile(configPath); err == nil {
-			json.Unmarshal(data, config)
-			fmt.Printf("Config loaded from: %s\n", configPath)
-		} else {
-			fmt.Println("config.json not found. Using default settings.")
-		}
+		config = loadConfigFromFile(configPath, true)
+	} else {
+		config = defaultConfig()
 	}
 
 	if port != 0 {

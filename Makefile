@@ -7,35 +7,37 @@ PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
 SERVICE_FILE = /etc/systemd/system/litecomics.service
 
+# Note: Cross-platform builds from macOS may fail due to platform-specific dependencies
+# (systray, autostart). Use GitHub Actions or build on each platform for production releases.
+
 build:
-	cd server && go build -o litecomics
+	cd server && go build -ldflags "-X main.version=$(VERSION)" -o litecomics
+
+build-cui:
+	cd server && go build -tags cui -ldflags "-X main.version=$(VERSION)" -o litecomics
 
 build-linux:
 	mkdir -p $(BUILD_DIR)
-	cd server && GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -tags linux -o ../$(BUILD_DIR)/litecomics-linux-amd64
+	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-amd64
 
 build-linux-arm64:
 	mkdir -p $(BUILD_DIR)
-	cd server && GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -tags linux -o ../$(BUILD_DIR)/litecomics-linux-arm64
+	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-arm64
 
 build-windows:
 	mkdir -p $(BUILD_DIR)
-	cd server && CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -ldflags "-s -w -H=windowsgui" -tags windows -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
-
-build-mac:
-	mkdir -p $(BUILD_DIR)
-	cd server && go build -ldflags "-s -w" -tags darwin -o ../$(BUILD_DIR)/litecomics-darwin-$(shell uname -m)
+	cd server && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
 
 build-mac-arm64:
 	mkdir -p $(BUILD_DIR)
-	cd server && GOARCH=arm64 go build -ldflags "-s -w" -tags darwin -o ../$(BUILD_DIR)/litecomics-darwin-arm64
+	cd server && GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-darwin-arm64
 
-build-all-local: build-linux build-linux-arm64 build-mac build-windows
+build-all-local: build-linux build-linux-arm64 build-mac-arm64
 
 build-all: build-linux build-linux-arm64 build-mac-arm64
 
-# 配布用パッケージ作成（macOS上で実行）
-dist: clean build-all-local
+# 配布用パッケージ作成（macOS上で実行、Windows版は除外）
+dist: clean build-all
 	@echo "Creating distribution packages (version: $(VERSION))..."
 	@mkdir -p $(DIST_DIR)
 	
@@ -64,7 +66,7 @@ dist: clean build-all-local
 	# macOS .app bundle
 	@mkdir -p $(DIST_DIR)/LiteComics.app/Contents/MacOS
 	@mkdir -p $(DIST_DIR)/LiteComics.app/Contents/Resources
-	@cp $(BUILD_DIR)/litecomics-darwin-* $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics 2>/dev/null || true
+	@cp $(BUILD_DIR)/litecomics-darwin-arm64 $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics
 	@chmod +x $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics
 	@cp -r public $(DIST_DIR)/LiteComics.app/Contents/Resources/
 	@cp config.json.example $(DIST_DIR)/LiteComics.app/Contents/Resources/config.json.example
@@ -89,27 +91,21 @@ dist: clean build-all-local
 </dict>\n\
 </plist>' > $(DIST_DIR)/LiteComics.app/Contents/Info.plist
 	
-	# Create DMG staging directory
+	# Create zip for direct download
+	@cd $(DIST_DIR) && zip -r litecomics-mac-$(VERSION).zip LiteComics.app
+	
+	# Create DMG for installer
 	@mkdir -p $(DIST_DIR)/dmg-staging
 	@cp -r $(DIST_DIR)/LiteComics.app $(DIST_DIR)/dmg-staging/
 	@ln -s /Applications $(DIST_DIR)/dmg-staging/Applications
-	
-	# Create DMG with custom layout
-	@echo "Creating DMG..."
 	@hdiutil create -volname "LiteComics" -srcfolder $(DIST_DIR)/dmg-staging -ov -format UDZO $(DIST_DIR)/litecomics-mac-$(VERSION).dmg
 	@rm -rf $(DIST_DIR)/LiteComics.app $(DIST_DIR)/dmg-staging
 	
-	# Windows
-	@mkdir -p $(DIST_DIR)/litecomics-windows-$(VERSION)
-	@cp $(BUILD_DIR)/litecomics-windows-amd64.exe $(DIST_DIR)/litecomics-windows-$(VERSION)/litecomics.exe
-	@cp -r public $(DIST_DIR)/litecomics-windows-$(VERSION)/
-	@cp config.json.example $(DIST_DIR)/litecomics-windows-$(VERSION)/config.json.example
-	@printf "@echo off\r\nstart litecomics.exe\r\n" > $(DIST_DIR)/litecomics-windows-$(VERSION)/start.bat
-	cd $(DIST_DIR) && zip -r litecomics-windows-amd64-$(VERSION).zip litecomics-windows-$(VERSION)
-	@rm -rf $(DIST_DIR)/litecomics-windows-$(VERSION)
-	
 	@echo "\n✓ Distribution packages created in $(DIST_DIR)/"
-	@ls -lh $(DIST_DIR)/*.{tar.gz,dmg,zip} 2>/dev/null || true
+	@echo "  macOS: .zip (direct use) + .dmg (installer)"
+	@echo "  Linux: .tar.gz"
+	@echo "  Note: Windows package requires Windows environment to build"
+	@ls -lh $(DIST_DIR)/*.{tar.gz,zip,dmg} 2>/dev/null || true
 
 run:
 	cd server && go run .

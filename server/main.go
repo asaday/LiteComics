@@ -1,4 +1,4 @@
-//go:build linux
+//go:build linux || cui
 
 package main
 
@@ -6,85 +6,24 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 func main() {
 	cfg := loadConfig()
-
-	// Initialize caches
-	// Use CACHE_DIR env var for Docker, otherwise use user cache dir
-	cacheDir := os.Getenv("CACHE_DIR")
-	if cacheDir == "" {
-		userCache, err := os.UserCacheDir()
-		if err != nil {
-			cacheDir = ".cache"
-		} else {
-			cacheDir = filepath.Join(userCache, "LiteComics")
-		}
-	}
-	cacheDir = filepath.Join(cacheDir, "thumbnail")
-	os.MkdirAll(cacheDir, 0755)
-
-	srv := &Server{
-		config:     cfg,
-		router:     mux.NewRouter(),
-		nameToPath: make(map[string]string),
-		pathToName: make(map[string]string),
-		thumbnailCache: &ThumbnailCache{
-			dir:      cacheDir,
-			metadata: make(map[string]*CacheMetadata),
-			maxSize:  4096,
-		},
-		imageListCache: &ImageListCache{
-			cache:   make(map[string]*ImageListEntry),
-			maxSize: 256,
-		},
-	}
-
-	// Load existing cache metadata
-	srv.thumbnailCache.loadExisting()
-
-	for i := range cfg.Roots {
-		srv.nameToPath[cfg.Roots[i].Name] = cfg.Roots[i].Path
-		srv.pathToName[cfg.Roots[i].Path] = cfg.Roots[i].Name
-	}
+	srv := initServer(cfg, nil)
 
 	srv.setupRoutes()
 
-	httpServer := &http.Server{
-		Addr:         net.JoinHostPort("", strconv.Itoa(cfg.Port)),
-		Handler:      srv.router,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
-	}
+	httpServer := createHTTPServer(srv)
 
 	go func() {
-		fmt.Println("\nLiteComics Server Started!")
-		fmt.Println("Access URLs:")
-		fmt.Printf("  http://localhost:%d\n", cfg.Port)
-		fmt.Printf("  http://127.0.0.1:%d\n", cfg.Port)
-
-		for _, ip := range getLocalIPs() {
-			fmt.Printf("  http://%s:%d\n", ip, cfg.Port)
-		}
-
-		fmt.Println("\nRoot Directories:")
-		for _, root := range cfg.Roots {
-			fmt.Printf("  %s > %s\n", root.Name, root.Path)
-		}
-		fmt.Println()
-
+		fmt.Printf("LiteComics version: %s\n", version)
+		fmt.Printf("LiteComics Server Started! http://localhost:%d\n", cfg.Port)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}

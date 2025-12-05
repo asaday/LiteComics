@@ -9,17 +9,12 @@ services:
     volumes:
       # Mount your comics directory (modify as needed)
       - /path/to/your/comics:/data:ro
-      # Persist config file (copied from config.json.example on first run)
-      - config-data:/app/config
-      # Persist cache directory (thumbnails, etc.)
-      - cache-data:/app/.cache
+      - ./config:/app/config
+      - cache:/app/cache
     environment:
-      # Specify config.json location
       - CONFIG_PATH=/app/config/config.json
-      # Specify cache directory location
-      - CACHE_DIR=/app/.cache
+      - CACHE_DIR=/app/cache
     restart: unless-stopped
 
 volumes:
-  config-data:
-  cache-data:
+  cache:

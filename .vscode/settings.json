@@ -3,5 +3,13 @@
   "[html]": {
     "editor.defaultFormatter": "vscode.html-language-features"
   },
-  "cSpell.words": ["epub", "nwaples", "rardecode", "sevenzip", "systray"]
+  "cSpell.words": [
+    "epub",
+    "GOARCH",
+    "litecomics",
+    "nwaples",
+    "rardecode",
+    "sevenzip",
+    "systray"
+  ]
 }
