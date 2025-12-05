@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -141,7 +141,7 @@
 <body class="viewer">
     <div id="media-container">
         <div id="media-toolbar">
-            <button id="btn-back" class="media-btn">← 戻る</button>
+            <button id="btn-back" class="media-btn">← Back</button>
             <div id="media-filename"></div>
         </div>
         <div id="volume-indicator">
@@ -231,8 +231,8 @@
                     });
 
             } catch (err) {
-                console.error('loadMedia エラー:', err);
-                alert(`エラー: ${err.message}`);
+                console.error('loadMedia error:', err);
+                alert(`Error: ${err.message}`);
             }
         }
 

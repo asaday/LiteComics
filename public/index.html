@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -568,13 +568,8 @@
   <div class="container">
     <div id="breadcrumb" class="breadcrumb">
       <div class="menu-container">
-        <button id="menu-button" class="menu-button" title="メニュー">☰</button>
+        <button id="menu-button" class="menu-button" title="Menu">☰</button>
         <div id="menu-popup" class="menu-popup">
-          <div class="menu-item" id="menu-settings">
-            <div class="menu-item-label">
-              <span>⚙️ Settings</span>
-            </div>
-          </div>
           <div class="menu-item" id="menu-theme">
             <div class="menu-item-label">
               <span id="theme-icon">🌓</span>
@@ -582,16 +577,16 @@
           </div>
           <div class="menu-item">
             <div class="menu-item-controls">
-              <button id="font-size-decrease" class="menu-btn" title="縮小 (Ctrl + -)">A-</button>
-              <button id="font-size-reset" class="menu-btn" title="リセット">A</button>
-              <button id="font-size-increase" class="menu-btn" title="拡大 (Ctrl + +)">A+</button>
+              <button id="font-size-decrease" class="menu-btn" title="Decrease (Ctrl + -)">A-</button>
+              <button id="font-size-reset" class="menu-btn" title="Reset">A</button>
+              <button id="font-size-increase" class="menu-btn" title="Increase (Ctrl + +)">A+</button>
             </div>
           </div>
         </div>
       </div>
     </div>
     <div id="file-list" class="file-list">
-      <p>読み込み中...</p>
+      <p>Loading...</p>
     </div>
   </div>
 
@@ -630,7 +625,7 @@
       const overlay = document.getElementById('preview-overlay');
       const content = document.getElementById('preview-content');
 
-      content.innerHTML = '<p>読み込み中...</p>';
+      content.innerHTML = '<p>Loading...</p>';
       overlay.classList.add('visible');
 
       try {
@@ -651,7 +646,7 @@
           content.appendChild(pre);
         }
       } catch (err) {
-        content.innerHTML = `<p>エラー: ${err.message}</p>`;
+        content.innerHTML = `<p>Error: ${err.message}</p>`;
       }
     }
 
@@ -755,7 +750,7 @@
         fileListDiv.innerHTML = '';
 
         if (files.length === 0) {
-          fileListDiv.innerHTML = '<p>ファイルが見つかりません。config.jsonを確認してください。</p>';
+          fileListDiv.innerHTML = '<p>No files found. Please check config.json.</p>';
           return;
         }
 
@@ -835,7 +830,7 @@
         updateSelection();
       } catch (err) {
         document.getElementById('file-list').innerHTML =
-          `<p class="error">エラー: ${err.message}</p>`;
+          `<p class="error">Error: ${err.message}</p>`;
       }
     }
 
@@ -1079,9 +1074,6 @@
     document.getElementById('menu-button').addEventListener('click', (e) => {
       e.stopPropagation();
       toggleMenu();
-    });
-    document.getElementById('menu-settings').addEventListener('click', () => {
-      location.href = '/settings.html';
     });
     document.getElementById('menu-theme').addEventListener('click', toggleTheme);
     document.getElementById('font-size-decrease').addEventListener('click', () => changeZoom(-10));

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -619,13 +619,13 @@
 <body class="viewer viewer-body">
   <div id="loading" class="loading">
     <div class="spinner"></div>
-    <div class="loading-text">読み込み中...</div>
+    <div class="loading-text">Loading...</div>
   </div>
 
   <div id="viewer-container" class="viewer-container">
     <div id="image-display" class="image-display">
     </div>
-    <div id="page-info" class="page-info">読み込み中...</div>
+    <div id="page-info" class="page-info">Loading...</div>
 
     <!-- ツールバー -->
     <div id="toolbar" class="toolbar">
@@ -633,25 +633,25 @@
       <div class="toolbar-buttons">
         <!-- ナビゲーション -->
         <div class="toolbar-group">
-          <button id="btn-back" class="toolbar-btn" title="ファイル一覧に戻る (ESC)">✕ 閉じる</button>
+          <button id="btn-back" class="toolbar-btn" title="Back to file list (ESC)">✕ Close</button>
         </div>
         <!-- ページ操作 -->
         <div class="toolbar-group">
-          <button id="btn-next" class="toolbar-btn" title="次のページ (←)">◀◀</button>
-          <button id="btn-offset-down" class="toolbar-btn" title="配置修正: 1ページ進む (↓)">◀</button>
-          <button id="btn-offset-up" class="toolbar-btn" title="配置修正: 1ページ戻る (↑)">▶</button>
-          <button id="btn-prev" class="toolbar-btn" title="前のページ (→)">▶▶</button>
+          <button id="btn-next" class="toolbar-btn" title="Next page (←)">◀◀</button>
+          <button id="btn-offset-down" class="toolbar-btn" title="Adjust offset: Go forward 1 page (↓)">◀</button>
+          <button id="btn-offset-up" class="toolbar-btn" title="Adjust offset: Go back 1 page (↑)">▶</button>
+          <button id="btn-prev" class="toolbar-btn" title="Previous page (→)">▶▶</button>
         </div>
         <!-- ナビゲーション -->
         <div class="toolbar-group">
-          <button id="btn-list" class="toolbar-btn" title="ファイル名リスト (L)">リスト</button>
-          <button id="btn-thumbnails" class="toolbar-btn" title="サムネイル一覧 (T)">サムネイル</button>
+          <button id="btn-list" class="toolbar-btn" title="File name list (L)">List</button>
+          <button id="btn-thumbnails" class="toolbar-btn" title="Thumbnail list (T)">Thumbnails</button>
         </div>
         <!-- 表示設定 -->
         <div class="toolbar-group">
-          <button id="btn-single" class="toolbar-btn" title="単/複表示切り替え (S)">単/複</button>
-          <button id="btn-fullscreen" class="toolbar-btn" title="全画面 (Enter)">全画面</button>
-          <button id="btn-help" class="toolbar-btn" title="ヘルプ (H)">ヘルプ</button>
+          <button id="btn-single" class="toolbar-btn" title="Toggle single/double page (S)">Single/Double</button>
+          <button id="btn-fullscreen" class="toolbar-btn" title="Fullscreen (Enter)">Fullscreen</button>
+          <button id="btn-help" class="toolbar-btn" title="Help (H)">Help</button>
         </div>
       </div>
     </div>
@@ -661,7 +661,7 @@
   <div id="page-sidebar" class="page-sidebar">
     <div class="page-sidebar-content">
       <div class="page-sidebar-header">
-        <div class="page-sidebar-title">ファイル一覧</div>
+        <div class="page-sidebar-title">File List</div>
         <button id="close-sidebar" class="close-sidebar-btn">×</button>
       </div>
       <div id="page-list" class="page-list"></div>
@@ -671,7 +671,7 @@
   <!-- ページ一覧オーバーレイ -->
   <div id="page-overlay" class="page-overlay" style="display: none;">
     <div class="page-overlay-header">
-      <h2>ページ一覧</h2>
+      <h2>Page List</h2>
       <button id="close-overlay" class="close-overlay-btn">×</button>
     </div>
     <div id="page-grid" class="page-grid"></div>
@@ -680,20 +680,20 @@
   <div id="help" class="help" style="display: none;">
     <div class="help-content">
       <div class="help-header">
-        <h3>操作方法</h3>
+        <h3>Keyboard Shortcuts</h3>
         <button id="close-help" class="close-help-btn">×</button>
       </div>
       <ul>
-        <li><strong>← / → / Space</strong>: ページ送り</li>
-        <li><strong>↑ / ↓</strong>: 配置修正（１ページ進む/戻る）</li>
-        <li><strong>Enter</strong>: 全画面モード切り替え</li>
-        <li><strong>S</strong>: 単/複表示モード切り替え</li>
-        <li><strong>T</strong>: サムネイル一覧を表示</li>
-        <li><strong>L</strong>: ファイル名リストを表示</li>
-        <li><strong>ESC / Backspace</strong>: ファイル一覧に戻る</li>
-        <li><strong>H</strong>: このヘルプを表示/非表示</li>
+        <li><strong>← / → / Space</strong>: Navigate pages</li>
+        <li><strong>↑ / ↓</strong>: Adjust offset (Go forward/back 1 page)</li>
+        <li><strong>Enter</strong>: Toggle fullscreen mode</li>
+        <li><strong>S</strong>: Toggle single/double page mode</li>
+        <li><strong>T</strong>: Show thumbnail list</li>
+        <li><strong>L</strong>: Show file name list</li>
+        <li><strong>ESC / Backspace</strong>: Back to file list</li>
+        <li><strong>H</strong>: Show/hide this help</li>
       </ul>
-      <p class="help-hint">Hキーまたは×ボタンで閉じる</p>
+      <p class="help-hint">Press H or × button to close</p>
     </div>
   </div>
 
@@ -885,7 +885,7 @@
         const fileInfo = getFileFromURL();
         console.log('fileInfo:', fileInfo);
         if (!fileInfo || !fileInfo.rootName || !fileInfo.relativePath) {
-          throw new Error('ファイルが指定されていません');
+          throw new Error('File not specified');
         }
 
         currentFile = `${fileInfo.rootName}/${fileInfo.relativePath}`;
@@ -909,7 +909,7 @@
         console.log('画像数:', images.length);
 
         if (images.length === 0) {
-          throw new Error('画像が見つかりません');
+          throw new Error('No images found');
         }
 
         // 保存されたページ位置を復元
@@ -927,8 +927,8 @@
         // 最初のページを表示
         await displayCurrentPages(true); // 初回読み込みフラグ
       } catch (err) {
-        console.error('loadImageList エラー:', err);
-        document.getElementById('page-info').textContent = `エラー: ${err.message}`;
+        console.error('loadImageList error:', err);
+        document.getElementById('page-info').textContent = `Error: ${err.message}`;
         hideLoading();
       }
     }
@@ -955,7 +955,7 @@
         };
 
         img.onerror = () => {
-          reject(new Error(`画像 ${index} の読み込みに失敗しました`));
+          reject(new Error(`Failed to load image ${index}`));
         };
 
         img.src = url;
@@ -1001,12 +1001,12 @@
 
       try {
         // 最初の画像を読み込み
-        console.log('画像読み込み開始:', displayPage);
+        console.log('Image loading started:', displayPage);
         const img1 = await loadImage(displayPage);
-        console.log('画像読み込み完了:', displayPage, img1);
+        console.log('Image loading completed:', displayPage, img1);
 
         if (!img1) {
-          pageInfoDiv.textContent = 'ページが見つかりません';
+          pageInfoDiv.textContent = 'Page not found';
           return;
         }
 
@@ -1022,11 +1022,11 @@
           displayDiv.appendChild(container);
 
           if (isWideImage(img1)) {
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (横長)`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (Wide)`;
           } else if (forceSinglePageMode) {
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (単ページ)`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (Single page)`;
           } else if (isPortraitViewport()) {
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (縦長表示)`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (Portrait display)`;
           } else {
             pageInfoDiv.textContent = `${displayPage + 1} / ${images.length}`;
           }
@@ -1082,7 +1082,7 @@
         }
 
       } catch (err) {
-        pageInfoDiv.textContent = `エラー: ${err.message}`;
+        pageInfoDiv.textContent = `Error: ${err.message}`;
         showPageInfo(true, 1000);
         hideLoading();
       }
@@ -1108,21 +1108,21 @@
 
     // 次のページセットへ移動
     async function nextPages() {
-      console.log('nextPages 呼び出し: currentPage=', currentPage);
+      console.log('nextPages called: currentPage=', currentPage);
       const displayPage = getDisplayPage();
       console.log('nextPages: displayPage=', displayPage);
 
       if (displayPage >= images.length) {
-        console.log('最後のページです');
+        console.log('Last page');
         return;
       }
 
       const forceOnePageMode = isForceOnePageMode();
 
-      // 画像を読み込んで判定
-      console.log('nextPages: 画像判定開始');
+      // Load image and check
+      console.log('nextPages: Image check started');
       const img = imageCache[displayPage] || await loadImage(displayPage);
-      console.log('nextPages: 画像判定完了', img, 'isWide=', isWideImage(img));
+      console.log('nextPages: Image check completed', img, 'isWide=', isWideImage(img));
 
       if (forceOnePageMode || (img && isWideImage(img))) {
         currentPage += 1; // 1ページモードまたは横長は1ページ進む
@@ -1181,7 +1181,7 @@
     function toggleFullscreen() {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
-          console.error('全画面モードの開始に失敗:', err);
+          console.error('Failed to start fullscreen mode:', err);
         });
       } else {
         document.exitFullscreen();

@@ -46,7 +46,6 @@ func main() {
 }
 
 func onReady() {
-	systray.SetTitle("LiteComics")
 	systray.SetTooltip("LiteComics Server")
 	
 	// Set icon (if iconData is populated)
@@ -194,14 +193,17 @@ func startSettingsServer() *http.Server {
 	
 	// Config API
 	router.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
-		serverMutex.Lock()
-		cfg := currentConfig
-		serverMutex.Unlock()
-		
 		switch r.Method {
 		case http.MethodGet:
+			// Read config file directly to avoid sending default values
+			configPath := getConfigPath()
+			configData, err := os.ReadFile(configPath)
+			if err != nil {
+				http.Error(w, "Failed to read config", http.StatusInternalServerError)
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(cfg)
+			w.Write(configData)
 		case http.MethodPost:
 			var newConfig Config
 			if err := json.NewDecoder(r.Body).Decode(&newConfig); err != nil {

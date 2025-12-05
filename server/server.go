@@ -88,17 +88,19 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/file/{path:.*}", s.handleFile).Methods("GET")
 
 	// Serve static files (must be last)
-	// Block access to settings.html on main server
-	s.router.HandleFunc("/settings.html", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Settings are only available via the settings server (port 28539 on GUI version)", http.StatusForbidden)
-	})
 	s.router.PathPrefix("/").Handler(http.FileServer(http.Dir(publicDir)))
 }
 
 func defaultConfig() *Config {
+	// Get user's home directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = "."
+	}
+	
 	return &Config{
 		Port:  8539,
-		Roots: []RootConfig{{Path: "/data", Name: "data"}},
+		Roots: []RootConfig{{Path: homeDir, Name: "Home"}},
 		Handlers: map[string]map[string]HandlerConfig{
 			"ios": {
 				"VLC": {
