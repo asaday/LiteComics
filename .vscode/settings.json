@@ -3,5 +3,5 @@
   "[html]": {
     "editor.defaultFormatter": "vscode.html-language-features"
   },
-  "cSpell.words": ["systray"]
+  "cSpell.words": ["epub", "nwaples", "rardecode", "sevenzip", "systray"]
 }

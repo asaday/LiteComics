@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -12,8 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func (s *Server) handleRoots(w http.ResponseWriter, r *http.Request) {
@@ -349,64 +348,4 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.serveFile(w, resolved.FullPath, stat.Size(), mimeType)
-}
-
-// handleGetConfig returns the current configuration
-func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
-	respondJSON(w, s.config)
-}
-
-// handleUpdateConfig updates the configuration
-func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		respondError(w, "Failed to read request body", http.StatusBadRequest)
-		return
-	}
-
-	var newConfig Config
-	if err := json.Unmarshal(body, &newConfig); err != nil {
-		respondError(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Validate port
-	if newConfig.Port < 1 || newConfig.Port > 65535 {
-		respondError(w, "Invalid port number", http.StatusBadRequest)
-		return
-	}
-
-	// Validate roots
-	if len(newConfig.Roots) == 0 {
-		respondError(w, "At least one root directory is required", http.StatusBadRequest)
-		return
-	}
-
-	// Save to config.json
-	configData, err := json.MarshalIndent(newConfig, "", "  ")
-	if err != nil {
-		respondError(w, "Failed to marshal config", http.StatusInternalServerError)
-		return
-	}
-
-	configPath := getConfigPath()
-	if err := os.WriteFile(configPath, configData, 0644); err != nil {
-		respondError(w, "Failed to write config file", http.StatusInternalServerError)
-		return
-	}
-
-	s.config = &newConfig
-	respondJSON(w, map[string]string{"status": "ok"})
-}
-
-// handleRestart triggers a server restart
-func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
-	respondJSON(w, map[string]string{"status": "restarting"})
-	
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		if s.restartFunc != nil {
-			s.restartFunc()
-		}
-	}()
 }

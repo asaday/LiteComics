@@ -13,9 +13,9 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Port     int          `json:"port"`
-	Roots    []RootConfig `json:"roots"`
-	AutoOpen *bool        `json:"autoOpen,omitempty"` // Auto-open browser on startup (GUI only)
+	Port     int                                 `json:"port"`
+	Roots    []RootConfig                        `json:"roots"`
+	AutoOpen *bool                               `json:"autoOpen,omitempty"` // Auto-open browser on startup (GUI only)
 	Handlers map[string]map[string]HandlerConfig `json:"handlers,omitempty"`
 }
 
@@ -97,7 +97,7 @@ func defaultConfig() *Config {
 	if err != nil {
 		homeDir = "."
 	}
-	
+
 	return &Config{
 		Port:  8539,
 		Roots: []RootConfig{{Path: homeDir, Name: "Home"}},
@@ -138,23 +138,23 @@ func getConfigPath() string {
 		os.MkdirAll(dir, 0755)
 		return envPath
 	}
-	
+
 	// カレントディレクトリに config.json があればそれを使う（開発用）
 	if _, err := os.Stat("config.json"); err == nil {
 		return "config.json"
 	}
-	
+
 	// ユーザー設定ディレクトリを取得
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		// フォールバック: カレントディレクトリ
 		return "config.json"
 	}
-	
+
 	// LiteComics専用ディレクトリを作成
 	appConfigDir := filepath.Join(configDir, "LiteComics")
 	os.MkdirAll(appConfigDir, 0755)
-	
+
 	return filepath.Join(appConfigDir, "config.json")
 }
 
