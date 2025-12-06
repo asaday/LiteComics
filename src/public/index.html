@@ -967,9 +967,9 @@
 
         contentDiv.addEventListener('click', () => {
           if (item.type === 'book') {
-            window.location.href = `/viewer.html#/${encodeURIComponent(item.path)}`;
+            window.location.href = `/viewer/#${encodeURIComponent(item.path)}`;
           } else if (item.type === 'video' || item.type === 'audio') {
-            window.location.href = `/media.html#/${encodeURIComponent(item.path)}`;
+            window.location.href = `/media/#${encodeURIComponent(item.path)}`;
           }
         });
 
@@ -1278,7 +1278,7 @@
         contentWrapper.appendChild(link);
       } else if (file.type === 'video' || file.type === 'audio') {
         const link = document.createElement('a');
-        link.href = `/media.html#/${encodeURIComponent(file.path)}`;
+        link.href = `/media/#${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
         link.addEventListener('click', (e) => {
           // リンククリック時もsessionStorageに保存
@@ -1325,7 +1325,7 @@
       tile.dataset.index = index;
 
       const link = document.createElement('a');
-      link.href = `/viewer.html#/${encodeURIComponent(file.path)}`;
+      link.href = `/viewer/#${encodeURIComponent(file.path)}`;
 
       const thumbnail = document.createElement('img');
       thumbnail.className = 'tile-thumbnail';
