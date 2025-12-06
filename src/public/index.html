@@ -981,7 +981,7 @@
           e.stopPropagation();
           // パスから親ディレクトリを取得
           const parentPath = item.path.substring(0, item.path.lastIndexOf('/'));
-          window.location.href = `/?dir=${encodeURIComponent(parentPath)}`;
+          window.location.hash = `#${encodeURIComponent(parentPath)}`;
         });
 
         historyItem.appendChild(contentDiv);
@@ -1273,7 +1273,7 @@
 
       if (file.type === 'directory') {
         const link = document.createElement('a');
-        link.href = `/?dir=${encodeURIComponent(file.path)}`;
+        link.href = `/#${encodeURIComponent(file.path)}`;
         link.textContent = file.name;
         contentWrapper.appendChild(link);
       } else if (file.type === 'video' || file.type === 'audio') {
@@ -1389,7 +1389,7 @@
 
       if (currentRootName) {
         addSeparator();
-        addItem(currentRootName, currentRelativePath ? `/?dir=${encodeURIComponent(currentRootName)}` : null, !currentRelativePath);
+        addItem(currentRootName, currentRelativePath ? `/#${encodeURIComponent(currentRootName)}` : null, !currentRelativePath);
 
         // 相対パスの各階層
         if (currentRelativePath) {
@@ -1400,7 +1400,7 @@
             addSeparator();
             accumulatedPath += '/' + part;
             const isLast = i === pathParts.length - 1;
-            addItem(part, isLast ? null : `/?dir=${encodeURIComponent(accumulatedPath)}`, isLast);
+            addItem(part, isLast ? null : `/#${encodeURIComponent(accumulatedPath)}`, isLast);
           });
         }
       }
@@ -1540,14 +1540,25 @@
       }
     });
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const dirParam = urlParams.get('dir');
+    const hash = window.location.hash;
+    const dirParam = hash ? decodeURIComponent(hash.substring(1)) : null;
 
     if (dirParam) {
       loadFileList(dirParam);
     } else {
       loadFileList(null);
     }
+
+    // ハッシュ変更時の処理
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash;
+      const dirParam = hash ? decodeURIComponent(hash.substring(1)) : null;
+      if (dirParam) {
+        loadFileList(dirParam);
+      } else {
+        loadFileList(null);
+      }
+    });
   </script>
 </body>
 

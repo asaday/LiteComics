@@ -162,8 +162,8 @@
 
         function getFileFromURL() {
             const hash = window.location.hash;
-            if (hash && hash.startsWith('#/')) {
-                const fullPath = decodeURIComponent(hash.substring(2));
+            if (hash && hash.length > 1) {
+                const fullPath = decodeURIComponent(hash.substring(1));
                 const pathParts = fullPath.split('/').filter(p => p);
                 if (pathParts.length < 2) return null;
 
