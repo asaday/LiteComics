@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,7 +60,8 @@
     }
 
     .logo-icon {
-      font-size: 2rem;
+      width: 2rem;
+      height: 2rem;
     }
 
     .nav-links {
@@ -80,7 +82,7 @@
     }
 
     .hero {
-      background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      background: url('back.png') center/cover;
       color: white;
       padding: 6rem 2rem;
       text-align: center;
@@ -159,21 +161,25 @@
     }
 
     .screenshot-container {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
       margin-bottom: 4rem;
     }
 
-    .screenshot-placeholder {
-      background: var(--bg-light);
-      border: 2px dashed var(--border);
+    .screenshot-item {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      overflow: hidden;
+    }
+
+    .screenshot-item img {
+      width: 100%;
+      height: auto;
       border-radius: 8px;
-      padding: 8rem 2rem;
-      text-align: center;
-      color: var(--text-light);
-      font-size: 1.5rem;
+      display: block;
     }
 
     .features-grid {
@@ -347,58 +353,81 @@
     }
   </style>
 </head>
+
 <body>
   <header class="header">
     <div class="header-content">
       <a href="#" class="logo">
-        <span class="logo-icon">📖</span>
+        <img src="icon_logo.png" alt="LiteComics" class="logo-icon">
         <span>LiteComics</span>
       </a>
       <nav class="nav-links">
         <a href="#features">Features</a>
         <a href="#specs">Specs</a>
-        <a href="https://github.com">GitHub</a>
+        <a href="https://github.com/asaday/LiteComics">GitHub</a>
       </nav>
     </div>
   </header>
 
   <section class="hero">
     <div class="hero-content">
-      <h1>Lightweight & Fast<br>Archive Viewer</h1>
-      <p class="hero-subtitle">Read ZIP/CBZ/RAR comics comfortably.<br>A modern web application that works serverless.</p>
+      <h1>Lightweight & Fast<br>Comic Archive Viewer</h1>
+      <p class="hero-subtitle">Read ZIP/CBZ/RAR comics comfortably.<br>A modern web application that works serverless.
+      </p>
       <div class="hero-buttons">
         <a href="viewer-demo.html" class="btn btn-primary">Try Demo</a>
-        <a href="https://github.com" class="btn btn-secondary">Download</a>
+        <a href="https://github.com/asaday/LiteComics/releases" class="btn btn-secondary">Download</a>
       </div>
     </div>
   </section>
 
   <section class="section">
     <div class="screenshot-container">
-      <div class="screenshot-placeholder">📸 Screenshots</div>
+      <div class="screenshot-item">
+        <img src="sc1.png" alt="Screenshot 1">
+      </div>
+      <div class="screenshot-item">
+        <img src="sc2.png" alt="Screenshot 2">
+      </div>
+      <div class="screenshot-item">
+        <img src="sc3.png" alt="Screenshot 3">
+      </div>
     </div>
 
     <h2 class="section-title" id="features">Key Features</h2>
     <div class="features-grid">
       <div class="feature-card">
-        <span class="feature-icon">⚡</span>
-        <h3 class="feature-title">Fast Performance</h3>
-        <p class="feature-desc">Lightweight design and thumbnail caching enable smooth browsing of large collections.</p>
+        <span class="feature-icon">📚</span>
+        <h3 class="feature-title">Multiple Format Support</h3>
+        <p class="feature-desc">Supports CBZ, ZIP, CBR, RAR, CB7, 7Z, and EPUB formats for comprehensive archive
+          viewing.
+        </p>
       </div>
       <div class="feature-card">
-        <span class="feature-icon">📱</span>
-        <h3 class="feature-title">Responsive Design</h3>
-        <p class="feature-desc">Optimized viewing experience on PC, tablets, and smartphones.</p>
+        <span class="feature-icon">📖</span>
+        <h3 class="feature-title">Spread View</h3>
+        <p class="feature-desc">Automatic detection of right-to-left layout with optimal dual-page spread display.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎬</span>
+        <h3 class="feature-title">Media Playback</h3>
+        <p class="feature-desc">Play video files (MP4, MKV, WebM) and audio files (MP3, FLAC) directly in browser.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3 class="feature-title">Smart Caching</h3>
+        <p class="feature-desc">Efficient thumbnail and file list caching for fast browsing of large collections.</p>
       </div>
       <div class="feature-card">
         <span class="feature-icon">⌨️</span>
-        <h3 class="feature-title">Intuitive Controls</h3>
-        <p class="feature-desc">Supports keyboard shortcuts, mouse navigation, and swipe gestures.</p>
+        <h3 class="feature-title">Keyboard Navigation</h3>
+        <p class="feature-desc">Comprehensive keyboard shortcuts for efficient page turning and navigation.</p>
       </div>
       <div class="feature-card">
         <span class="feature-icon">🎨</span>
-        <h3 class="feature-title">Theme Toggle</h3>
-        <p class="feature-desc">Choose between light and dark modes to suit your reading preference.</p>
+        <h3 class="feature-title">Customizable UI</h3>
+        <p class="feature-desc">Light/dark theme toggle and UI scaling (50-200%) for personalized reading experience.
+        </p>
       </div>
     </div>
 
@@ -407,27 +436,35 @@
       <div class="specs-grid">
         <div class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Supports ZIP/CBZ/RAR/CBR formats</span>
+          <span class="spec-text">Go-based high-performance server (1.23+)</span>
         </div>
         <div class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Auto-switching between spreads and single pages</span>
+          <span class="spec-text">Archive formats: ZIP, CBZ, RAR, CBR, 7Z, CB7, EPUB</span>
         </div>
         <div class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Optimized for right-to-left reading</span>
+          <span class="spec-text">Media playback: MP4, MKV, WebM, MP3, FLAC, etc.</span>
         </div>
         <div class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Fast display with thumbnail caching</span>
+          <span class="spec-text">Thumbnail and file list caching system</span>
         </div>
         <div class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Server version with Node.js + Express</span>
+          <span class="spec-text">Web-based responsive interface</span>
         </div>
         <div class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Serverless version with static files</span>
+          <span class="spec-text">Docker support for easy deployment</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-icon">✓</span>
+          <span class="spec-text">Cross-platform: macOS, Linux, Windows</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-icon">✓</span>
+          <span class="spec-text">Desktop GUI app with system tray integration</span>
         </div>
       </div>
     </div>
@@ -436,12 +473,11 @@
   <footer class="footer">
     <div class="footer-content">
       <div class="footer-links">
-        <a href="https://github.com">GitHub</a>
-        <a href="#">Documentation</a>
-        <a href="#">License</a>
+        <a href="https://github.com/asaday/LiteComics">GitHub</a>
       </div>
-      <p class="footer-note">© 2025 LiteComics. Lightweight Comic Archive Viewer.</p>
+      <p class="footer-note">© 2025 NagisaWorks</p>
     </div>
   </footer>
 </body>
+
 </html>
