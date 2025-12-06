@@ -813,6 +813,12 @@
               <button id="font-size-increase" class="menu-btn" title="Increase (Ctrl + +)">A+</button>
             </div>
           </div>
+          <div class="menu-item" id="menu-settings">
+            <div class="menu-item-label">
+              <span>⚙️</span>
+              <span>Settings</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1495,6 +1501,10 @@
     document.getElementById('menu-history').addEventListener('click', () => {
       hideMenu();
       showHistoryOverlay();
+    });
+    document.getElementById('menu-settings').addEventListener('click', () => {
+      hideMenu();
+      window.location.href = '/settings.html';
     });
     document.getElementById('history-close').addEventListener('click', hideHistoryOverlay);
     document.getElementById('history-clear').addEventListener('click', clearHistory);

@@ -24,10 +24,11 @@ var embeddedPublic embed.FS
 
 // Config represents the application configuration
 type Config struct {
-	Port     int                                 `json:"port"`
-	Roots    []RootConfig                        `json:"roots"`
-	AutoOpen *bool                               `json:"autoOpen,omitempty"` // Auto-open browser on startup (GUI only)
-	Handlers map[string]map[string]HandlerConfig `json:"handlers,omitempty"`
+	Port       int                                 `json:"port"`
+	Roots      []RootConfig                        `json:"roots"`
+	AutoOpen   *bool                               `json:"autoOpen,omitempty"`   // Auto-open browser on startup (GUI only)
+	DisableGUI *bool                               `json:"disableGUI,omitempty"` // Disable GUI mode (tray icon)
+	Handlers   map[string]map[string]HandlerConfig `json:"handlers,omitempty"`
 }
 
 // RootConfig represents a root directory configuration
@@ -148,6 +149,19 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/media-url/{path:.*}", s.handleMediaURL).Methods("GET")
 	api.HandleFunc("/file/{path:.*}", s.handleFile).Methods("GET")
 
+	// GUI control APIs (disabled when disableGUI is true)
+	if s.config.DisableGUI == nil || !*s.config.DisableGUI {
+		api.HandleFunc("/settings/config", s.handleConfig).Methods("GET", "POST")
+		api.HandleFunc("/settings/restart", s.handleRestart).Methods("POST")
+	}
+
+	// Block settings.html if GUI is disabled
+	if s.config.DisableGUI != nil && *s.config.DisableGUI {
+		s.router.HandleFunc("/settings.html", func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "Settings are disabled", http.StatusForbidden)
+		})
+	}
+
 	// Serve static files (must be last)
 	// Try external public directory first (for development/customization)
 	var fileHandler http.Handler
@@ -230,7 +244,7 @@ func getConfigPath() string {
 	return filepath.Join(appConfigDir, "config.json")
 }
 
-func loadConfigFromFile(configPath string, showPath bool) *Config {
+func loadConfigFromFile(configPath string) *Config {
 	config := defaultConfig()
 	if data, err := os.ReadFile(configPath); err == nil {
 		if err := json.Unmarshal(data, config); err != nil {
@@ -238,15 +252,7 @@ func loadConfigFromFile(configPath string, showPath bool) *Config {
 			log.Printf("Using default settings.\n")
 			return defaultConfig()
 		}
-		if showPath {
-			log.Printf("Config loaded from: %s\n", configPath)
-		}
-	} else {
-		if showPath {
-			log.Printf("Config file not found. Using default settings.\nTo customize settings, create/edit: %s\n", configPath)
-		} else {
-			log.Printf("Config file not found at %s. Using default settings.\n", configPath)
-		}
+		log.Printf("Config loaded from: %s\n", configPath)
 	}
 	return config
 }
@@ -254,8 +260,6 @@ func loadConfigFromFile(configPath string, showPath bool) *Config {
 func loadConfig() *Config {
 	var (
 		configPath  string
-		port        int
-		roots       []string
 		showVersion bool
 	)
 
@@ -264,10 +268,6 @@ func loadConfig() *Config {
 	flag.BoolVar(&showVersion, "version", false, "")
 	flag.StringVar(&configPath, "c", defaultConfigPath, "Config file path")
 	flag.StringVar(&configPath, "config", defaultConfigPath, "")
-	flag.IntVar(&port, "p", 0, "Port number (overrides config)")
-	flag.IntVar(&port, "port", 0, "")
-	flag.Func("r", "Root directory (can be specified multiple times)", func(s string) error { roots = append(roots, s); return nil })
-	flag.Func("root", "", func(s string) error { roots = append(roots, s); return nil })
 	flag.Parse()
 
 	if showVersion {
@@ -275,25 +275,64 @@ func loadConfig() *Config {
 		os.Exit(0)
 	}
 
-	var config *Config
-	if len(roots) == 0 {
-		config = loadConfigFromFile(configPath, true)
-	} else {
-		config = defaultConfig()
-	}
+	return loadConfigFromFile(configPath)
+}
 
-	if port != 0 {
-		config.Port = port
-	}
-	if len(roots) > 0 {
-		config.Roots = make([]RootConfig, 0, len(roots))
-		for _, root := range roots {
-			config.Roots = append(config.Roots, RootConfig{Path: root, Name: filepath.Base(root)})
+// handleConfig handles GET and POST requests for /api/config
+func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// Read current config
+		configPath := getConfigPath()
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			// If config doesn't exist, return default config
+			if os.IsNotExist(err) {
+				defaultConfig := Config{
+					Port:  8080,
+					Roots: []RootConfig{},
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(defaultConfig)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-	}
-	if envPort := os.Getenv("PORT"); envPort != "" {
-		fmt.Sscanf(envPort, "%d", &config.Port)
-	}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
 
-	return config
+	case "POST":
+		// Save new config
+		var newConfig Config
+		if err := json.NewDecoder(r.Body).Decode(&newConfig); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := saveConfig(&newConfig); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	}
+}
+
+// handleRestart handles POST requests for /api/restart
+func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if s.restartFunc != nil {
+		// GUI mode: call the restart function
+		s.restartFunc()
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	} else {
+		// CUI mode: restart not supported
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "restart_not_supported",
+			"message": "Please restart the server manually",
+		})
+	}
 }

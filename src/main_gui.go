@@ -4,10 +4,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -18,17 +16,13 @@ import (
 
 	"github.com/ProtonMail/go-autostart"
 	"github.com/getlantern/systray"
-	"github.com/gorilla/mux"
 )
 
-const settingsPort = 28539
-
 var (
-	currentServer  *http.Server
-	settingsServer *http.Server
-	currentConfig  *Config
-	serverMutex    sync.Mutex
-	app            *autostart.App
+	currentServer *http.Server
+	currentConfig *Config
+	serverMutex   sync.Mutex
+	app           *autostart.App
 )
 
 func main() {
@@ -55,9 +49,6 @@ func onReady() {
 		log.Printf("Warning: Icon data is empty")
 	}
 
-	// Start settings server (always on port 28539)
-	settingsServer = startSettingsServer()
-
 	// Start main server
 	cfg := loadConfig()
 	currentConfig = cfg
@@ -81,7 +72,6 @@ func onReady() {
 	log.Printf("LiteComics version: %s", version)
 	log.Printf("Config location: %s\n", getConfigPath())
 	log.Printf("Main server: http://localhost:%d\n", cfg.Port)
-	log.Printf("Settings server: http://localhost:%d\n", settingsPort)
 
 	// Auto-open browser if enabled
 	if autoOpenEnabled {
@@ -99,7 +89,10 @@ func onReady() {
 				serverMutex.Unlock()
 				openBrowser(fmt.Sprintf("http://localhost:%d", port))
 			case <-mSettings.ClickedCh:
-				openBrowser(fmt.Sprintf("http://localhost:%d/settings.html", settingsPort))
+				serverMutex.Lock()
+				port := currentConfig.Port
+				serverMutex.Unlock()
+				openBrowser(fmt.Sprintf("http://localhost:%d/settings.html", port))
 			case <-mAutoOpen.ClickedCh:
 				serverMutex.Lock()
 				if mAutoOpen.Checked() {
@@ -128,7 +121,6 @@ func onReady() {
 			case <-mQuit.ClickedCh:
 				serverMutex.Lock()
 				shutdownServer(currentServer)
-				shutdownServer(settingsServer)
 				serverMutex.Unlock()
 				systray.Quit()
 			}
@@ -157,97 +149,6 @@ func startServer(cfg *Config) *http.Server {
 	return httpServer
 }
 
-func startSettingsServer() *http.Server {
-	router := mux.NewRouter()
-
-	// Serve settings.html
-	router.HandleFunc("/settings.html", func(w http.ResponseWriter, r *http.Request) {
-		// Try external file first
-		if _, err := os.Stat("public/settings.html"); err == nil {
-			http.ServeFile(w, r, "public/settings.html")
-			return
-		}
-		// Use embedded file
-		data, err := embeddedPublic.ReadFile("public/settings.html")
-		if err != nil {
-			http.Error(w, "Settings page not found", http.StatusNotFound)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(data)
-	})
-
-	// Config API
-	router.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			// Read config file directly to avoid sending default values
-			configPath := getConfigPath()
-			configData, err := os.ReadFile(configPath)
-			if err != nil {
-				// If config doesn't exist, return default empty config
-				if os.IsNotExist(err) {
-					w.Header().Set("Content-Type", "application/json")
-					w.Write([]byte(`{"port":8539,"roots":[]}`))
-					return
-				}
-				http.Error(w, "Failed to read config", http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(configData)
-		case http.MethodPost:
-			var newConfig Config
-			if err := json.NewDecoder(r.Body).Decode(&newConfig); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			serverMutex.Lock()
-			currentConfig = &newConfig
-			if err := saveConfig(&newConfig); err != nil {
-				serverMutex.Unlock()
-				http.Error(w, "Failed to save config", http.StatusInternalServerError)
-				return
-			}
-			serverMutex.Unlock()
-
-			w.WriteHeader(http.StatusOK)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	}).Methods("GET", "POST", "OPTIONS")
-
-	// Restart API
-	router.HandleFunc("/api/restart", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		restartServer()
-	}).Methods("POST", "OPTIONS")
-
-	addr := fmt.Sprintf(":%d", settingsPort)
-	httpServer := &http.Server{
-		Addr:    addr,
-		Handler: router,
-	}
-
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Fatalf("Failed to start settings server: %v", err)
-	}
-
-	go func() {
-		if err := httpServer.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Printf("Settings server error: %v", err)
-		}
-	}()
-
-	return httpServer
-}
-
 func shutdownServer(srv *http.Server) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -269,7 +170,7 @@ func restartServer() {
 		}
 
 		// Reload config and start new server
-		cfg := loadConfigFromFile(getConfigPath(), false)
+		cfg := loadConfigFromFile(getConfigPath())
 		currentConfig = cfg
 		currentServer = startServer(cfg)
 
