@@ -54,6 +54,13 @@ echo "Generating macOS systray icon..."
 sips -z 32 32 mac_tray.png --out "$DIST_DIR/mac_tray32.png" > /dev/null
 echo "✓ Created $DIST_DIR/mac_tray32.png (32x32) from mac_tray.png"
 
+# Generate web icons
+echo "Generating web icons..."
+sips -z 180 180 "$SOURCE" --out ../public/apple-touch-icon.png > /dev/null
+echo "✓ Created ../public/apple-touch-icon.png (180x180)"
+sips -z 32 32 "$SOURCE" --out ../public/favicon.png > /dev/null
+echo "✓ Created ../public/favicon.png (32x32)"
+
 # Generate Windows .ico (multiple sizes for better compatibility)
 echo "Generating Windows icon.ico..."
 if command -v magick &> /dev/null || command -v convert &> /dev/null; then
@@ -74,5 +81,9 @@ echo "Generated files in $DIST_DIR/:"
 echo "  - icon.icns (macOS app icon)"
 echo "  - mac_tray32.png (macOS systray icon)"
 echo "  - icon.ico (Windows app icon)"
+echo ""
+echo "Generated web icons:"
+echo "  - ../public/apple-touch-icon.png (180x180)"
+echo "  - ../public/favicon.png (32x32)"
 echo ""
 echo "Icons are embedded in main_gui.go via go:embed directives"
