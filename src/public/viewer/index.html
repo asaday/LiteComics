@@ -404,9 +404,9 @@
     /* ページ一覧サイドバー */
     .page-sidebar {
       position: fixed;
-      left: -280px;
+      left: -320px;
       top: 0;
-      width: 280px;
+      width: 320px;
       height: 100vh;
       background: rgba(28, 28, 28, 0.75);
       transition: left 0.3s ease;
@@ -507,9 +507,9 @@
 
     .file-name {
       flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-size: 0.8rem;
+      overflow-wrap: break-word;
+      word-break: break-all;
     }
 
     /* ページ一覧オーバーレイ */
@@ -802,7 +802,7 @@
 
         const fileName = document.createElement('span');
         fileName.className = 'file-name';
-        fileName.textContent = imageName.split('/').pop(); // ファイル名のみ表示
+        fileName.textContent = imageName;
 
         pageItem.appendChild(pageNumber);
         pageItem.appendChild(fileName);
@@ -849,7 +849,7 @@
 
         const thumbnail = document.createElement('img');
         thumbnail.className = 'page-grid-thumbnail';
-        thumbnail.src = `/api/book/${currentFile}/image/${index}`;
+        thumbnail.src = `/api/book/${encodeURIComponent(currentFile)}/image/${index}`;
         thumbnail.alt = `Page ${index + 1}`;
 
         const pageNumber = document.createElement('div');

@@ -7,9 +7,12 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/bodgit/sevenzip"
 	"github.com/nwaples/rardecode/v2"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 func (s *Server) getImagesFromBook(bookPath string) ([]string, error) {
@@ -46,6 +49,30 @@ func (s *Server) getImagesFromBook(bookPath string) ([]string, error) {
 	s.imageListCache.Set(bookPath, images)
 
 	return images, nil
+}
+
+// getDisplayNames converts original filenames to UTF-8 for safe JSON transmission
+func getDisplayNames(originalNames []string) []string {
+	displayNames := make([]string, len(originalNames))
+	for i, name := range originalNames {
+		displayNames[i] = toUTF8(name)
+	}
+	return displayNames
+}
+
+// toUTF8 converts a filename to UTF-8, attempting Shift_JIS decoding if invalid UTF-8
+func toUTF8(name string) string {
+	if utf8.ValidString(name) {
+		return name
+	}
+	// Try Shift_JIS decoding
+	decoder := japanese.ShiftJIS.NewDecoder()
+	decoded, _, err := transform.String(decoder, name)
+	if err == nil && utf8.ValidString(decoded) {
+		return decoded
+	}
+	// If conversion fails, return as-is (will be replaced in JSON)
+	return name
 }
 
 func getImagesFromZip(zipPath string) ([]string, error) {

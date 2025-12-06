@@ -128,14 +128,17 @@ func (s *Server) handleBookList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Convert to UTF-8 display names for safe JSON transmission
+	displayNames := getDisplayNames(images)
+
 	respondJSON(w, struct {
 		Filename string   `json:"filename"`
 		Images   []string `json:"images"`
 		Count    int      `json:"count"`
 	}{
 		Filename: filepath.Base(resolved.FullPath),
-		Images:   images,
-		Count:    len(images),
+		Images:   displayNames,
+		Count:    len(displayNames),
 	})
 }
 
