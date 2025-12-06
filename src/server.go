@@ -19,6 +19,8 @@ import (
 
 var version = "dev" // Set via -ldflags at build time
 
+const configFileName = "config.json"
+
 //go:embed public
 var embeddedPublic embed.FS
 
@@ -226,22 +228,22 @@ func getConfigPath() string {
 	}
 
 	// カレントディレクトリに config.json があればそれを使う（開発用）
-	if _, err := os.Stat("config.json"); err == nil {
-		return "config.json"
+	if _, err := os.Stat(configFileName); err == nil {
+		return configFileName
 	}
 
 	// ユーザー設定ディレクトリを取得
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		// フォールバック: カレントディレクトリ
-		return "config.json"
+		return configFileName
 	}
 
 	// LiteComics専用ディレクトリを作成
 	appConfigDir := filepath.Join(configDir, "LiteComics")
 	os.MkdirAll(appConfigDir, 0755)
 
-	return filepath.Join(appConfigDir, "config.json")
+	return filepath.Join(appConfigDir, configFileName)
 }
 
 func loadConfigFromFile(configPath string) *Config {
@@ -265,9 +267,9 @@ func loadConfig() *Config {
 
 	defaultConfigPath := getConfigPath()
 	flag.BoolVar(&showVersion, "v", false, "Show version")
-	flag.BoolVar(&showVersion, "version", false, "")
+	flag.BoolVar(&showVersion, "version", false, "Show version")
 	flag.StringVar(&configPath, "c", defaultConfigPath, "Config file path")
-	flag.StringVar(&configPath, "config", defaultConfigPath, "")
+	flag.StringVar(&configPath, "config", defaultConfigPath, "Config file path")
 	flag.Parse()
 
 	if showVersion {
@@ -288,19 +290,34 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			// If config doesn't exist, return default config
 			if os.IsNotExist(err) {
-				defaultConfig := Config{
-					Port:  8080,
-					Roots: []RootConfig{},
+				response := map[string]interface{}{
+					"config": Config{
+						Port:  8080,
+						Roots: []RootConfig{},
+					},
+					"configPath": configPath,
 				}
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(defaultConfig)
+				json.NewEncoder(w).Encode(response)
 				return
 			}
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Parse config and include path
+		var config Config
+		if err := json.Unmarshal(data, &config); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		response := map[string]interface{}{
+			"config":     config,
+			"configPath": configPath,
+		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		json.NewEncoder(w).Encode(response)
 
 	case "POST":
 		// Save new config
