@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,12 +19,29 @@ import (
 	"github.com/getlantern/systray"
 )
 
+//go:embed icons/icon.icns
+var iconDarwin []byte
+
+//go:embed icons/icon.ico
+var iconWindows []byte
+
 var (
 	currentServer *http.Server
 	currentConfig *Config
 	serverMutex   sync.Mutex
 	app           *autostart.App
 )
+
+func getIconBytes() []byte {
+	switch runtime.GOOS {
+	case "darwin":
+		return iconDarwin
+	case "windows":
+		return iconWindows
+	default:
+		return nil
+	}
+}
 
 func main() {
 	// Initialize autostart
@@ -41,10 +59,11 @@ func main() {
 func onReady() {
 	systray.SetTooltip("LiteComics Server")
 
-	// Set icon from embedded ICO file
+	// Set icon from embedded file
+	iconBytes := getIconBytes()
 	if len(iconBytes) > 0 {
 		systray.SetIcon(iconBytes)
-		log.Printf("Icon set successfully (%d bytes, ICO format)", len(iconBytes))
+		log.Printf("Icon set successfully (%d bytes)", len(iconBytes))
 	} else {
 		log.Printf("Warning: Icon data is empty")
 	}
@@ -57,6 +76,7 @@ func onReady() {
 	// Menu items
 	mOpen := systray.AddMenuItem("Open in Browser", "Open LiteComics in your browser")
 	mSettings := systray.AddMenuItem("Settings...", "Open settings page")
+	mRestart := systray.AddMenuItem("Restart Server", "Restart the server")
 	systray.AddSeparator()
 	mVersion := systray.AddMenuItem(fmt.Sprintf("Version: %s", version), "Application version")
 	mVersion.Disable()
@@ -93,6 +113,8 @@ func onReady() {
 				port := currentConfig.Port
 				serverMutex.Unlock()
 				openBrowser(fmt.Sprintf("http://localhost:%d/settings.html", port))
+			case <-mRestart.ClickedCh:
+				restartServer()
 			case <-mAutoOpen.ClickedCh:
 				serverMutex.Lock()
 				if mAutoOpen.Checked() {
