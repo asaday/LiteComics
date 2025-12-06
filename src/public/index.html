@@ -746,7 +746,10 @@
       font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-all;
+      line-height: 1.2;
+      margin-bottom: 4px;
     }
 
     body[data-theme="light"] .history-item-name {
@@ -758,7 +761,9 @@
       font-size: 0.85rem;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-all;
+      line-height: 1.2;
     }
 
     body[data-theme="light"] .history-item-path {
@@ -945,7 +950,9 @@
 
         const path = document.createElement('div');
         path.className = 'history-item-path';
-        path.textContent = item.path;
+        // ファイル名を除いたディレクトリパスのみ表示
+        const dirPath = item.path.substring(0, item.path.lastIndexOf('/'));
+        path.textContent = dirPath || '/';
 
         info.appendChild(name);
         info.appendChild(path);

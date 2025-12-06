@@ -3,17 +3,13 @@
 package main
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sync"
-	"time"
 
 	"github.com/ProtonMail/go-autostart"
 	"github.com/getlantern/systray"
@@ -25,12 +21,7 @@ var iconDarwin []byte
 //go:embed icons/icon.ico
 var iconWindows []byte
 
-var (
-	currentServer *http.Server
-	currentConfig *Config
-	serverMutex   sync.Mutex
-	app           *autostart.App
-)
+var app *autostart.App
 
 func getIconBytes() []byte {
 	switch runtime.GOOS {
@@ -57,6 +48,10 @@ func main() {
 }
 
 func onReady() {
+	// Start main server
+	cfg := parseArgsAndLoadConfig()
+	currentServer = startServer(cfg)
+
 	systray.SetTooltip("LiteComics Server")
 
 	// Set icon from embedded file
@@ -67,11 +62,6 @@ func onReady() {
 	} else {
 		log.Printf("Warning: Icon data is empty")
 	}
-
-	// Start main server
-	cfg := loadConfig()
-	currentConfig = cfg
-	currentServer = startServer(cfg)
 
 	// Menu items
 	mOpen := systray.AddMenuItem("Open in Browser", "Open LiteComics in your browser")
@@ -104,29 +94,28 @@ func onReady() {
 		for {
 			select {
 			case <-mOpen.ClickedCh:
-				serverMutex.Lock()
-				port := currentConfig.Port
-				serverMutex.Unlock()
-				openBrowser(fmt.Sprintf("http://localhost:%d", port))
+				// Reload config to get latest port
+				cfg := loadConfig()
+				openBrowser(fmt.Sprintf("http://localhost:%d", cfg.Port))
 			case <-mSettings.ClickedCh:
-				serverMutex.Lock()
-				port := currentConfig.Port
-				serverMutex.Unlock()
-				openBrowser(fmt.Sprintf("http://localhost:%d/settings.html", port))
+				// Reload config to get latest port
+				cfg := loadConfig()
+				openBrowser(fmt.Sprintf("http://localhost:%d/settings.html", cfg.Port))
 			case <-mRestart.ClickedCh:
 				restartServer()
 			case <-mAutoOpen.ClickedCh:
 				serverMutex.Lock()
+				cfg := loadConfig()
 				if mAutoOpen.Checked() {
 					mAutoOpen.Uncheck()
 					falseVal := false
-					currentConfig.AutoOpen = &falseVal
+					cfg.AutoOpen = &falseVal
 				} else {
 					mAutoOpen.Check()
 					trueVal := true
-					currentConfig.AutoOpen = &trueVal
+					cfg.AutoOpen = &trueVal
 				}
-				saveConfig(currentConfig)
+				saveConfig(cfg)
 				serverMutex.Unlock()
 			case <-mStartup.ClickedCh:
 				if mStartup.Checked() {
@@ -152,52 +141,6 @@ func onReady() {
 
 func onExit() {
 	fmt.Println("Server stopped")
-}
-
-func startServer(cfg *Config) *http.Server {
-	srv := initServer(cfg, restartServer)
-
-	srv.setupRoutes()
-
-	httpServer := createHTTPServer(srv)
-
-	go func() {
-		log.Printf("LiteComics Server started on port %d\n", cfg.Port)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("Server error: %v", err)
-		}
-	}()
-
-	return httpServer
-}
-
-func shutdownServer(srv *http.Server) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	srv.Shutdown(ctx)
-}
-
-func restartServer() {
-	go func() {
-		serverMutex.Lock()
-		defer serverMutex.Unlock()
-
-		log.Println("Restarting server...")
-
-		// Shutdown current server
-		if currentServer != nil {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			currentServer.Shutdown(ctx)
-			cancel()
-		}
-
-		// Reload config and start new server
-		cfg := loadConfigFromFile(getConfigPath())
-		currentConfig = cfg
-		currentServer = startServer(cfg)
-
-		log.Printf("Server restarted on port %d\n", cfg.Port)
-	}()
 }
 
 func openBrowser(url string) {

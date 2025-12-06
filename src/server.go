@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"flag"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -20,6 +22,12 @@ import (
 var version = "dev" // Set via -ldflags at build time
 
 const configFileName = "config.json"
+
+var (
+	configPath    string // Global config path set by parseArgsAndLoadConfig
+	currentServer *http.Server
+	serverMutex   sync.Mutex
+)
 
 //go:embed public
 var embeddedPublic embed.FS
@@ -118,7 +126,6 @@ func saveConfig(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	configPath := getConfigPath()
 	return os.WriteFile(configPath, configData, 0644)
 }
 
@@ -246,7 +253,7 @@ func getConfigPath() string {
 	return filepath.Join(appConfigDir, configFileName)
 }
 
-func loadConfigFromFile(configPath string) *Config {
+func loadConfig() *Config {
 	config := defaultConfig()
 	if data, err := os.ReadFile(configPath); err == nil {
 		if err := json.Unmarshal(data, config); err != nil {
@@ -259,17 +266,17 @@ func loadConfigFromFile(configPath string) *Config {
 	return config
 }
 
-func loadConfig() *Config {
+func parseArgsAndLoadConfig() *Config {
 	var (
-		configPath  string
-		showVersion bool
+		configPathArg string
+		showVersion   bool
 	)
 
 	defaultConfigPath := getConfigPath()
 	flag.BoolVar(&showVersion, "v", false, "Show version")
 	flag.BoolVar(&showVersion, "version", false, "Show version")
-	flag.StringVar(&configPath, "c", defaultConfigPath, "Config file path")
-	flag.StringVar(&configPath, "config", defaultConfigPath, "Config file path")
+	flag.StringVar(&configPathArg, "c", defaultConfigPath, "Config file path")
+	flag.StringVar(&configPathArg, "config", defaultConfigPath, "Config file path")
 	flag.Parse()
 
 	if showVersion {
@@ -277,7 +284,10 @@ func loadConfig() *Config {
 		os.Exit(0)
 	}
 
-	return loadConfigFromFile(configPath)
+	// Set global config path
+	configPath = configPathArg
+
+	return loadConfig()
 }
 
 // handleConfig handles GET and POST requests for /api/config
@@ -285,16 +295,12 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		// Read current config
-		configPath := getConfigPath()
 		data, err := os.ReadFile(configPath)
 		if err != nil {
 			// If config doesn't exist, return default config
 			if os.IsNotExist(err) {
 				response := map[string]interface{}{
-					"config": Config{
-						Port:  8080,
-						Roots: []RootConfig{},
-					},
+					"config":     defaultConfig(),
 					"configPath": configPath,
 				}
 				w.Header().Set("Content-Type", "application/json")
@@ -352,4 +358,45 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 			"message": "Please restart the server manually",
 		})
 	}
+}
+
+// startServer creates and starts a new HTTP server
+func startServer(cfg *Config) *http.Server {
+	srv := initServer(cfg, restartServer)
+	srv.setupRoutes()
+	httpServer := createHTTPServer(srv)
+
+	go func() {
+		log.Printf("LiteComics Server started on port %d\n", cfg.Port)
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Server error: %v", err)
+		}
+	}()
+
+	return httpServer
+}
+
+// shutdownServer gracefully shuts down the HTTP server
+func shutdownServer(server *http.Server) {
+	if server == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server shutdown error: %v", err)
+	}
+}
+
+// restartServer restarts the HTTP server with reloaded configuration
+func restartServer() {
+	serverMutex.Lock()
+	defer serverMutex.Unlock()
+
+	log.Println("Restarting server...")
+	shutdownServer(currentServer)
+
+	cfg := loadConfig()
+	currentServer = startServer(cfg)
+	log.Printf("Server restarted on port %d\n", cfg.Port)
 }
