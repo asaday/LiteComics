@@ -15,24 +15,16 @@ import (
 	"github.com/getlantern/systray"
 )
 
-//go:embed icons/icon.icns
+//go:embed icons/dist/icon.icns
 var iconDarwin []byte
 
-//go:embed icons/icon.ico
+//go:embed icons/dist/icon.ico
 var iconWindows []byte
 
-var app *autostart.App
+//go:embed icons/dist/mac_tray32.png
+var mac_tray32 []byte
 
-func getIconBytes() []byte {
-	switch runtime.GOOS {
-	case "darwin":
-		return iconDarwin
-	case "windows":
-		return iconWindows
-	default:
-		return nil
-	}
-}
+var app *autostart.App
 
 func main() {
 	// Initialize autostart
@@ -54,11 +46,11 @@ func onReady() {
 
 	systray.SetTooltip("LiteComics Server")
 
-	// Set icon from embedded file
-	iconBytes := getIconBytes()
-	if len(iconBytes) > 0 {
-		systray.SetIcon(iconBytes)
-		log.Printf("Icon set successfully (%d bytes)", len(iconBytes))
+	// Set icon as template icon for macOS (auto-adapts to light/dark mode)
+	// macOS systray uses 32x32 template icon
+	if len(mac_tray32) > 0 {
+		systray.SetTemplateIcon(mac_tray32, mac_tray32)
+		log.Printf("Icon set successfully (%d bytes)", len(mac_tray32))
 	} else {
 		log.Printf("Warning: Icon data is empty")
 	}
