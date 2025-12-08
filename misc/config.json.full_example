@@ -12,6 +12,10 @@
       "name": "Books"
     }
   ],
+  "tls": {
+    "certFile": "/path/to/cert.crt",
+    "keyFile": "/path/to/key.key"
+  },
   "handlers": {
     "iOS": {
       "vlc": {

@@ -15,5 +15,6 @@
   ],
   "github.copilot.chat.commitMessageGeneration.instructions": [
     { "text": "日本語で書いてください" }
-  ]
+  ],
+  "makefile.configureOnOpen": false
 }

@@ -142,8 +142,15 @@ func startServer(cfg *Config) *http.Server {
 	httpServer := createHTTPServer(srv)
 
 	go func() {
-		log.Printf("LiteComics Server started on port %d\n", cfg.Port)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		var err error
+		if cfg.TLS != nil && cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
+			log.Printf("LiteComics Server started (HTTPS) on port %d\n", cfg.Port)
+			err = httpServer.ListenAndServeTLS(cfg.TLS.CertFile, cfg.TLS.KeyFile)
+		} else {
+			log.Printf("LiteComics Server started (HTTP) on port %d\n", cfg.Port)
+			err = httpServer.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
 			log.Printf("Server error: %v", err)
 		}
 	}()

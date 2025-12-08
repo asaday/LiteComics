@@ -22,7 +22,14 @@ type Config struct {
 	Roots      []RootConfig                        `json:"roots"`
 	AutoOpen   *bool                               `json:"autoOpen,omitempty"`   // Auto-open browser on startup (GUI only)
 	DisableGUI *bool                               `json:"disableGUI,omitempty"` // Disable GUI mode (tray icon)
+	TLS        *TLSConfig                          `json:"tls,omitempty"`        // TLS/HTTPS configuration
 	Handlers   map[string]map[string]HandlerConfig `json:"handlers,omitempty"`
+}
+
+// TLSConfig represents TLS/HTTPS configuration
+type TLSConfig struct {
+	CertFile string `json:"certFile"` // Path to certificate file
+	KeyFile  string `json:"keyFile"`  // Path to key file
 }
 
 // RootConfig represents a root directory configuration
