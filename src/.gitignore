@@ -23,6 +23,9 @@ go.work
 # Config
 config.json
 
+# Minified assets (generated during build)
+public-minified/
+
 # Build and distribution (in parent directory)
 
 # IDE

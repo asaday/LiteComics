@@ -22,8 +22,13 @@ var (
 	serverMutex   sync.Mutex
 )
 
-//go:embed public
+// Embedded minified public files for built binaries
+// Development: uses external public/ directory if available
+//
+//go:embed public-minified
 var embeddedPublic embed.FS
+
+const publicDirName = "public-minified"
 
 // Server represents the HTTP server
 type Server struct {
@@ -116,12 +121,15 @@ func (s *Server) setupRoutes() {
 	// Try external public directory first (for development/customization)
 	var fileHandler http.Handler
 	publicDir := "public"
+
+	// Development mode: always use external directory
+	// Production mode: prefer external, fallback to embedded
 	if _, err := os.Stat(publicDir); err == nil {
 		log.Printf("Using external public directory: %s", publicDir)
 		fileHandler = http.FileServer(http.Dir(publicDir))
 	} else {
 		log.Printf("Using embedded public files")
-		publicFS, _ := fs.Sub(embeddedPublic, "public")
+		publicFS, _ := fs.Sub(embeddedPublic, publicDirName)
 		fileHandler = http.FileServer(http.FS(publicFS))
 	}
 	s.router.PathPrefix("/").Handler(fileHandler)

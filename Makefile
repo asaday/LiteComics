@@ -1,4 +1,4 @@
-.PHONY: build run clean dist dist-windows install uninstall install-service uninstall-service
+.PHONY: build run clean dist dist-windows install uninstall install-service uninstall-service minify
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 DIST_DIR = dist
@@ -11,36 +11,40 @@ CONFIG_DIR = /etc/litecomics
 # Note: Cross-platform builds from macOS may fail due to platform-specific dependencies
 # (systray, autostart). Use GitHub Actions or build on each platform for production releases.
 
-# Build for current platform
-build:
-	cd src && go build -ldflags "-X main.version=$(VERSION)" -o litecomics
+# Minify and inline CSS/JS for production builds
+minify:
+	cd src && ./minify.js
+
+# Build for current platform (uses minified assets from build/public)
+build: minify
+	cd src && go build -ldflags "-X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics
 
 # Build CUI version (no systray/GUI)
 build-cui:
 	cd src && go build -tags cui -ldflags "-X main.version=$(VERSION)" -o litecomics
 
-# Build for Linux AMD64 (static binary, no CGO)
-build-linux:
+# Build for Linux AMD64 (static binary, no CGO, uses minified assets)
+build-linux: minify
 	mkdir -p $(BUILD_DIR)
 	cd src && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-amd64
 
-# Build for Linux ARM64 (Raspberry Pi, static binary, no CGO)
-build-linux-arm64:
+# Build for Linux ARM64 (Raspberry Pi, static binary, no CGO, uses minified assets)
+build-linux-arm64: minify
 	mkdir -p $(BUILD_DIR)
 	cd src && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-arm64
 
-# Build for Windows AMD64 (requires Windows environment and MinGW for CGO)
-build-windows:
+# Build for Windows AMD64 (requires Windows environment and MinGW for CGO, uses minified assets)
+build-windows: minify
 	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	cd src && set CGO_ENABLED=1 && go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
 
-# Build for Windows AMD64 without CGO (no systray support)
-build-windows-nocgo:
+# Build for Windows AMD64 without CGO (no systray support, uses minified assets)
+build-windows-nocgo: minify
 	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	cd src && set CGO_ENABLED=0 && go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
 
-# Build for macOS ARM64 (Apple Silicon)
-build-mac-arm64:
+# Build for macOS ARM64 (Apple Silicon, uses minified assets)
+build-mac-arm64: minify
 	mkdir -p $(BUILD_DIR)
 	cd src && GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-darwin-arm64
 
@@ -175,7 +179,7 @@ run:
 install: build
 	@echo "Installing litecomics to $(BINDIR)..."
 	@mkdir -p $(BINDIR)
-	@install -m 755 src/litecomics $(BINDIR)/litecomics
+	@install -m 755 $(BUILD_DIR)/litecomics $(BINDIR)/litecomics
 	@echo "✓ Installed to $(BINDIR)/litecomics"
 	@echo ""
 	@echo "To uninstall, run: make uninstall"
@@ -237,8 +241,7 @@ uninstall-service:
 
 # Clean build artifacts
 clean:
-	rm -f src/litecomics
-	rm -rf src/.cache/ $(BUILD_DIR)/ $(DIST_DIR)/
+	rm -rf src/.cache/ src/public-minified/ $(BUILD_DIR)/ $(DIST_DIR)/
 
 # Update Go dependencies
 mod:

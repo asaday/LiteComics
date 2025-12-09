@@ -28,6 +28,11 @@ jobs:
         with:
           go-version: '1.23'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Get version
         id: version
         run: |
@@ -36,6 +41,11 @@ jobs:
           else
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Minify assets
+        run: |
+          cd src
+          ./minify.js
 
       - name: Build Linux AMD64
         run: |
@@ -92,6 +102,11 @@ jobs:
         with:
           go-version: '1.23'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Get version
         id: version
         run: |
@@ -101,14 +116,10 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Install dependencies
+      - name: Minify assets
         run: |
-          brew install imagemagick
-
-      - name: Generate icons
-        run: |
-          cd src/icons
-          ./generate.sh
+          cd src
+          ./minify.js
 
       - name: Build macOS ARM64
         run: |
@@ -185,6 +196,11 @@ jobs:
         with:
           go-version: '1.23'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Get version
         id: version
         shell: bash
@@ -194,6 +210,23 @@ jobs:
           else
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Install rsrc for Windows icon embedding
+        shell: bash
+        run: |
+          go install github.com/akavel/rsrc@latest
+
+      - name: Embed Windows icon
+        shell: bash
+        run: |
+          cd src
+          ~/go/bin/rsrc -ico icons/dist/icon.ico -o rsrc.syso
+
+      - name: Minify assets
+        shell: bash
+        run: |
+          cd src
+          ./minify.js
 
       - name: Build Windows
         shell: bash
