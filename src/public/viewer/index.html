@@ -701,6 +701,7 @@
     // ビューアの状態管理
     let currentFile = '';
     let images = [];
+    let imageCount = 0; // 画像数
     let currentPage = 0; // 表示開始ページのインデックス
     let offset = 0; // 配置修正用のオフセット
     let imageCache = {}; // 画像のキャッシュ
@@ -785,11 +786,11 @@
     // ページ一覧を生成
     function generatePageList() {
       const pageList = document.getElementById('page-list');
-      if (!pageList || images.length === 0) return;
+      if (!pageList || imageCount === 0) return;
 
       pageList.innerHTML = '';
 
-      images.forEach((imageName, index) => {
+      for (let index = 0; index < imageCount; index++) {
         const pageItem = document.createElement('div');
         pageItem.className = 'page-item';
         if (index === currentPage) {
@@ -802,7 +803,7 @@
 
         const fileName = document.createElement('span');
         fileName.className = 'file-name';
-        fileName.textContent = imageName;
+        fileName.textContent = images[index] || `Page ${index + 1}`;
 
         pageItem.appendChild(pageNumber);
         pageItem.appendChild(fileName);
@@ -814,7 +815,7 @@
         });
 
         pageList.appendChild(pageItem);
-      });
+      }
     }
 
     // ページ一覧オーバーレイの表示/非表示
@@ -836,11 +837,11 @@
     // ページ一覧グリッドを生成
     function generatePageGrid() {
       const gridContainer = document.getElementById('page-grid');
-      if (!gridContainer || images.length === 0) return;
+      if (!gridContainer || imageCount === 0) return;
 
       gridContainer.innerHTML = '';
 
-      images.forEach((imageName, index) => {
+      for (let index = 0; index < imageCount; index++) {
         const gridItem = document.createElement('div');
         gridItem.className = 'page-grid-item';
         if (index === currentPage) {
@@ -866,7 +867,7 @@
         });
 
         gridContainer.appendChild(gridItem);
-      });
+      }
     }
 
     // ローディング表示/非表示
@@ -928,7 +929,7 @@
       return null;
     }
 
-    // CBZファイルの画像リストを取得
+    // ファイルの画像リストを取得
     async function loadImageList() {
       try {
         const fileInfo = getFileFromURL();
@@ -955,9 +956,10 @@
         }
 
         images = data.images;
-        console.log('画像数:', images.length);
+        imageCount = data.count || images.length;
+        console.log('画像数:', imageCount);
 
-        if (images.length === 0) {
+        if (imageCount === 0) {
           throw new Error('No images found');
         }
 
@@ -984,7 +986,7 @@
 
     // 画像を読み込み（キャッシュあり）
     async function loadImage(index) {
-      if (index < 0 || index >= images.length) {
+      if (index < 0 || index >= imageCount) {
         return null;
       }
 
@@ -1023,8 +1025,8 @@
 
     // オフセットを適用した表示ページを計算
     function getDisplayPage(page = currentPage) {
-      const actualPage = (page + offset) % images.length;
-      return actualPage < 0 ? images.length + actualPage : actualPage;
+      const actualPage = (page + offset) % imageCount;
+      return actualPage < 0 ? imageCount + actualPage : actualPage;
     }
 
     // 現在の表示モードを判定（1ページか見開きか）
@@ -1074,13 +1076,13 @@
           displayDiv.appendChild(container);
 
           if (isWideImage(img1)) {
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (Wide)`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount} (Wide)`;
           } else if (forceSinglePageMode) {
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (Single page)`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount} (Single page)`;
           } else if (isPortraitViewport()) {
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length} (Portrait display)`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount} (Portrait display)`;
           } else {
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length}`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}`;
           }
         } else {
           // 2ページ表示（右綴じ: 右ページ、左ページの順）
@@ -1095,7 +1097,7 @@
 
           // 左ページ（次のページ）
           const nextPage = displayPage + 1;
-          if (nextPage < images.length) {
+          if (nextPage < imageCount) {
             const img2 = await loadImage(nextPage);
 
             if (img2 && !isWideImage(img2)) {
@@ -1107,16 +1109,16 @@
               container.appendChild(leftDiv);
               container.appendChild(rightDiv);
 
-              pageInfoDiv.textContent = `${displayPage + 1}-${nextPage + 1} / ${images.length}`;
+              pageInfoDiv.textContent = `${displayPage + 1}-${nextPage + 1} / ${imageCount}`;
             } else {
               // 次のページが横長の場合は1ページのみ
               container.appendChild(rightDiv);
-              pageInfoDiv.textContent = `${displayPage + 1} / ${images.length}`;
+              pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}`;
             }
           } else {
             // 最後のページ
             container.appendChild(rightDiv);
-            pageInfoDiv.textContent = `${displayPage + 1} / ${images.length}`;
+            pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}`;
           }
 
           displayDiv.innerHTML = '';
@@ -1142,15 +1144,11 @@
 
     // 前後のページを先読み
     async function preloadAdjacentPages(currentIndex) {
-      const preloadIndices = [
-        currentIndex - 2,
-        currentIndex - 1,
-        currentIndex + 2,
-        currentIndex + 3
-      ];
+      const preloadOffsets = [2, 3, -1, -2, 4, 5, 6, 7];
 
-      for (const index of preloadIndices) {
-        if (index >= 0 && index < images.length && !imageCache[index]) {
+      for (const offset of preloadOffsets) {
+        const index = currentIndex + offset;
+        if (index >= 0 && index < imageCount && !imageCache[index]) {
           loadImage(index).catch(() => {
             // エラーは無視（バックグラウンドでの先読みのため）
           });
@@ -1164,7 +1162,7 @@
       const displayPage = getDisplayPage();
       console.log('nextPages: displayPage=', displayPage);
 
-      if (displayPage >= images.length) {
+      if (displayPage >= imageCount) {
         console.log('Last page');
         return;
       }
@@ -1181,7 +1179,7 @@
       } else {
         // 次のページもチェック
         const nextPage = displayPage + 1;
-        if (nextPage < images.length) {
+        if (nextPage < imageCount) {
           const img2 = imageCache[nextPage] || await loadImage(nextPage);
           if (img2 && !isWideImage(img2)) {
             currentPage += 2; // 2ページ進む
@@ -1193,8 +1191,8 @@
         }
       }
 
-      if (currentPage >= images.length) {
-        currentPage = images.length - 1;
+      if (currentPage >= imageCount) {
+        currentPage = imageCount - 1;
       }
 
       await displayCurrentPages();
@@ -1298,7 +1296,14 @@
         case 'Escape':
         case 'Backspace':
           e.preventDefault();
-          if (document.fullscreenElement) {
+          // サイドバーまたはオーバーレイが表示されていたら閉じる
+          const sidebar = document.getElementById('page-sidebar');
+          const overlay = document.getElementById('page-overlay');
+          if (sidebar && sidebar.classList.contains('visible')) {
+            hidePageSidebar();
+          } else if (overlay && overlay.style.display !== 'none') {
+            hidePageOverlay();
+          } else if (document.fullscreenElement) {
             document.exitFullscreen();
           } else {
             backToList();
@@ -1466,7 +1471,7 @@
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        if (images.length > 0) {
+        if (imageCount > 0) {
           displayCurrentPages();
         }
       }, 300);

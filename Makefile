@@ -107,7 +107,31 @@ dist: clean build-all
 	@mkdir -p $(DIST_DIR)/dmg-staging
 	@cp -r $(DIST_DIR)/LiteComics.app $(DIST_DIR)/dmg-staging/
 	@ln -s /Applications $(DIST_DIR)/dmg-staging/Applications
+	@echo "Creating styled DMG..."
 	@hdiutil create -volname "LiteComics" -srcfolder $(DIST_DIR)/dmg-staging -ov -format UDZO $(DIST_DIR)/litecomics-mac-$(VERSION).dmg
+# 	@hdiutil create -volname "LiteComics" -srcfolder $(DIST_DIR)/dmg-staging -ov -format UDRW $(DIST_DIR)/tmp.dmg
+# 	@hdiutil attach $(DIST_DIR)/tmp.dmg -mountpoint /Volumes/LiteComics
+# 	@sleep 2
+# 	@osascript -e 'tell application "Finder"' \
+# 		-e 'tell disk "LiteComics"' \
+# 		-e 'open' \
+# 		-e 'set current view of container window to icon view' \
+# 		-e 'set toolbar visible of container window to false' \
+# 		-e 'set statusbar visible of container window to false' \
+# 		-e 'set bounds of container window to {100, 100, 700, 450}' \
+# 		-e 'set viewOptions to the icon view options of container window' \
+# 		-e 'set arrangement of viewOptions to not arranged' \
+# 		-e 'set icon size of viewOptions to 128' \
+# 		-e 'set position of item "LiteComics.app" of container window to {150, 150}' \
+# 		-e 'set position of item "Applications" of container window to {450, 150}' \
+# 		-e 'update without registering applications' \
+# 		-e 'delay 2' \
+# 		-e 'close' \
+# 		-e 'end tell' \
+# 		-e 'end tell'
+# 	@hdiutil detach /Volumes/LiteComics
+# 	@hdiutil convert $(DIST_DIR)/tmp.dmg -format UDZO -o $(DIST_DIR)/litecomics-mac-$(VERSION).dmg
+# 	@rm -f $(DIST_DIR)/tmp.dmg
 	@rm -rf $(DIST_DIR)/LiteComics.app $(DIST_DIR)/dmg-staging
 	
 	@echo "\n✓ Distribution packages created in $(DIST_DIR)/"
