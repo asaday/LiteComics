@@ -1476,8 +1476,41 @@
         return false;
       };
 
+      // タイル表示の列数を計算
+      const getTileColumnsPerRow = () => {
+        const tileSection = document.querySelector('.tile-section');
+        if (!tileSection || files[currentIndex]?.type !== 'book') {
+          return 0;
+        }
+        const tiles = tileSection.querySelectorAll('[data-index]');
+        if (tiles.length === 0) return 0;
+
+        const firstTile = tiles[0];
+        const tileWidth = firstTile.offsetWidth;
+        const sectionWidth = tileSection.offsetWidth;
+        const gap = 16; // grid gap
+        return Math.floor((sectionWidth + gap) / (tileWidth + gap));
+      };
+
       switch (e.key) {
         case 'ArrowDown':
+          e.preventDefault();
+          // タイル表示の場合は列数分移動
+          const columnsPerRow = getTileColumnsPerRow();
+          if (columnsPerRow > 0) {
+            const nextIndex = currentIndex + columnsPerRow;
+            if (nextIndex < files.length) {
+              currentIndex = nextIndex;
+              updateSelection();
+              break;
+            }
+          }
+          // リスト表示または最後の行の場合は1つ下に移動
+          if (currentIndex < files.length - 1) {
+            currentIndex++;
+            updateSelection();
+          }
+          break;
         case 'ArrowRight':
           e.preventDefault();
           if (currentIndex < files.length - 1) {
@@ -1486,6 +1519,23 @@
           }
           break;
         case 'ArrowUp':
+          e.preventDefault();
+          // タイル表示の場合は列数分移動
+          const columnsPerRowUp = getTileColumnsPerRow();
+          if (columnsPerRowUp > 0) {
+            const prevIndex = currentIndex - columnsPerRowUp;
+            if (prevIndex >= 0) {
+              currentIndex = prevIndex;
+              updateSelection();
+              break;
+            }
+          }
+          // リスト表示または最初の行の場合は1つ上に移動
+          if (currentIndex > 0) {
+            currentIndex--;
+            updateSelection();
+          }
+          break;
         case 'ArrowLeft':
           e.preventDefault();
           if (currentIndex > 0) {
