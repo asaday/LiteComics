@@ -72,7 +72,7 @@ dist: clean build-all
 	@cp $(BUILD_DIR)/litecomics-darwin-arm64 $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics
 	@chmod +x $(DIST_DIR)/LiteComics.app/Contents/MacOS/litecomics
 	@cp config.json.example $(DIST_DIR)/LiteComics.app/Contents/Resources/config.json.example
-	@cp src/icons/icon.icns $(DIST_DIR)/LiteComics.app/Contents/Resources/icon.icns
+	@cp src/icons/dist/icon.icns $(DIST_DIR)/LiteComics.app/Contents/Resources/icon.icns
 	@echo '<?xml version="1.0" encoding="UTF-8"?>\n\
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n\
 <plist version="1.0">\n\
