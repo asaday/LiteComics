@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -172,8 +173,7 @@ func (s *Server) handleBookImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ext := strings.ToLower(filepath.Ext(imageName))
-	mimeType := getMimeType(ext, imageMimeTypes)
-	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Type", getMimeType(ext))
 	w.Write(data)
 }
 
@@ -187,37 +187,36 @@ func (s *Server) handleThumbnail(w http.ResponseWriter, r *http.Request) {
 
 	cacheKey := generateCacheKey(resolved.FullPath)
 
-	// Check cache
-	if data, ok := s.thumbnailCache.Get(cacheKey); ok {
-		w.Header().Set("Content-Type", "image/jpeg")
-		w.Header().Set("Cache-Control", "public, max-age=86400")
-		w.Header().Set("X-Cache", "HIT")
-		w.Write(data)
-		return
-	}
-
-	// Generate thumbnail
+	// Get first image name for MIME type detection
 	images, err := s.getImagesFromBook(resolved.FullPath)
 	if err != nil || len(images) == 0 {
 		respondError(w, "画像が見つかりません", http.StatusNotFound)
 		return
 	}
-
 	firstImage := images[0]
-	data, err := s.extractFileFromBook(resolved.FullPath, firstImage)
-	if err != nil {
-		respondError(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	// Check cache
+	data, cacheHit := s.thumbnailCache.Get(cacheKey)
+	if !cacheHit {
+		// Generate thumbnail
+		data, err = s.extractFileFromBook(resolved.FullPath, firstImage)
+		if err != nil {
+			respondError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Save to cache
+		s.thumbnailCache.Set(cacheKey, data)
 	}
 
-	// Save to cache
-	s.thumbnailCache.Set(cacheKey, data)
-
+	// Send response
 	ext := strings.ToLower(filepath.Ext(firstImage))
-	mimeType := getMimeType(ext, imageMimeTypes)
-	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Type", getMimeType(ext))
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	w.Header().Set("X-Cache", "MISS")
+	if cacheHit {
+		w.Header().Set("X-Cache", "HIT")
+	} else {
+		w.Header().Set("X-Cache", "MISS")
+	}
 	w.Write(data)
 }
 
@@ -229,24 +228,21 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stat, err := os.Stat(resolved.FullPath)
+	file, err := os.Open(resolved.FullPath)
+	if err != nil {
+		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
 	if err != nil || !stat.Mode().IsRegular() {
 		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
 		return
 	}
 
-	ext := strings.ToLower(filepath.Ext(resolved.FullPath))
-	
-	// Determine MIME type - check video, audio, image, text, then fallback
-	mimeType := getMimeType(ext, videoMimeTypes, audioMimeTypes, imageMimeTypes, textMimeTypes)
-
-	// Handle range requests
-	rangeHeader := r.Header.Get("Range")
-	if rangeHeader != "" {
-		s.serveFileRange(w, r, resolved.FullPath, stat.Size(), mimeType)
-		return
-	}
-	s.serveFile(w, resolved.FullPath, stat.Size(), mimeType)
+	// ServeContent handles Range requests, ETag, Last-Modified, and Content-Type automatically
+	http.ServeContent(w, r, filepath.Base(resolved.FullPath), stat.ModTime(), file)
 }
 
 func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
@@ -283,12 +279,9 @@ func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
 	// Check for custom handler
 	var customURL, handlerName string
 	for name, handler := range handlers {
-		for _, handlerExt := range handler.Ext {
-			if ext == handlerExt {
-				customURL = handler.URL
-				handlerName = name
-				break
-			}
+		if slices.Contains(handler.Ext, ext) {
+			customURL = handler.URL
+			handlerName = name
 		}
 		if customURL != "" {
 			break
@@ -315,4 +308,3 @@ func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
 		}{URL: fullURL})
 	}
 }
-
