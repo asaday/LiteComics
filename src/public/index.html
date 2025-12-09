@@ -74,6 +74,15 @@
       display: flex;
     }
 
+    .breadcrumb-title {
+      flex: 1;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #808080;
+    }
+
+
     .menu-container {
       position: relative;
       margin-left: auto;
@@ -193,6 +202,11 @@
       transition: color 0.15s;
       text-decoration: none;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+      display: inline-block;
+      vertical-align: bottom;
     }
 
     body[data-theme="light"] .breadcrumb-item {
@@ -206,6 +220,8 @@
     .breadcrumb-home {
       font-size: 1.2rem;
       padding: 2px 0px;
+      max-width: none;
+      overflow: visible;
     }
 
     .breadcrumb-current {
@@ -1383,7 +1399,7 @@
       const homeImg = document.createElement('img');
       homeImg.src = '/favicon.svg';
       homeImg.alt = 'Home';
-      homeImg.style.cssText = 'width:20x;height:20px;display:block';
+      homeImg.style.cssText = 'width:21x;height:21px;display:block';
       homeLink.appendChild(homeImg);
       homeLink.className = 'breadcrumb-item breadcrumb-home';
       homeLink.href = '/';
@@ -1405,6 +1421,12 @@
             addItem(part, isLast ? null : `/#${encodeURIComponent(accumulatedPath)}`, isLast);
           });
         }
+      } else {
+        // パンくずが空の時はタイトルを表示
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'breadcrumb-title';
+        titleSpan.textContent = 'LiteComics';
+        breadcrumbContent.appendChild(titleSpan);
       }
 
       breadcrumbDiv.appendChild(breadcrumbContent);
