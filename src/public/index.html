@@ -995,6 +995,7 @@
           e.stopPropagation();
           // パスから親ディレクトリを取得
           const parentPath = item.path.substring(0, item.path.lastIndexOf('/'));
+          hideHistoryOverlay();
           window.location.hash = `#${encodeURIComponent(parentPath)}`;
         });
 
