@@ -276,13 +276,10 @@
         </div>
 
         <div class="section">
-            <h2>Advanced Settings</h2>
-            <details>
-                <summary>External Player Handlers (Advanced)</summary>
-                <div class="handlers-content">
-                    <p class="note">Configure external players for specific platforms and file types. Leave empty to use
-                        defaults.</p>
-                    <textarea id="handlers" placeholder='Example:
+            <h2>External Player Handlers</h2>
+            <p class="note">Configure external players for specific platforms and file types. Leave empty to use
+                defaults.</p>
+            <textarea id="handlers" placeholder='Example:
 {
   "iOS": {
     "vlc": {
@@ -291,12 +288,10 @@
     }
   }
 }'></textarea>
-                    <div style="margin-top: 10px;">
-                        <button type="button" class="btn-secondary btn-small" onclick="resetHandlers()">Reset to
-                            Default</button>
-                    </div>
-                </div>
-            </details>
+            <div style="margin-top: 10px;">
+                <button type="button" class="btn-secondary btn-small" onclick="resetHandlers()">Reset to
+                    Default</button>
+            </div>
         </div>
 
         <div class="actions">

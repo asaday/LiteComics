@@ -1,6 +1,4 @@
-# LiteComics Go版
-
-Node.js版をGoに移植したバージョンです。シンプルな単一ファイル構成。
+# LiteComics Go
 
 ## ビルド & 実行
 
@@ -21,18 +19,13 @@ go build
 go run main.go
 ```
 
+```bash
+make run
+```
+
 ## オプション
 
 ```bash
-# ポート指定
-./litecomics -p 3000
-
-# ルートディレクトリ指定
-./litecomics -r /path/to/comics
-
-# 複数指定
-./litecomics -r /comics -r /manga -p 8080
-
 # 設定ファイル使用
 ./litecomics -c myconfig.json
 ```

@@ -4,29 +4,36 @@ This directory contains icon assets and generation scripts.
 
 ## Files
 
-### Source Files
-- `icon.png` - Source icon for app icons (1024x1024 recommended)
-- `mac_tray.png` - Source icon for macOS systray (template icon)
+### Source Files (Required)
+- `app_icon.svg` / `app_icon.png` - Application icon (1024x1024 recommended)
+- `icon.svg` / `icon.png` - Web icon for favicon and apple-touch-icon
+- `mac_tray.svg` / `mac_tray.png` - macOS systray template icon (monochrome)
 - `generate.sh` - Icon generation script (macOS/Linux)
 
 ### Generated Files (in `dist/`)
-- `icon.icns` - macOS app icon (generated)
-- `icon.ico` - Windows app icon (generated)
+- `icon.icns` - macOS app icon (generated from `app_icon`)
+- `icon.ico` - Windows app icon (generated from `app_icon`)
 - `mac_tray32.png` - macOS systray icon (generated, 32x32)
+
+### Generated Web Files (in `../public/`)
+- `apple-touch-icon.png` - iOS/Safari icon (180x180, from `icon`)
+- `favicon.svg` - Browser favicon (from `icon.svg`)
 
 ## Usage
 
-### Generate icons from source PNG
+### Generate all icons
 
 ```bash
 cd src/icons
-./generate.sh icon.png
+./generate.sh
 ```
 
-This will create in `dist/`:
-- `icon.icns` - macOS app bundle icon (multi-resolution)
-- `icon.ico` - Windows app icon (multi-size: 256, 128, 64, 48, 32, 16)
-- `mac_tray32.png` - macOS systray template icon (32x32, from mac_tray.png)
+This will create:
+- `dist/icon.icns` - macOS app bundle icon (multi-resolution from `app_icon`)
+- `dist/icon.ico` - Windows app icon (multi-size: 256, 128, 64, 48, 32, 16 from `app_icon`)
+- `dist/mac_tray32.png` - macOS systray template icon (32x32 from `mac_tray`)
+- `../public/apple-touch-icon.png` - iOS/Safari icon (180x180 from `icon`)
+- `../public/favicon.svg` - Browser favicon (from `icon.svg`)
 
 **Note**: Icons are embedded in `main_gui.go` using `go:embed` directives from `icons/dist/`. No need to manually copy files or generate separate Go files.
 
@@ -38,11 +45,17 @@ make dist
 
 ## Requirements
 
-- macOS/Linux with `sips` and `iconutil` (macOS built-in)
-- **ImageMagick** for `.ico` generation: `brew install imagemagick`
-- Source PNG should be 1024x1024 for best quality
+- macOS/Linux with `iconutil` (macOS built-in)
+- **ImageMagick** for image conversion: `brew install imagemagick`
+- Source images should be 1024x1024 for best quality
 - Square aspect ratio required
-- `mac_tray.png` should be a monochrome template icon for macOS menu bar
+- `mac_tray` should be a monochrome template icon for macOS menu bar (auto-adapts to light/dark mode)
+
+## Icon Purposes
+
+**app_icon**: Application icon (dock, taskbar, window title)
+**icon**: Web/browser icon (favicon, mobile home screen)
+**mac_tray**: macOS menu bar icon (systray, status bar)
 
 ## Icon Sizes Generated
 

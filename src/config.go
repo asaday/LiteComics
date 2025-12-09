@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 )
 
 var version = "dev" // Set via -ldflags at build time
@@ -142,6 +143,15 @@ func loadConfig() *Config {
 }
 
 func saveConfig(cfg *Config) error {
+	// Check if handlers match default config
+	defaultCfg := defaultConfig()
+	if reflect.DeepEqual(cfg.Handlers, defaultCfg.Handlers) {
+		// Remove handlers if they match default
+		cfgCopy := *cfg
+		cfgCopy.Handlers = nil
+		cfg = &cfgCopy
+	}
+
 	configData, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
@@ -215,6 +225,10 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		// Load current config to preserve handlers
+		currentConfig := loadConfig()
+		newConfig.Handlers = currentConfig.Handlers
 
 		if err := saveConfig(&newConfig); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -1,120 +1,124 @@
 # LiteComics
 
-軽量かつ高機能なWebベースのコミック・メディアビューアシステム。標準的なブラウザ環境で、CBZ/ZIP/CBR/RAR/7Z形式のアーカイブファイルの閲覧、および各種動画・音声ファイルの再生を実現します。
+A lightweight and feature-rich web-based comic and media viewer system. Browse CBZ/ZIP/CBR/RAR/7Z archive files and play various video/audio files in standard browser environments.
 
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Go](https://img.shields.io/badge/go-%3E%3D1.23-00ADD8.svg)
 
-**日本語** | [English](README_EN.md)
+[日本語](README_JP.md) | **English**
 
-## 特徴
+## Features
 
+### Architecture
+- **Fast execution with Go**: Lightweight server running as a single binary
+- **Pure Go standard library**: ZIP processing with standard library only
+- **Minimal dependencies**: Only essential libraries for RAR/7Z processing
 
-### 機能
-- **多様なフォーマットへの対応**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB（画像抽出）
-- **マルチメディア再生**: 動画ファイル（MP4, MKV, WebM等）および音声ファイル（MP3, FLAC等）の再生
-- **見開き表示機能**: 右綴じレイアウトの自動判定と最適な表示
-- **サムネイルビュー**: グリッド形式による高速なページプレビュー
-- **ファイルリスト表示**: サイドバーによる構造化されたページ一覧
-- **キーボード操作対応**: 効率的なナビゲーションのための包括的なショートカット
-- **キャッシング機構**: サムネイルおよびファイルリストの効率的なキャッシュ管理
-- **テーマ切替**: ライトモード・ダークモードの選択
-- **UI スケーリング**: 全体表示の拡大縮小機能（50-200%）
+### Features
+- **Multiple Format Support**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB (image only)
+- **Multimedia Playback**: Video files (MP4, MKV, WebM, etc.) and audio files (MP3, FLAC, etc.)
+- **Spread View**: Automatic detection and optimal display of right-binding layout
+- **Thumbnail View**: Fast page preview in grid format
+- **File List Display**: Structured page list via sidebar
+- **Keyboard Controls**: Comprehensive shortcuts for efficient navigation
+- **Caching Mechanism**: Efficient cache management for thumbnails and file lists
+- **Theme Switching**: Light mode / dark mode selection
+- **UI Scaling**: Zoom function for overall display (50-200%)
 
-## インストール
+## Installation
 
-### 方法1: Dockerで実行
+### Method 1: Run with Docker
 
-Docker環境があれば、Go環境や依存関係のインストールなしで簡単に起動できます。
+If you have Docker, you can start easily without installing Go or dependencies.
 
-#### セットアップ
+#### Setup
 
-1. **docker-compose.yml をダウンロード:**
+1. **Download docker-compose.yml:**
 
 ```bash
 curl -O https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.yml
 ```
 
-または手動でダウンロード: [docker-compose.yml](https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.yml)
+Or download manually: [docker-compose.yml](https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.yml)
 
-2. **フォルダのパスを設定:**
+2. **Set folder path:**
 
-`docker-compose.yml` を開いて、あなたのフォルダのパスに変更します:
+Open `docker-compose.yml` and change to your folder path:
 
 ```yaml
 services:
   viewer:
     # ...
     volumes:
-      # ↓ここを変更
+      # ↓Change here
       - /path/to/your/comics:/data:ro
 ```
 
-**例:**
+**Examples:**
 - macOS: `- /Users/username/Comics:/data:ro`
 - Windows: `- C:/Users/username/Comics:/data:ro`
 - Linux: `- /home/username/comics:/data:ro`
 
-`:ro` は読み取り専用マウントを意味します（ファイルの誤削除を防ぐため）。
+`:ro` means read-only mount (to prevent accidental file deletion).
 
-**注意:** 設定ファイルは自動的に永続化されます（`config-data` ボリューム）。初回起動後、ブラウザの Settings から設定を変更できます。
+**Note:** Config file is automatically persisted (`config-data` volume). After first startup, you can change settings from Settings in the browser.
 
-3. **起動:**
+3. **Start:**
 
 ```bash
 docker-compose up -d
 ```
 
-初回は数分かかる場合があります（GitHubからのダウンロードとDockerイメージのビルド）。
+First run may take a few minutes (downloading from GitHub and building Docker image).
 
-起動後、ブラウザで http://localhost:8539 にアクセスしてください。
+After startup, access http://localhost:8539 in your browser.
 
-#### ポート番号を変更する
+#### Change Port Number
 
-デフォルトはポート8539ですが、`docker-compose.yml` で変更できます:
+Default is port 8539, but you can change it in `docker-compose.yml`:
 
 ```yaml
 ports:
-  - "8080:8539"  # ホスト側のポート:コンテナ内のポート
+  - "8080:8539"  # Host port:Container port
 ```
 
-この例では http://localhost:8080 でアクセスできます。
+In this example, you can access at http://localhost:8080.
 
-#### トラブルシューティング
+#### Troubleshooting
 
-**ポートが使用中:**
+**Port in use:**
 ```bash
-# 別のポートを使用するか、競合しているプロセスを停止
+# Use a different port or stop conflicting process
 docker-compose down
-# docker-compose.ymlのポートを変更してから再起動
+# Change port in docker-compose.yml then restart
 ```
 
-**フォルダが表示されない:**
-- `docker-compose.yml` のパスが正しいか確認
-- フォルダの読み取り権限があるか確認
-- コンテナを再起動: `docker-compose restart`
+**Folder not shown:**
+- Check if path in `docker-compose.yml` is correct
+- Check if folder has read permission
+- Restart container: `docker-compose restart`
 
 ---
 
-### 方法2: バイナリを手動ダウンロード
+### Method 2: Download Binary Manually
 
-デスクトップやRaspberry Piで使いたい場合:
+For desktop or Raspberry Pi:
 
 **macOS:**
-1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-mac-*.dmg`をダウンロード
-2. DMGをマウントして`LiteComics.app`をApplicationsフォルダにドラッグ
-3. アプリを起動（メニューバーにアイコンが表示されます）
+1. Download `litecomics-mac-*.dmg` from [Releases](https://github.com/asaday/LiteComics/releases)
+2. Mount DMG and drag `LiteComics.app` to Applications folder
+3. Launch app (icon appears in menu bar)
 
 **Windows:**
-1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-windows-*.zip`をダウンロード
-2. ZIPを解凍
-3. `litecomics.exe`をダブルクリック（システムトレイにアイコンが表示されます）
+1. Download `litecomics-windows-*.zip` from [Releases](https://github.com/asaday/LiteComics/releases)
+2. Extract ZIP
+3. Double-click `litecomics.exe` (icon appears in system tray)
 
 **Linux / Raspberry Pi:**
-1. [Releases](https://github.com/asaday/LiteComics/releases)から適切なファイルをダウンロード
+1. Download appropriate file from [Releases](https://github.com/asaday/LiteComics/releases)
    - Intel/AMD: `litecomics-linux-amd64-*.tar.gz`
    - Raspberry Pi: `litecomics-linux-arm64-*.tar.gz`
-2. 解凍して実行:
+2. Extract and run:
 ```bash
 tar xzf litecomics-linux-*.tar.gz
 cd litecomics-linux-*/
@@ -123,32 +127,32 @@ cd litecomics-linux-*/
 
 ---
 
-### 方法3: ワンライナーインストール（Linux）
+### Method 3: One-liner Install (Linux)
 
-Linux環境なら、1行のコマンドで自動インストール:
+For Linux environments, automatic installation with one command:
 
 ```bash
-# 通常インストール（手動起動）
+# Normal install (manual start)
 curl -fsSL https://raw.githubusercontent.com/asaday/LiteComics/main/install.sh | bash
 
-# systemdサービスとして自動起動
+# Auto-start as systemd service
 curl -fsSL https://raw.githubusercontent.com/asaday/LiteComics/main/install.sh | sudo bash -s -- --service
 ```
 
-インストール後:
+After installation:
 ```bash
-# 手動起動の場合
+# For manual start
 litecomics
-# 設定ファイル: ~/.config/LiteComics/config.json
+# Config file: ~/.config/LiteComics/config.json
 
-# サービスの場合
+# For service
 sudo systemctl status litecomics
-# 設定ファイル: /etc/litecomics/config.json
+# Config file: /etc/litecomics/config.json
 ```
 
 ---
 
-### ソースからビルド（開発者向け）
+### Build from Source (For Developers)
 
 ```bash
 git clone https://github.com/asaday/LiteComics.git
@@ -157,182 +161,177 @@ make build
 cd src && ./litecomics
 ```
 
-または開発用に直接実行:
+Or run directly for development:
 ```bash
-# GUI版（macOS/Windows）を実行
+# Run GUI version (macOS/Windows)
 cd src
 go run .
 
-# CUI版（Linux用）をmacOSでデバッグ
+# Debug CUI version (for Linux) on macOS
 cd src
 go run -tags cui .
 ```
 
-#### システムにインストール（Linux）
+#### Install to System (Linux)
 
 ```bash
-# バイナリをインストール
+# Install binary
 sudo make install
 
-# systemdサービスとして登録（Linuxのみ）
+# Register as systemd service (Linux only)
 sudo make install-service
-# 設定ファイルは /etc/litecomics/config.json に配置されます
+# Config file will be placed at /etc/litecomics/config.json
 
-# アンインストール
+# Uninstall
 sudo make uninstall
-sudo make uninstall-service  # サービスも削除する場合
+sudo make uninstall-service  # Also remove service
 ```
 
-## 設定
+## Configuration
 
+### First Launch
 
-### 設定の変更
+On first launch, the settings screen opens in your browser. Or manually create `config.json`:
 
-- **GUI（Desktop版）**: メニューバー/システムトレイのアイコン → Settings
-- **ブラウザ**: 右上のメニュー(☰) → ⚙️ Settings
-- **ファイル**: `config.json` を直接編集
-  - systemdサービス: `/etc/litecomics/config.json`
-  - 手動実行: `~/.config/LiteComics/config.json`
+```json
+{
+  "port": 8539,
+  "roots": [
+    "/path/to/your/comics",
+    {
+      "path": "/path/to/your/manga",
+      "name": "Manga"
+    }
+  ]
+}
+```
 
-## システム要件
+### Change Settings
 
-- **メモリ**: 最小256MB、推奨512MB以上
-- **ストレージ**: サムネイルキャッシュ用に数百MB
-- **ブラウザ**: Chrome、Firefox、Safari、Edge等のモダンブラウザ
+- **GUI (Desktop version)**: Menu bar/system tray icon → Settings
+- **Browser**: Top-right menu (☰) → ⚙️ Settings
+- **File**: Edit `config.json` directly
+  - systemd service: `/etc/litecomics/config.json`
+  - Manual execution: `~/.config/LiteComics/config.json`
 
-## 使い方
+## System Requirements
 
-### ファイルリスト画面
+- **Memory**: Minimum 256MB, recommended 512MB or more
+- **Storage**: Several hundred MB for thumbnail cache
+- **Browser**: Modern browsers like Chrome, Firefox, Safari, Edge
 
-#### キーボード操作
+## Usage
 
-| キー | 機能 |
-|------|------|
-| `↑` / `↓` | カーソル移動 |
-| `←` / `→` | カーソル移動 |
-| `PageUp` / `PageDown` | 10個ずつ移動 |
-| `Enter` | ファイルを開く |
-| `ESC` / `Backspace` | 親ディレクトリに戻る |
-| `Ctrl` + `-` | UI サイズ縮小 |
-| `Ctrl` + `+` | UI サイズ拡大 |
+### File List Screen
 
-#### マウス操作
+#### Keyboard Controls
 
-- **クリック**: ファイル/フォルダを開く
-- **A-/A+ ボタン**: UI 全体のズーム
-- **🌓 ボタン**: ライト/ダークテーマ切り替え
+| Key | Function |
+|-----|----------|
+| `↑` / `↓` | Move cursor |
+| `←` / `→` | Move cursor |
+| `PageUp` / `PageDown` | Move by 10 items |
+| `Enter` | Open file |
+| `ESC` / `Backspace` | Go back to parent directory |
+| `Ctrl` + `-` | Decrease UI size |
+| `Ctrl` + `+` | Increase UI size |
 
-### ビューア画面
+#### Mouse Controls
 
-#### キーボード操作
+- **Click**: Open file or folder
+- **A-/A+ buttons**: Zoom entire UI
+- **🌓 button**: Toggle light/dark theme
 
-| キー | 機能 |
-|------|------|
-| `←` / `→` | ページ送り（右綴じ） |
-| `↑` / `↓` | ページオフセット調整 |
-| `S` | シングル/見開き表示切替 |
-| `Enter` | フルスクリーン切替 |
-| `T` | サムネイル一覧表示 |
-| `L` | ファイル名リスト表示/非表示 |
-| `H` | ヘルプ表示/非表示 |
-| `ESC` / `Backspace` | ファイルリストに戻る |
+### Viewer Screen
 
-#### マウス操作
+#### Keyboard Controls
 
-- **左半分クリック**: 次ページ
-- **右半分クリック**: 前ページ
-- **上部ホバー**: ツールバー表示
-- **下部ホバー**: ページ情報表示
+| Key | Function |
+|-----|----------|
+| `←` / `→` | Page navigation (right-binding) |
+| `Space` | Next page |
+| `↑` / `↓` | Adjust page offset |
+| `S` | Toggle single/spread display mode |
+| `Enter` | Toggle fullscreen mode |
+| `P` | Show thumbnail grid |
+| `F` | Show/hide file name list |
+| `H` | Show/hide help |
+| `ESC` / `Backspace` | Return to file list (or close sidebar/overlay if open) |
 
-### ツールバー
+#### Mouse Controls
 
-- **✕ 閉じる**: ファイルリストに戻る
-- **📋 リスト**: ファイル名リスト表示
-- **🖼️ サムネイル**: サムネイル一覧表示
-- **◀◀ / ▶▶**: ページ送り
-- **◀ / ▶**: ページオフセット調整
-- **シングル/見開き**: 表示モード切替
-- **全画面**: フルスクリーンモード
-- **ヘルプ**: ヘルプ表示
+- **Click left half**: Next page
+- **Click right half**: Previous page
+- **Hover top area**: Show toolbar
+- **Hover bottom area**: Show page info
 
-## 技術スタック
+### Toolbar
 
-- **バックエンド**: Go 1.23+
-- **HTTPルーター**: gorilla/mux
-- **アーカイブ処理**: 
-  - ZIP: Go標準ライブラリ（archive/zip）
+- **✕ Close**: Return to file list
+- **Pages**: Show thumbnail grid
+- **Files**: Show file name list
+- **◀◀ / ▶▶**: Page navigation
+- **◀ / ▶**: Page offset adjustment
+- **Single/Double**: Toggle display mode
+- **Fullscreen**: Fullscreen mode
+- **Help**: Show help
+
+## Tech Stack
+
+- **Backend**: Go 1.23+
+- **HTTP Router**: gorilla/mux
+- **Archive Processing**: 
+  - ZIP: Go standard library (archive/zip)
   - RAR: github.com/nwaples/rardecode/v2
   - 7Z: github.com/bodgit/sevenzip
-- **フロントエンド**: Vanilla JavaScript, HTML5, CSS3（各HTMLファイルは独立動作）
-- **ルーティング**: ハッシュベースのクライアントサイドルーティング
-- **ストレージ**: localStorage（設定）, sessionStorage（ナビゲーション状態）
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3 (each HTML file is standalone)
+- **Routing**: Hash-based client-side routing
+- **Storage**: localStorage (settings), sessionStorage (navigation state)
 
-## プロジェクト構造
 
-```
-.
-├── README.md          # このファイル
-├── README_EN.md       # 英語版ドキュメント
-├── server/            # Goサーバー実装
-│   ├── main.go        # エントリーポイント
-│   ├── server.go      # サーバー設定・ルーティング
-│   ├── handlers.go    # HTTPハンドラ
-│   ├── cache.go       # キャッシュ管理
-│   ├── archive.go     # アーカイブ処理
-│   ├── utils.go       # ユーティリティ関数
-│   ├── config.json    # 設定ファイル
-│   ├── go.mod         # Go依存関係
-│   └── litecomics     # ビルド済みバイナリ
-└── public/
-    ├── index.html     # ファイルリスト画面
-    ├── viewer.html    # コミックビューア画面
-    ├── media.html     # メディアプレイヤー画面
-    └── favicon.svg    # アイコン
-```
+## API Endpoints
 
-## APIエンドポイント
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/roots` | Get root list |
+| `GET /api/dir/:root/*` | Get directory contents |
+| `GET /api/book/:root/:path(*)/list` | Get file list in archive |
+| `GET /api/book/:root/:path(*)/image/:index` | Get image from archive |
+| `GET /api/book/:root/:path(*)/thumbnail` | Get thumbnail (LRU cache) |
+| `GET /api/media/:root/:path(*)` | Get media file (video/audio, Range support) |
+| `GET /api/media-url/:root/:path(*)` | Get media URL (device detection, external player support) |
+| `GET /api/file/:root/:path(*)` | Get any file |
 
-| エンドポイント | 説明 |
-|---------------|------|
-| `GET /api/roots` | ルート一覧を取得 |
-| `GET /api/dir/*` | ディレクトリ内容を取得 |
-| `GET /api/book/:filename(*)/list` | アーカイブ内ファイル一覧取得 |
-| `GET /api/book/:filename(*)/image/:index` | アーカイブから画像取得 |
-| `GET /api/book/:filename(*)/thumbnail` | サムネイル取得（LRUキャッシュ） |
-| `GET /api/media/:filename(*)` | メディアファイル取得（動画・音声、Range対応） |
-| `GET /api/media-url/:filename(*)` | メディアURL取得（デバイス判定、外部プレイヤー対応） |
-| `GET /api/file/:filename(*)` | 任意のファイル取得 |
+## Supported Formats
 
-## 対応フォーマット
-
-### アーカイブ（コミック）
-- **CBZ, ZIP**: Go標準ライブラリ（archive/zip）
+### Archives (Comics)
+- **CBZ, ZIP**: Go standard library (archive/zip)
 - **CBR, RAR**: github.com/nwaples/rardecode/v2
 - **CB7, 7Z**: github.com/bodgit/sevenzip
-- **EPUB**: 部分対応
+- **EPUB**: Partial support
 
-### メディア
-- **動画**: MP4, MKV, WebM, AVI, MOV, M2TS, TS, WMV, FLV, MPG, MPEG
-- **音声**: MP3, FLAC, WAV, OGG, M4A, AAC, WMA, Opus
+### Media
+- **Video**: MP4, MKV, WebM, AVI, MOV, M2TS, TS, WMV, FLV, MPG, MPEG
+- **Audio**: MP3, FLAC, WAV, OGG, M4A, AAC, WMA, Opus
 
-### 画像
+### Images
 - JPG, JPEG, PNG, GIF, WebP, BMP, AVIF
 
-## キャッシュ設定
+## Cache Configuration
 
-- **サムネイルキャッシュ**: 最大4096個（LRU）
-- **ファイルリストキャッシュ**: 最大256個（メモリ）
-- **キャッシュディレクトリ**: `.cache/thumbnail/`
+- **Thumbnail Cache**: Maximum 4096 items (LRU)
+- **File List Cache**: Maximum 256 items (memory)
+- **Cache Directory**: `.cache/thumbnail/`
 
-## 外部プレイヤー対応
+## External Player Support
 
-デバイスに応じて特定のフォーマットを外部プレイヤーで開くことができます（config.jsonで設定）:
+Certain formats can be opened with external players based on device (configured in config.json):
 
-- **iOS**: VLC（MKV, AVI, FLAC など）
-- **Android**: VLC（MKV, M2TS など）
-- **macOS**: IINA（AVI, FLAC, MKV など）
-- **Windows**: VLC（AVI, FLAC, MKV など）
+- **iOS**: VLC (MKV, AVI, FLAC, etc.)
+- **Android**: VLC (MKV, M2TS, etc.)
+- **macOS**: IINA (AVI, FLAC, MKV, etc.)
+- **Windows**: VLC (AVI, FLAC, MKV, etc.)
 
-## ライセンス
+## License
 
 ISC License
