@@ -94,89 +94,120 @@ $env:VERSION = $version
 - Default install location: `C:\Program Files\LiteComics`
 - Requires administrator privileges for installation
 
-## GitHub Actions (Recommended)
+## GitHub Actions (Automated Releases)
 
-For automated multi-platform builds, create `.github/workflows/release.yml`:
+The repository includes a GitHub Actions workflow (`.github/workflows/release.yml`) that automatically builds and publishes releases for all platforms.
 
-```yaml
-name: Release
+### Automatic Release
 
-on:
-  push:
-    tags:
-      - 'v*'
+Push a tag starting with `v` to trigger an automatic release:
 
-jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            goos: darwin
-            goarch: arm64
-            output: litecomics-mac-arm64
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-            output: litecomics-linux-amd64
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm64
-            output: litecomics-linux-arm64
-          - os: windows-latest
-            goos: windows
-            goarch: amd64
-            output: litecomics-windows-amd64.exe
-
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-      
-      - name: Build
-        working-directory: server
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
-        run: |
-          go build -ldflags="-s -w" -o ../build/${{ matrix.output }}
-      
-      - name: Create macOS app bundle (macOS only)
-        if: matrix.os == 'macos-latest'
-        run: |
-          # Create .app structure and DMG
-          # (Add macOS packaging steps here)
-      
-      - name: Create Windows installer (Windows only)
-        if: matrix.os == 'windows-latest'
-        run: |
-          choco install innosetup -y
-          # (Add Inno Setup compilation here)
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.output }}
-          path: build/${{ matrix.output }}
+```bash
+# Create and push a release tag
+git tag v1.0.0
+git push origin v1.0.0
 ```
+
+This will automatically:
+1. Build binaries for Linux (amd64/arm64), macOS (arm64), and Windows (amd64)
+2. Create platform-specific packages (tar.gz, DMG, ZIP)
+3. Create a GitHub Release with all artifacts attached
+
+### Manual Testing
+
+You can also trigger the workflow manually from the GitHub Actions UI:
+1. Go to the "Actions" tab in your GitHub repository
+2. Select the "Release" workflow
+3. Click "Run workflow"
+4. Enter a version string (e.g., `v0.0.1-test`)
+
+### Build Output
+
+The workflow creates:
+- `litecomics-linux-amd64-*.tar.gz` - Linux AMD64 binary with config
+- `litecomics-linux-arm64-*.tar.gz` - Linux ARM64 binary with config
+- `litecomics-darwin-arm64-*.dmg` - macOS .app bundle in DMG installer
+- `litecomics-windows-amd64-*.zip` - Windows executable
 
 ## Development
 
-### Debug Linux CUI version on macOS
+### Run locally
 
 ```bash
-cd server
-go run -tags cui .
+# Build and run (GUI mode with config.json in src/)
+make run
 ```
 
-### Debug GUI version
+This will:
+1. Build the binary for your platform
+2. Run it with the config file at `src/config.json`
+
+### Build for current platform
 
 ```bash
-cd server
+# Build binary (outputs to src/litecomics)
+make build
+
+# Build CUI version (no systray)
+make build-cui
+```
+
+### Build for specific platforms
+
+```bash
+# Linux
+make build-linux          # AMD64
+make build-linux-arm64    # ARM64 (Raspberry Pi, etc.)
+
+# macOS
+make build-mac-arm64      # Apple Silicon
+
+# Windows (requires Windows environment)
+make build-windows        # With CGO (GUI support)
+make build-windows-nocgo  # Without CGO (no systray)
+```
+
+### Create distribution packages
+
+```bash
+# macOS/Linux packages (run on macOS)
+make dist
+
+# Windows package (run on Windows)
+make dist-windows
+```
+
+### Install/Uninstall (Linux)
+
+```bash
+# Install binary to /usr/local/bin
+make install
+
+# Install as systemd service
+make install-service
+
+# Uninstall service
+make uninstall-service
+
+# Uninstall binary
+make uninstall
+```
+
+### Clean build artifacts
+
+```bash
+make clean
+```
+
+### Debug modes
+
+```bash
+# Debug Linux CUI version on macOS
+cd src
+go run -tags cui .
+
+# Debug GUI version
+cd src
 go run .
 ```
 

@@ -11,28 +11,35 @@ CONFIG_DIR = /etc/litecomics
 # Note: Cross-platform builds from macOS may fail due to platform-specific dependencies
 # (systray, autostart). Use GitHub Actions or build on each platform for production releases.
 
+# Build for current platform
 build:
 	cd src && go build -ldflags "-X main.version=$(VERSION)" -o litecomics
 
+# Build CUI version (no systray/GUI)
 build-cui:
 	cd src && go build -tags cui -ldflags "-X main.version=$(VERSION)" -o litecomics
 
+# Build for Linux AMD64 (static binary, no CGO)
 build-linux:
 	mkdir -p $(BUILD_DIR)
 	cd src && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-amd64
 
+# Build for Linux ARM64 (Raspberry Pi, static binary, no CGO)
 build-linux-arm64:
 	mkdir -p $(BUILD_DIR)
 	cd src && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-linux-arm64
 
+# Build for Windows AMD64 (requires Windows environment and MinGW for CGO)
 build-windows:
 	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	cd src && set CGO_ENABLED=1 && go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
 
+# Build for Windows AMD64 without CGO (no systray support)
 build-windows-nocgo:
 	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	cd src && set CGO_ENABLED=0 && go build -ldflags "-s -w -H=windowsgui -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-windows-amd64.exe
 
+# Build for macOS ARM64 (Apple Silicon)
 build-mac-arm64:
 	mkdir -p $(BUILD_DIR)
 	cd src && GOARCH=arm64 go build -ldflags "-s -w -X main.version=$(VERSION)" -o ../$(BUILD_DIR)/litecomics-darwin-arm64
@@ -160,9 +167,11 @@ dist-windows: build-windows
 	@echo Distribution packages created in $(DIST_DIR)/
 	@dir /B $(DIST_DIR)\litecomics-windows-*
 
+# Run locally (uses config.json in src/)
 run:
 	cd src && go run .
 
+# Install binary to system (Linux/macOS)
 install: build
 	@echo "Installing litecomics to $(BINDIR)..."
 	@mkdir -p $(BINDIR)
@@ -171,11 +180,14 @@ install: build
 	@echo ""
 	@echo "To uninstall, run: make uninstall"
 
+# Uninstall binary from system (Linux/macOS)
 uninstall:
 	@echo "Uninstalling litecomics from $(BINDIR)..."
 	@rm -f $(BINDIR)/litecomics
 	@echo "✓ Uninstalled"
 
+# Install as systemd service (Linux only)
+# Install as systemd service (Linux only)
 install-service: install
 	@echo "Installing systemd service..."
 	@if [ ! -f $(BINDIR)/litecomics ]; then \
@@ -214,6 +226,7 @@ install-service: install
 	@echo "  sudo journalctl -u litecomics -f   # View logs"
 	@echo "  sudo nano $(CONFIG_DIR)/config.json # Edit config"
 
+# Uninstall systemd service (Linux only)
 uninstall-service:
 	@echo "Uninstalling systemd service..."
 	@sudo systemctl stop litecomics 2>/dev/null || true
@@ -222,9 +235,11 @@ uninstall-service:
 	@sudo systemctl daemon-reload
 	@echo "✓ Service uninstalled"
 
+# Clean build artifacts
 clean:
-	cd src && rm -f litecomics litecomics-*
+	rm -f src/litecomics
 	rm -rf src/.cache/ $(BUILD_DIR)/ $(DIST_DIR)/
 
+# Update Go dependencies
 mod:
 	cd src && go mod tidy
