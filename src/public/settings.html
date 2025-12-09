@@ -276,22 +276,14 @@
         </div>
 
         <div class="section">
-            <h2>External Player Handlers</h2>
-            <p class="note">Configure external players for specific platforms and file types. Leave empty to use
-                defaults.</p>
-            <textarea id="handlers" placeholder='Example:
-{
-  "iOS": {
-    "vlc": {
-      "ext": ["mkv", "avi", "flac"],
-      "url": "vlc-x-callback://x-callback-url/stream?url=%s"
-    }
-  }
-}'></textarea>
-            <div style="margin-top: 10px;">
-                <button type="button" class="btn-secondary btn-small" onclick="resetHandlers()">Reset to
-                    Default</button>
-            </div>
+            <h2>TLS/HTTPS (Optional)</h2>
+            <label for="tlsCertFile">Certificate File Path</label>
+            <input type="text" id="tlsCertFile" placeholder="/path/to/cert.pem">
+
+            <label for="tlsKeyFile">Key File Path</label>
+            <input type="text" id="tlsKeyFile" placeholder="/path/to/key.pem">
+
+            <div class="note">Leave empty to use HTTP. When both files are specified, server will use HTTPS.</div>
         </div>
 
         <div class="actions">
@@ -318,6 +310,12 @@
                 document.getElementById('port').value = config.port || 8539;
                 document.getElementById('disableGUI').checked = config.disableGUI === true;
 
+                // Load TLS config
+                if (config.tls) {
+                    document.getElementById('tlsCertFile').value = config.tls.certFile || '';
+                    document.getElementById('tlsKeyFile').value = config.tls.keyFile || '';
+                }
+
                 const rootsDiv = document.getElementById('roots');
                 rootsDiv.innerHTML = '';
 
@@ -327,11 +325,6 @@
                     });
                 } else {
                     addRoot();
-                }
-
-                // Load handlers
-                if (config.handlers) {
-                    document.getElementById('handlers').value = JSON.stringify(config.handlers, null, 2);
                 }
             } catch (err) {
                 showMessage('Failed to load settings: ' + err.message, 'error');
@@ -414,15 +407,14 @@
                     newConfig.disableGUI = true;
                 }
 
-                // Parse handlers if provided
-                const handlersText = document.getElementById('handlers').value.trim();
-                if (handlersText) {
-                    try {
-                        newConfig.handlers = JSON.parse(handlersText);
-                    } catch (err) {
-                        showMessage('Error: Invalid handlers JSON format', 'error');
-                        return;
-                    }
+                // Add TLS settings if provided
+                const tlsCertFile = document.getElementById('tlsCertFile').value.trim();
+                const tlsKeyFile = document.getElementById('tlsKeyFile').value.trim();
+                if (tlsCertFile && tlsKeyFile) {
+                    newConfig.tls = {
+                        certFile: tlsCertFile,
+                        keyFile: tlsKeyFile
+                    };
                 }
 
                 const res = await fetch('/api/settings/config', {
@@ -431,7 +423,10 @@
                     body: JSON.stringify(newConfig)
                 });
 
-                if (!res.ok) throw new Error('Failed to save settings');
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(errorText || 'Failed to save settings');
+                }
 
                 showMessage('Settings saved successfully!', 'success');
             } catch (err) {
@@ -439,10 +434,6 @@
             }
         }
 
-        function resetHandlers() {
-            document.getElementById('handlers').value = '';
-            showMessage('Handlers reset. Click "Save Settings" to apply.', 'success');
-        }
 
         async function saveAndRestart() {
             await saveSettings();
@@ -464,10 +455,6 @@
             msg.textContent = text;
             msg.className = 'message ' + type;
             msg.style.display = 'block';
-
-            setTimeout(() => {
-                msg.style.display = 'none';
-            }, 5000);
         }
 
         loadSettings();

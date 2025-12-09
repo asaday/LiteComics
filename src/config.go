@@ -226,6 +226,41 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Validate port range
+		if newConfig.Port < 1024 || newConfig.Port > 32767 {
+			http.Error(w, "Port must be between 1024 and 32767", http.StatusBadRequest)
+			return
+		}
+
+		// Validate root directories exist
+		for i, root := range newConfig.Roots {
+			if _, err := os.Stat(root.Path); os.IsNotExist(err) {
+				http.Error(w, fmt.Sprintf("Root directory does not exist: %s (index %d)", root.Path, i), http.StatusBadRequest)
+				return
+			}
+		}
+
+		// Validate TLS certificate files if provided
+		if newConfig.TLS != nil {
+			if newConfig.TLS.CertFile != "" {
+				if _, err := os.Stat(newConfig.TLS.CertFile); os.IsNotExist(err) {
+					http.Error(w, fmt.Sprintf("TLS certificate file does not exist: %s", newConfig.TLS.CertFile), http.StatusBadRequest)
+					return
+				}
+			}
+			if newConfig.TLS.KeyFile != "" {
+				if _, err := os.Stat(newConfig.TLS.KeyFile); os.IsNotExist(err) {
+					http.Error(w, fmt.Sprintf("TLS key file does not exist: %s", newConfig.TLS.KeyFile), http.StatusBadRequest)
+					return
+				}
+			}
+			// Both cert and key must be provided together
+			if (newConfig.TLS.CertFile == "") != (newConfig.TLS.KeyFile == "") {
+				http.Error(w, "Both certificate file and key file must be provided for TLS", http.StatusBadRequest)
+				return
+			}
+		}
+
 		// Load current config to preserve handlers
 		currentConfig := loadConfig()
 		newConfig.Handlers = currentConfig.Handlers

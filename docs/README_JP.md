@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Go](https://img.shields.io/badge/go-%3E%3D1.23-00ADD8.svg)
 
-**日本語** | [English](README.md)
+**日本語** | [English](../README.md)
 
 ## 特徴
 
@@ -185,6 +185,24 @@ sudo make uninstall-service  # サービスも削除する場合
 
 ## 設定
 
+### 初回起動
+
+初回起動時、ブラウザで設定画面が開きます。または手動で `config.json` を作成：
+
+```json
+{
+  "port": 8539,
+  "roots": [
+    "/path/to/your/comics",
+    {
+      "path": "/path/to/your/manga",
+      "name": "Manga"
+    }
+  ]
+}
+```
+
+**詳細な設定オプションについては [CONFIG_JP.md](CONFIG_JP.md) を参照してください。**
 
 ### 設定の変更
 
@@ -193,6 +211,25 @@ sudo make uninstall-service  # サービスも削除する場合
 - **ファイル**: `config.json` を直接編集
   - systemdサービス: `/etc/litecomics/config.json`
   - 手動実行: `~/.config/LiteComics/config.json`
+
+### TLS/HTTPS設定
+
+HTTPSで起動する場合は、`config.json`に以下を追加します：
+
+```json
+{
+  "port": 8539,
+  "tls": {
+    "certFile": "/path/to/cert.pem",
+    "keyFile": "/path/to/key.pem"
+  },
+  "roots": [...]
+}
+```
+
+- 証明書ファイルと秘密鍵ファイルの両方が必要です
+- 自己署名証明書も使用可能ですが、ブラウザに警告が表示されます
+- 詳細は [CONFIG_JP.md](CONFIG_JP.md) を参照してください
 
 ## システム要件
 

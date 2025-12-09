@@ -3,8 +3,6 @@
 litecomics --version
 git pull
 make 
-sudo systemctl stop litecomics
 sudo make install
-sudo make install-service
-sudo systemctl start litecomics
+sudo systemctl restart litecomics
 litecomics --version
