@@ -51,22 +51,22 @@
     /* パンくずリスト */
     .breadcrumb {
       margin: 0;
-      padding: 8px 20px;
-      background-color: #353535;
-      border-bottom: 1px solid #3a3a3a;
+      padding: 4px 16px;
+      background-color: #242323;
+      border-bottom: 1px solid #464544;
       font-size: 1rem;
       color: #8e8e93;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 4px;
-      height: 32px;
       flex-shrink: 0;
+      /* font-style: italic; */
     }
 
     body[data-theme="light"] .breadcrumb {
       background-color: #ebebed;
-      border-bottom: 1px solid #d1d1d6;
+      border-bottom: 2px solid #d1d1d6;
       color: #6e6e73;
     }
 
@@ -234,7 +234,7 @@
       background-color: #1c1c1c;
       border-radius: 0;
       padding: 0;
-      margin: 0;
+      margin: 4px 8px;
       overflow-y: auto;
       overflow-x: hidden;
       flex: 1;
@@ -273,6 +273,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      border-radius: 12px;
     }
 
     .file-list-view li:nth-child(even) {
@@ -302,13 +303,11 @@
     .file-list-view li.selected {
       background-color: #0058d0;
       color: #fff;
-      border-radius: 8px;
     }
 
     body[data-theme="light"] .file-list-view li.selected {
       background-color: #0058d0;
       color: #fff;
-      border-radius: 8px;
     }
 
     .file-list-view li.selected a,
@@ -1382,7 +1381,11 @@
 
       // ホーム
       const homeLink = document.createElement('a');
-      homeLink.textContent = '🗂️';
+      const homeImg = document.createElement('img');
+      homeImg.src = '/icon_small.svg';
+      homeImg.alt = 'Home';
+      homeImg.style.cssText = 'width:20x;height:20px;display:block';
+      homeLink.appendChild(homeImg);
       homeLink.className = 'breadcrumb-item breadcrumb-home';
       homeLink.href = '/';
       breadcrumbContent.appendChild(homeLink);
