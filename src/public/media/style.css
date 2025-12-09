@@ -1,0 +1,127 @@
+        /* 共通スタイル */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            color: #e0e0e0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ビューア画面の背景 */
+        body.viewer {
+            background: #000;
+        }
+
+        /* メディアプレイヤー */
+        #media-container {
+            width: 100%;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-direction: column;
+        }
+
+        #media-player {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #media-player.video-player {
+            width: 100%;
+            height: 100%;
+        }
+
+        #media-player.audio-player {
+            width: 80%;
+            max-width: 600px;
+        }
+
+        #media-toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            transform: translateY(-100%);
+        }
+
+        #media-toolbar.visible {
+            transform: translateY(0);
+        }
+
+        #media-filename {
+            flex: 1;
+            color: white;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .media-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .media-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #audio-info {
+            display: none;
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #audio-info h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        #audio-info.visible {
+            display: block;
+        }
+
+        #volume-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 8px;
+            font-size: 24px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #volume-indicator.visible {
+            opacity: 1;
+        }

@@ -1,0 +1,278 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., v1.0.0)'
+        required: true
+        default: 'v0.0.1-test'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Minify assets
+        run: |
+          cd src
+          ./minify.js
+
+      - name: Build Linux AMD64
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          mkdir -p build
+          cd src
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X main.version=$VERSION" -o ../build/litecomics-linux-amd64
+
+      - name: Build Linux ARM64
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          cd src
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w -X main.version=$VERSION" -o ../build/litecomics-linux-arm64
+
+      - name: Create Linux packages
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          mkdir -p dist
+          
+          # Linux AMD64
+          mkdir -p dist/litecomics-linux-amd64-${VERSION}
+          cp build/litecomics-linux-amd64 dist/litecomics-linux-amd64-${VERSION}/litecomics
+          cp config.json.example dist/litecomics-linux-amd64-${VERSION}/
+          cp install.sh dist/litecomics-linux-amd64-${VERSION}/
+          chmod +x dist/litecomics-linux-amd64-${VERSION}/litecomics
+          cd dist && tar czf litecomics-linux-amd64-${VERSION}.tar.gz litecomics-linux-amd64-${VERSION}
+          cd ..
+          
+          # Linux ARM64
+          mkdir -p dist/litecomics-linux-arm64-${VERSION}
+          cp build/litecomics-linux-arm64 dist/litecomics-linux-arm64-${VERSION}/litecomics
+          cp config.json.example dist/litecomics-linux-arm64-${VERSION}/
+          cp install.sh dist/litecomics-linux-arm64-${VERSION}/
+          chmod +x dist/litecomics-linux-arm64-${VERSION}/litecomics
+          cd dist && tar czf litecomics-linux-arm64-${VERSION}.tar.gz litecomics-linux-arm64-${VERSION}
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-builds
+          path: |
+            dist/*.tar.gz
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Minify assets
+        run: |
+          cd src
+          ./minify.js
+
+      - name: Build macOS ARM64
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          mkdir -p build
+          cd src
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X main.version=$VERSION" -o ../build/litecomics-darwin-arm64
+
+      - name: Create macOS packages
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          mkdir -p dist
+          
+          # Create .app bundle
+          mkdir -p dist/LiteComics.app/Contents/MacOS
+          mkdir -p dist/LiteComics.app/Contents/Resources
+          cp build/litecomics-darwin-arm64 dist/LiteComics.app/Contents/MacOS/litecomics
+          chmod +x dist/LiteComics.app/Contents/MacOS/litecomics
+          cp config.json.example dist/LiteComics.app/Contents/Resources/
+          cp src/icons/dist/icon.icns dist/LiteComics.app/Contents/Resources/
+          
+          # Create Info.plist
+          cat > dist/LiteComics.app/Contents/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>litecomics</string>
+            <key>CFBundleIconFile</key>
+            <string>icon.icns</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.github.asaday.litecomics</string>
+            <key>CFBundleName</key>
+            <string>LiteComics</string>
+            <key>CFBundleVersion</key>
+            <string>${VERSION}</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${VERSION}</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSUIElement</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+          
+          # Code sign
+          codesign --force --deep --sign - dist/LiteComics.app || true
+          
+          # Create DMG
+          mkdir -p dist/dmg-staging
+          cp -r dist/LiteComics.app dist/dmg-staging/
+          ln -s /Applications dist/dmg-staging/Applications
+          hdiutil create -volname "LiteComics" -srcfolder dist/dmg-staging -ov -format UDZO dist/litecomics-darwin-arm64-${VERSION}.dmg
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-builds
+          path: |
+            dist/*.dmg
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install rsrc for Windows icon embedding
+        shell: bash
+        run: |
+          go install github.com/akavel/rsrc@latest
+
+      - name: Embed Windows icon
+        shell: bash
+        run: |
+          cd src
+          ~/go/bin/rsrc -ico icons/dist/icon.ico -o rsrc.syso
+
+      - name: Minify assets
+        shell: bash
+        run: |
+          cd src
+          ./minify.js
+
+      - name: Build Windows
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          mkdir -p build
+          cd src
+          CGO_ENABLED=1 go build -ldflags "-s -w -H=windowsgui -X main.version=$VERSION" -o ../build/litecomics-windows-amd64.exe
+
+      - name: Create Windows package
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          mkdir -p dist/litecomics-windows-amd64-$VERSION
+          cp build/litecomics-windows-amd64.exe dist/litecomics-windows-amd64-$VERSION/litecomics.exe
+          cp config.json.example dist/litecomics-windows-amd64-$VERSION/
+          cd dist
+          powershell -Command "Compress-Archive -Path litecomics-windows-amd64-$VERSION -DestinationPath litecomics-windows-amd64-$VERSION.zip"
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: |
+            dist/*.zip
+
+  release:
+    name: Create Release
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/linux-builds/*.tar.gz
+            artifacts/macos-builds/*.dmg
+            artifacts/windows-builds/*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

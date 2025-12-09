@@ -1,0 +1,33 @@
+# Binaries
+litecomics
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Cache
+.cache/
+
+# Config
+config.json
+
+# Minified assets (generated during build)
+public-minified/
+
+# Build and distribution (in parent directory)
+
+# IDE
+.vscode/
+.idea/

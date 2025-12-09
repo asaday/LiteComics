@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Player - LiteComics</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="stylesheet" href="style.css">
+    <!-- INLINE_CSS -->
+</head>
+
+<body class="viewer">
+    <div id="media-container">
+        <div id="media-toolbar">
+            <button id="btn-back" class="media-btn">← Back</button>
+            <div id="media-filename"></div>
+        </div>
+        <div id="volume-indicator">
+            <span id="volume-icon">🔊</span>
+            <span id="volume-value">100%</span>
+        </div>
+        <div id="audio-info">
+            <h2>🎵</h2>
+            <p id="audio-title"></p>
+        </div>
+        <video id="media-player" controls autoplay>
+            お使いのブラウザはメディア再生に対応していません。
+        </video>
+    </div>
+
+    <script src="script.js"></script>
+    <!-- INLINE_JS -->
+</body>
+
+</html>

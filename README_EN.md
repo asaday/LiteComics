@@ -5,7 +5,7 @@ A lightweight and feature-rich web-based comic and media viewer system. Browse C
 ![License](https://img.shields.io/badge/license-ISC-blue.svg)
 ![Go](https://img.shields.io/badge/go-%3E%3D1.23-00ADD8.svg)
 
-[日本語](docs/README_JP.md) | **English**
+[日本語](README.md) | **English**
 
 ## Features
 
@@ -206,8 +206,6 @@ On first launch, the settings screen opens in your browser. Or manually create `
 }
 ```
 
-**For detailed configuration options, see [CONFIG.md](docs/CONFIG.md).**
-
 ### Change Settings
 
 - **GUI (Desktop version)**: Menu bar/system tray icon → Settings
@@ -233,7 +231,7 @@ To start with HTTPS, add the following to `config.json`:
 
 - Both certificate file and private key file are required
 - Self-signed certificates are supported but will show browser warnings
-- See [CONFIG.md](docs/CONFIG.md) for details
+- See [CONFIG_EN.md](CONFIG_EN.md) for details
 
 ## System Requirements
 
