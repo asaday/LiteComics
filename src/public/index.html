@@ -65,7 +65,7 @@
     }
 
     body[data-theme="light"] .breadcrumb {
-      background-color: #ebebed;
+      background-color: #f8f8f8;
       border-bottom: 2px solid #d1d1d6;
       color: #6e6e73;
     }
@@ -82,10 +82,9 @@
     .menu-button {
       background: none;
       border: none;
-      font-size: 1.3rem;
+      font-size: 1.7rem;
       cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: 0 4px;
       transition: background-color 0.2s;
       color: #e0e0e0;
     }
@@ -273,7 +272,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      border-radius: 12px;
+      border-radius: 10px;
     }
 
     .file-list-view li:nth-child(even) {
@@ -410,7 +409,7 @@
       width: 100%;
       height: 240px;
       object-fit: contain;
-      background-color: #1c1c1c;
+      background-color: #202020;
     }
 
     body[data-theme="light"] .tile-thumbnail {
@@ -1382,7 +1381,7 @@
       // ホーム
       const homeLink = document.createElement('a');
       const homeImg = document.createElement('img');
-      homeImg.src = '/icon_small.svg';
+      homeImg.src = '/favicon.svg';
       homeImg.alt = 'Home';
       homeImg.style.cssText = 'width:20x;height:20px;display:block';
       homeLink.appendChild(homeImg);
@@ -1440,6 +1439,21 @@
 
     // キーボードイベントハンドラ
     document.addEventListener('keydown', async (e) => {
+      // オーバーレイが開いている場合の共通処理
+      const checkAndCloseOverlays = () => {
+        const historyOverlay = document.getElementById('history-overlay');
+        if (historyOverlay.classList.contains('visible')) {
+          hideHistoryOverlay();
+          return true;
+        }
+        const overlay = document.getElementById('preview-overlay');
+        if (overlay.classList.contains('visible')) {
+          hidePreview();
+          return true;
+        }
+        return false;
+      };
+
       switch (e.key) {
         case 'ArrowDown':
         case 'ArrowRight':
@@ -1474,18 +1488,9 @@
           openSelected();
           break;
         case 'Escape':
-        case 'Backspace':
           e.preventDefault();
-          // 履歴オーバーレイが開いている場合は閉じる
-          const historyOverlay = document.getElementById('history-overlay');
-          if (historyOverlay.classList.contains('visible')) {
-            hideHistoryOverlay();
-            break;
-          }
-          // プレビューが開いている場合は閉じる
-          const overlay = document.getElementById('preview-overlay');
-          if (overlay.classList.contains('visible')) {
-            hidePreview();
+          // オーバーレイを閉じる
+          if (checkAndCloseOverlays()) {
             break;
           }
           // ルートレベルでは何もしない
@@ -1496,6 +1501,30 @@
           const storageKey = currentRootName ? `${currentRootName}/${currentRelativePath}` : '';
           localStorage.removeItem(`fileList_index_${storageKey}`);
           history.back();
+          break;
+        case 'Backspace':
+          e.preventDefault();
+          // オーバーレイを閉じる
+          if (checkAndCloseOverlays()) {
+            break;
+          }
+          // ルートレベルでは何もしない
+          if (!currentRootName && !currentRelativePath) {
+            break;
+          }
+          // 一つ上のフォルダに移動
+          if (currentRelativePath) {
+            // 相対パスがある場合は、一つ上の階層へ
+            const pathParts = currentRelativePath.split('/').filter(p => p);
+            pathParts.pop();
+            const parentPath = pathParts.length > 0
+              ? `${currentRootName}/${pathParts.join('/')}`
+              : currentRootName;
+            window.location.hash = `#${encodeURIComponent(parentPath)}`;
+          } else if (currentRootName) {
+            // ルート名のみの場合は、ルート一覧に戻る
+            window.location.hash = '';
+          }
           break;
       }
     });
