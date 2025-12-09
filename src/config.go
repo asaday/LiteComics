@@ -74,7 +74,7 @@ func defaultConfig() *Config {
 		Handlers: map[string]map[string]HandlerConfig{
 			"ios": {
 				"VLC": {
-					Ext: []string{".mkv", ".avi", ".flac", ".m2ts", ".ts", ".wmv"},
+					Ext: []string{".mkv", ".avi", ".m2ts", ".ts", ".wmv"},
 					URL: "vlc-x-callback://x-callback-url/stream?url={url}",
 				},
 			},
@@ -86,13 +86,13 @@ func defaultConfig() *Config {
 			},
 			"mac": {
 				"IINA": {
-					Ext: []string{".avi", ".flac", ".m2ts", ".ts", ".wmv"},
+					Ext: []string{".avi", ".m2ts", ".ts", ".wmv"},
 					URL: "iina://weblink?url={url}",
 				},
 			},
 			"windows": {
 				"VLC": {
-					Ext: []string{".avi", ".flac", ".m2ts", ".ts", ".wmv"},
+					Ext: []string{".avi", ".m2ts", ".ts", ".wmv"},
 					URL: "vlc://{url}",
 				},
 			},

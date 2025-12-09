@@ -210,7 +210,7 @@
 
                 currentFile = `${fileInfo.rootName}/${fileInfo.relativePath}`;
                 const basename = fileInfo.relativePath.split('/').pop();
-                const fallbackUrl = `/api/media/${encodeURIComponent(currentFile)}`;
+                const fallbackUrl = `/api/file/${encodeURIComponent(currentFile)}`;
 
                 // 外部アプリ判定を先に行う(APIがなくてもfallbackで再生するので問題ない)
                 fetch(`/api/media-url/${encodeURIComponent(currentFile)}`)

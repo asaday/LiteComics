@@ -96,7 +96,6 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/book/{path:.*}/list", s.handleBookList).Methods("GET")
 	api.HandleFunc("/book/{path:.*}/image/{index:[0-9]+}", s.handleBookImage).Methods("GET")
 	api.HandleFunc("/book/{path:.*}/thumbnail", s.handleThumbnail).Methods("GET")
-	api.HandleFunc("/media/{path:.*}", s.handleMedia).Methods("GET")
 	api.HandleFunc("/media-url/{path:.*}", s.handleMediaURL).Methods("GET")
 	api.HandleFunc("/file/{path:.*}", s.handleFile).Methods("GET")
 

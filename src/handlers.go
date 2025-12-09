@@ -221,7 +221,7 @@ func (s *Server) handleThumbnail(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (s *Server) handleMedia(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 	requestPath, _ := url.PathUnescape(mux.Vars(r)["path"])
 	resolved, err := s.resolveRequestPath(requestPath)
 	if err != nil {
@@ -236,10 +236,9 @@ func (s *Server) handleMedia(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ext := strings.ToLower(filepath.Ext(resolved.FullPath))
-	mimeType := getMimeType(ext, videoMimeTypes)
-	if mimeType == "application/octet-stream" {
-		mimeType = getMimeType(ext, audioMimeTypes)
-	}
+	
+	// Determine MIME type - check video, audio, image, text, then fallback
+	mimeType := getMimeType(ext, videoMimeTypes, audioMimeTypes, imageMimeTypes, textMimeTypes)
 
 	// Handle range requests
 	rangeHeader := r.Header.Get("Range")
@@ -296,12 +295,12 @@ func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	mediaPath := "/api/media/" + url.PathEscape(requestPath)
+	filePath := "/api/file/" + url.PathEscape(requestPath)
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
 	}
-	fullURL := fmt.Sprintf("%s://%s%s", scheme, r.Host, mediaPath)
+	fullURL := fmt.Sprintf("%s://%s%s", scheme, r.Host, filePath)
 
 	if customURL != "" {
 		finalURL := strings.ReplaceAll(customURL, "{url}", url.QueryEscape(fullURL))
@@ -317,36 +316,3 @@ func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
-	requestPath, _ := url.PathUnescape(mux.Vars(r)["path"])
-	resolved, err := s.resolveRequestPath(requestPath)
-	if err != nil {
-		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
-		return
-	}
-
-	stat, err := os.Stat(resolved.FullPath)
-	if err != nil || !stat.Mode().IsRegular() {
-		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
-		return
-	}
-
-	ext := strings.ToLower(filepath.Ext(resolved.FullPath))
-	mimeType := getMimeType(ext, imageMimeTypes)
-	if mimeType == "application/octet-stream" {
-		switch ext {
-		case ".txt", ".log", ".nfo":
-			mimeType = "text/plain; charset=utf-8"
-		case ".json":
-			mimeType = "application/json"
-		case ".xml":
-			mimeType = "application/xml"
-		case ".md":
-			mimeType = "text/markdown; charset=utf-8"
-		case ".csv":
-			mimeType = "text/csv; charset=utf-8"
-		}
-	}
-
-	s.serveFile(w, resolved.FullPath, stat.Size(), mimeType)
-}

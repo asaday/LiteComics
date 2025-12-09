@@ -34,18 +34,47 @@ var (
 
 	imageMimeTypes = map[string]string{
 		".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
-		".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp", ".avif": "image/avif",
+		".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp", 
+		".avif": "image/avif", ".svg": "image/svg+xml",
+		".ico": "image/x-icon", ".tiff": "image/tiff", ".tif": "image/tiff",
+		".heic": "image/heic", ".heif": "image/heif", ".jxl": "image/jxl",
 	}
 	videoMimeTypes = map[string]string{
 		".mp4": "video/mp4", ".mkv": "video/x-matroska", ".webm": "video/webm",
 		".avi": "video/x-msvideo", ".mov": "video/quicktime", ".m2ts": "video/mp2t",
 		".ts": "video/mp2t", ".wmv": "video/x-ms-wmv", ".flv": "video/x-flv",
-		".mpg": "video/mpeg", ".mpeg": "video/mpeg",
+		".mpg": "video/mpeg", ".mpeg": "video/mpeg", ".m4v": "video/x-m4v",
+		".3gp": "video/3gpp", ".ogv": "video/ogg", ".vob": "video/dvd",
+		".mts": "video/mp2t", ".f4v": "video/x-f4v", ".rm": "application/vnd.rn-realmedia",
 	}
 	audioMimeTypes = map[string]string{
 		".mp3": "audio/mpeg", ".flac": "audio/flac", ".wav": "audio/wav",
 		".ogg": "audio/ogg", ".m4a": "audio/mp4", ".aac": "audio/aac",
 		".wma": "audio/x-ms-wma", ".opus": "audio/opus",
+		".oga": "audio/ogg", ".webm": "audio/webm", ".mid": "audio/midi", 
+		".midi": "audio/midi", ".ape": "audio/x-ape", ".alac": "audio/x-alac",
+		".ra": "audio/x-realaudio", ".aiff": "audio/aiff", ".aif": "audio/aiff",
+	}
+	textMimeTypes = map[string]string{
+		".txt": "text/plain; charset=utf-8", ".log": "text/plain; charset=utf-8", ".nfo": "text/plain; charset=utf-8",
+		".json": "application/json", ".xml": "application/xml",
+		".md": "text/markdown; charset=utf-8", ".markdown": "text/markdown; charset=utf-8",
+		".csv": "text/csv; charset=utf-8", ".tsv": "text/tab-separated-values; charset=utf-8",
+		".html": "text/html; charset=utf-8", ".htm": "text/html; charset=utf-8",
+		".css": "text/css; charset=utf-8", ".js": "application/javascript", ".mjs": "application/javascript",
+		".pdf": "application/pdf",
+		".zip": "application/zip", ".tar": "application/x-tar", ".gz": "application/gzip",
+		".7z": "application/x-7z-compressed", ".rar": "application/vnd.rar", ".bz2": "application/x-bzip2",
+		".yaml": "application/yaml", ".yml": "application/yaml", ".toml": "application/toml", ".ini": "text/plain; charset=utf-8",
+		".sh": "application/x-sh", ".bash": "application/x-sh", ".bat": "application/x-bat", ".ps1": "application/x-powershell",
+		".py": "text/x-python; charset=utf-8", ".go": "text/x-go; charset=utf-8",
+		".c": "text/x-c; charset=utf-8", ".cpp": "text/x-c++; charset=utf-8", ".h": "text/x-c; charset=utf-8",
+		".rs": "text/x-rust; charset=utf-8", ".java": "text/x-java; charset=utf-8",
+		".php": "text/x-php; charset=utf-8", ".rb": "text/x-ruby; charset=utf-8",
+		".ts": "text/typescript; charset=utf-8", ".tsx": "text/typescript; charset=utf-8",
+		".jsx": "text/jsx; charset=utf-8", ".vue": "text/x-vue; charset=utf-8",
+		".swift": "text/x-swift; charset=utf-8", ".kt": "text/x-kotlin; charset=utf-8",
+		".sql": "application/sql; charset=utf-8", ".dockerfile": "text/x-dockerfile; charset=utf-8",
 	}
 )
 
@@ -75,9 +104,11 @@ func respondError(w http.ResponseWriter, message string, code int) {
 	json.NewEncoder(w).Encode(ErrorResponse{Error: message})
 }
 
-func getMimeType(ext string, mimeMap map[string]string) string {
-	if mime, ok := mimeMap[ext]; ok {
-		return mime
+func getMimeType(ext string, mimeMaps ...map[string]string) string {
+	for _, mimeMap := range mimeMaps {
+		if mime, ok := mimeMap[ext]; ok {
+			return mime
+		}
 	}
 	return "application/octet-stream"
 }
