@@ -1,3 +1,24 @@
+
+// demo URLを生成
+function fixUrl(path) {
+  if (!window.location.pathname.startsWith('/demo')) return path;
+
+  if (path.startsWith('/api/roots'))
+    return '/demo/book/roots.json';
+
+  if (path.startsWith('/#'))
+    return '/demo';
+
+  const thumbnailMatch = path.match(/^\/api\/book\/([^\/]+)\/thumbnail$/);
+  if (thumbnailMatch) return `/demo/book/thumbnail/${decodeURIComponent(thumbnailMatch[1])}.jpg`;
+
+  if (path.startsWith('/viewer/')) return `/demo${path}`;
+  if (path.startsWith('/media/')) return `/demo${path}`;
+  if (path.startsWith('/settings/')) return `/demo`;
+
+  return path;
+}
+
 let files = [];
 let currentIndex = 0;
 let currentRootName = null;
@@ -114,9 +135,9 @@ function showHistoryOverlay() {
 
     contentDiv.addEventListener('click', () => {
       if (item.type === 'book') {
-        window.location.href = `/viewer/#${encodeURIComponent(item.path)}`;
+        window.location.href = fixUrl(`/viewer/#${encodeURIComponent(item.path)}`);
       } else if (item.type === 'video' || item.type === 'audio') {
-        window.location.href = `/media/#${encodeURIComponent(item.path)}`;
+        window.location.href = fixUrl(`/media/#${encodeURIComponent(item.path)}`);
       }
     });
 
@@ -188,7 +209,7 @@ async function showPreview(file) {
   overlay.classList.add('visible');
 
   try {
-    const filePath = `/api/file/${encodeURIComponent(file.path)}`;
+    const filePath = fixUrl(`/api/file/${encodeURIComponent(file.path)}`);
 
     if (isImageFile(file.name)) {
       const img = document.createElement('img');
@@ -293,7 +314,7 @@ async function loadFileList(dirPath = null) {
     let response, data;
 
     if (dirPath) {
-      response = await fetch(`/api/dir/${encodeURIComponent(dirPath)}`);
+      response = await fetch(fixUrl(`/api/dir/${encodeURIComponent(dirPath)}`));
       data = await response.json();
       if (data.error) {
         throw new Error(data.error);
@@ -302,7 +323,7 @@ async function loadFileList(dirPath = null) {
       currentRootName = data.rootName;
       currentRelativePath = data.relativePath || '';
     } else {
-      response = await fetch('/api/roots');
+      response = await fetch(fixUrl('/api/roots'));
       files = await response.json();
       if (!Array.isArray(files)) {
         throw new Error(files.error || 'Failed to load roots');
@@ -421,12 +442,12 @@ function createListItem(file, index) {
 
   if (file.type === 'directory') {
     const link = document.createElement('a');
-    link.href = `/#${encodeURIComponent(file.path)}`;
+    link.href = fixUrl(`/#${encodeURIComponent(file.path)}`);
     link.textContent = file.name;
     contentWrapper.appendChild(link);
   } else if (file.type === 'video' || file.type === 'audio') {
     const link = document.createElement('a');
-    link.href = `/media/#${encodeURIComponent(file.path)}`;
+    link.href = fixUrl(`/media/#${encodeURIComponent(file.path)}`);
     link.textContent = file.name;
     link.addEventListener('click', (e) => {
       // リンククリック時もsessionStorageに保存
@@ -473,11 +494,11 @@ function createTileItem(file, index) {
   tile.dataset.index = index;
 
   const link = document.createElement('a');
-  link.href = `/viewer/#${encodeURIComponent(file.path)}`;
+  link.href = fixUrl(`/viewer/#${encodeURIComponent(file.path)}`);
 
   const thumbnail = document.createElement('img');
   thumbnail.className = 'tile-thumbnail';
-  thumbnail.src = `/api/book/${encodeURIComponent(file.path)}/thumbnail`;
+  thumbnail.src = fixUrl(`/api/book/${encodeURIComponent(file.path)}/thumbnail`);
   thumbnail.alt = file.name;
   thumbnail.loading = 'lazy';
 
@@ -536,7 +557,7 @@ function updateBreadcrumb() {
   homeImg.style.cssText = 'width:21x;height:21px;display:block';
   homeLink.appendChild(homeImg);
   homeLink.className = 'breadcrumb-item breadcrumb-home';
-  homeLink.href = '/';
+  homeLink.href = fixUrl('/');
   breadcrumbContent.appendChild(homeLink);
 
   if (currentRootName) {
@@ -749,7 +770,7 @@ document.getElementById('menu-history').addEventListener('click', () => {
 });
 document.getElementById('menu-settings').addEventListener('click', () => {
   hideMenu();
-  window.location.href = '/settings/';
+  window.location.href = fixUrl('/settings/');
 });
 document.getElementById('history-close').addEventListener('click', hideHistoryOverlay);
 document.getElementById('history-clear').addEventListener('click', clearHistory);
