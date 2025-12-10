@@ -9,25 +9,46 @@ A lightweight and feature-rich web-based comic and media viewer system. Browse C
 
 ## Features
 
-### Architecture
-- **Fast execution with Go**: Lightweight server running as a single binary
-- **Pure Go standard library**: ZIP processing with standard library only
-- **Minimal dependencies**: Only essential libraries for RAR/7Z processing
-
 ### Features
-- **Multiple Format Support**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB (image only)
-- **Multimedia Playback**: Video files (MP4, MKV, WebM, etc.) and audio files (MP3, FLAC, etc.)
-- **Spread View**: Automatic detection and optimal display of right-binding layout
-- **Thumbnail View**: Fast page preview in grid format
-- **File List Display**: Structured page list via sidebar
-- **Keyboard Controls**: Comprehensive shortcuts for efficient navigation
-- **Caching Mechanism**: Efficient cache management for thumbnails and file lists
-- **Theme Switching**: Light mode / dark mode selection
-- **UI Scaling**: Zoom function for overall display (50-200%)
+- **Go-based high-performance server**: Extremely small binary size with fast execution
+- **Archive format support**: ZIP, CBZ, RAR, CBR, 7Z, CB7, EPUB (image only)
+- **Media playback**: MP4, MKV, WebM, MP3, FLAC, etc.
+- **Caching system**: Efficient cache management for thumbnails and file lists
+- **Web-based responsive interface**: Modern browser support
+- **No external dependencies**: No database or additional software required
+- **Modern browser support**: Chrome, Firefox, Safari, Edge
+- **Mobile device support**: iPhone, iPad, Android tablets and phones
+- **Low memory footprint**: 256MB minimum, 512MB recommended
+- **Docker support**: Easy deployment
+- **Cross-platform**: macOS, Linux, Windows
+- **Desktop GUI app**: System tray integration
+- **Configurable**: Via web UI or JSON configuration file
 
 ## Installation
 
-### Method 1: Run with Docker
+- [macOS](#macos)
+- [Windows](#windows)
+- [Docker](#docker)
+- [Linux (systemd)](#linux-systemd)
+- [Build from Source](#build-from-source-for-developers)
+
+### macOS
+
+1. Download `litecomics-mac-*.dmg` from [Releases](https://github.com/asaday/LiteComics/releases)
+2. Mount DMG and drag `LiteComics.app` to Applications folder
+3. Launch app (icon appears in menu bar)
+
+---
+
+### Windows
+
+1. Download `litecomics-windows-*.zip` from [Releases](https://github.com/asaday/LiteComics/releases)
+2. Extract ZIP
+3. Double-click `litecomics.exe` (icon appears in system tray)
+
+---
+
+### Docker
 
 If you have Docker, you can start easily without installing Go or dependencies.
 
@@ -100,34 +121,7 @@ docker-compose down
 
 ---
 
-### Method 2: Download Binary Manually
-
-For desktop or Raspberry Pi:
-
-**macOS:**
-1. Download `litecomics-mac-*.dmg` from [Releases](https://github.com/asaday/LiteComics/releases)
-2. Mount DMG and drag `LiteComics.app` to Applications folder
-3. Launch app (icon appears in menu bar)
-
-**Windows:**
-1. Download `litecomics-windows-*.zip` from [Releases](https://github.com/asaday/LiteComics/releases)
-2. Extract ZIP
-3. Double-click `litecomics.exe` (icon appears in system tray)
-
-**Linux / Raspberry Pi:**
-1. Download appropriate file from [Releases](https://github.com/asaday/LiteComics/releases)
-   - Intel/AMD: `litecomics-linux-amd64-*.tar.gz`
-   - Raspberry Pi: `litecomics-linux-arm64-*.tar.gz`
-2. Extract and run:
-```bash
-tar xzf litecomics-linux-*.tar.gz
-cd litecomics-linux-*/
-./litecomics
-```
-
----
-
-### Method 3: One-liner Install (Linux)
+### Linux (systemd)
 
 For Linux environments, automatic installation with one command:
 
@@ -191,7 +185,7 @@ sudo make uninstall-service  # Also remove service
 
 ### First Launch
 
-On first launch, the settings screen opens in your browser. Or manually create `config.json`:
+Settings screen opens from the menu. Or manually edit `config.json`:
 
 ```json
 {

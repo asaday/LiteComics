@@ -1,7 +1,9 @@
 
 // API URLを生成
 function fixUrl(path) {
-    if (!window.location.pathname.startsWith('/demo')) return path;
+    const demoPrefix = '/LiteComics/demo';
+    if (!window.location.pathname.startsWith(demoPrefix)) return path;
+
     return path;
 }
 

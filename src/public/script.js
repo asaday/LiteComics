@@ -1,20 +1,21 @@
 
 // demo URLを生成
 function fixUrl(path) {
-  if (!window.location.pathname.startsWith('/demo')) return path;
+  const demoPrefix = '/LiteComics/demo';
+  if (!window.location.pathname.startsWith(demoPrefix)) return path;
 
   if (path.startsWith('/api/roots'))
-    return '/demo/book/roots.json';
+    return `${demoPrefix}/book/roots.json`;
 
   if (path.startsWith('/#'))
-    return '/demo';
+    return `${demoPrefix}`;
 
   const thumbnailMatch = path.match(/^\/api\/book\/([^\/]+)\/thumbnail$/);
-  if (thumbnailMatch) return `/demo/book/thumbnail/${decodeURIComponent(thumbnailMatch[1])}.jpg`;
+  if (thumbnailMatch) return `${demoPrefix}/book/thumbnail/${decodeURIComponent(thumbnailMatch[1])}.jpg`;
 
-  if (path.startsWith('/viewer/')) return `/demo${path}`;
-  if (path.startsWith('/media/')) return `/demo${path}`;
-  if (path.startsWith('/settings/')) return `/demo`;
+  if (path.startsWith('/viewer/')) return `${demoPrefix}${path}`;
+  if (path.startsWith('/media/')) return `${demoPrefix}${path}`;
+  if (path.startsWith('/settings/')) return `${demoPrefix}`;
 
   return path;
 }

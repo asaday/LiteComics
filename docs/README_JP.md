@@ -11,19 +11,45 @@
 
 
 ### 機能
-- **多様なフォーマットへの対応**: CBZ, ZIP, CBR, RAR, CB7, 7Z, EPUB（画像のみ）
-- **マルチメディア再生**: 動画ファイル（MP4, MKV, WebM等）および音声ファイル（MP3, FLAC等）の再生
-- **見開き表示機能**: 右綴じレイアウトの自動判定と最適な表示
-- **サムネイルビュー**: グリッド形式による高速なページプレビュー
-- **ファイルリスト表示**: サイドバーによる構造化されたページ一覧
-- **キーボード操作対応**: 効率的なナビゲーションのための包括的なショートカット
-- **キャッシング機構**: サムネイルおよびファイルリストの効率的なキャッシュ管理
-- **テーマ切替**: ライトモード・ダークモードの選択
-- **UI スケーリング**: 全体表示の拡大縮小機能（50-200%）
+- **高性能Goベースサーバー**: 極小バイナリサイズで高速動作
+- **アーカイブ形式対応**: ZIP, CBZ, RAR, CBR, 7Z, CB7, EPUB(画像のみ)
+- **メディア再生**: MP4, MKV, WebM, MP3, FLAC等に対応
+- **キャッシングシステム**: サムネイルおよびファイルリストの効率的なキャッシュ管理
+- **Webベースレスポンシブインターフェース**: モダンブラウザ対応
+- **外部依存関係不要**: データベースや追加ソフトウェア不要
+- **モダンブラウザサポート**: Chrome, Firefox, Safari, Edge
+- **モバイルデバイス対応**: iPhone, iPad, Android タブレット・スマートフォン
+- **省メモリ設計**: 最小256MB、推奨512MB
+- **Docker対応**: 簡単デプロイメント
+- **クロスプラットフォーム**: macOS, Linux, Windows
+- **デスクトップGUIアプリ**: システムトレイ統合
+- **設定の柔軟性**: Web UIまたはJSON設定ファイルで設定可能
 
 ## インストール
 
-### 方法1: Dockerで実行
+- [macOS](#macos)
+- [Windows](#windows)
+- [Docker](#docker)
+- [Linux (systemd)](#linux-systemd)
+- [ソースからビルド](#ソースからビルド開発者向け)
+
+### macOS
+
+1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-mac-*.dmg`をダウンロード
+2. DMGをマウントして`LiteComics.app`をApplicationsフォルダにドラッグ
+3. アプリを起動（メニューバーにアイコンが表示されます）
+
+---
+
+### Windows
+
+1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-windows-*.zip`をダウンロード
+2. ZIPを解凍
+3. `litecomics.exe`をダブルクリック（システムトレイにアイコンが表示されます）
+
+---
+
+### Docker
 
 Docker環境があれば、Go環境や依存関係のインストールなしで簡単に起動できます。
 
@@ -96,34 +122,7 @@ docker-compose down
 
 ---
 
-### 方法2: バイナリを手動ダウンロード
-
-デスクトップやRaspberry Piで使いたい場合:
-
-**macOS:**
-1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-mac-*.dmg`をダウンロード
-2. DMGをマウントして`LiteComics.app`をApplicationsフォルダにドラッグ
-3. アプリを起動（メニューバーにアイコンが表示されます）
-
-**Windows:**
-1. [Releases](https://github.com/asaday/LiteComics/releases)から`litecomics-windows-*.zip`をダウンロード
-2. ZIPを解凍
-3. `litecomics.exe`をダブルクリック（システムトレイにアイコンが表示されます）
-
-**Linux / Raspberry Pi:**
-1. [Releases](https://github.com/asaday/LiteComics/releases)から適切なファイルをダウンロード
-   - Intel/AMD: `litecomics-linux-amd64-*.tar.gz`
-   - Raspberry Pi: `litecomics-linux-arm64-*.tar.gz`
-2. 解凍して実行:
-```bash
-tar xzf litecomics-linux-*.tar.gz
-cd litecomics-linux-*/
-./litecomics
-```
-
----
-
-### 方法3: ワンライナーインストール（Linux）
+### Linux (systemd)
 
 Linux環境なら、1行のコマンドで自動インストール:
 
@@ -187,7 +186,7 @@ sudo make uninstall-service  # サービスも削除する場合
 
 ### 初回起動
 
-初回起動時、ブラウザで設定画面が開きます。または手動で `config.json` を作成：
+メニューから設定画面が開きます。または手動で `config.json` を編集：
 
 ```json
 {
