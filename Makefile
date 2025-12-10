@@ -13,7 +13,7 @@ CONFIG_DIR = /etc/litecomics
 
 # Minify and inline CSS/JS for production builds
 minify:
-	cd src && ./minify.js
+	cd src && node minify.js
 
 # Build for current platform (uses minified assets from build/public)
 build: minify

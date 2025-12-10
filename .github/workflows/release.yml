@@ -45,7 +45,7 @@ jobs:
       - name: Minify assets
         run: |
           cd src
-          ./minify.js
+          node minify.js
 
       - name: Build Linux AMD64
         run: |
@@ -119,7 +119,7 @@ jobs:
       - name: Minify assets
         run: |
           cd src
-          ./minify.js
+          node minify.js
 
       - name: Build macOS ARM64
         run: |
@@ -211,22 +211,22 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Install rsrc for Windows icon embedding
+      - name: Install go-winres for Windows icon embedding
         shell: bash
         run: |
-          go install github.com/akavel/rsrc@latest
+          go install github.com/tc-hib/go-winres@latest
 
       - name: Embed Windows icon
         shell: bash
         run: |
           cd src
-          ~/go/bin/rsrc -ico icons/dist/icon.ico -o rsrc.syso
+          ~/go/bin/go-winres simply --icon icons/dist/icon.ico
 
       - name: Minify assets
         shell: bash
         run: |
           cd src
-          ./minify.js
+          node minify.js
 
       - name: Build Windows
         shell: bash

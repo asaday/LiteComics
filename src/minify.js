@@ -9,9 +9,10 @@ console.log('Building minified production assets...');
 // Check if minify tool is installed
 let minifyCmd = 'minify';
 try {
-    execSync('command -v minify', { stdio: 'ignore' });
+    execSync(process.platform === 'win32' ? 'where minify' : 'command -v minify', { stdio: 'ignore' });
 } catch {
-    const homeMinify = path.join(process.env.HOME, 'go/bin/minify');
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    const homeMinify = path.join(homeDir, 'go', 'bin', process.platform === 'win32' ? 'minify.exe' : 'minify');
     if (fs.existsSync(homeMinify)) {
         minifyCmd = homeMinify;
     } else {
@@ -19,7 +20,7 @@ try {
         execSync('go install github.com/tdewolff/minify/v2/cmd/minify@latest');
         // After install, try to use it from PATH first
         try {
-            execSync('command -v minify', { stdio: 'ignore' });
+            execSync(process.platform === 'win32' ? 'where minify' : 'command -v minify', { stdio: 'ignore' });
             minifyCmd = 'minify';
         } catch {
             minifyCmd = homeMinify;
@@ -107,5 +108,13 @@ console.log('');
 console.log(`You can inspect the minified files in: src/${TEMP_DIR}/`);
 
 // Show size
-const stdout = execSync(`du -sh ${TEMP_DIR}`, { encoding: 'utf8' });
-console.log(stdout.trim());
+try {
+    const stdout = execSync(process.platform === 'win32' ? `powershell -c "(Get-ChildItem ${TEMP_DIR} -Recurse | Measure-Object -Property Length -Sum).Sum / 1KB"` : `du -sh ${TEMP_DIR}`, { encoding: 'utf8' });
+    if (process.platform === 'win32') {
+        console.log(`${parseFloat(stdout).toFixed(1)} KB`);
+    } else {
+        console.log(stdout.trim());
+    }
+} catch (e) {
+    // Ignore size calculation errors
+}
