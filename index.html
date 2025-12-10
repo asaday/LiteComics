@@ -226,6 +226,8 @@
       border-radius: 12px;
       padding: 3rem;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      max-width: 800px;
+      margin: 0 auto;
     }
 
     .specs-title {
@@ -236,17 +238,22 @@
       text-align: center;
     }
 
-    .specs-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
+    .specs-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
 
     .spec-item {
       display: flex;
       align-items: start;
       gap: 0.75rem;
-      padding: 0.5rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spec-item:last-child {
+      border-bottom: none;
     }
 
     .spec-icon {
@@ -258,6 +265,7 @@
 
     .spec-text {
       color: var(--text-dark);
+      line-height: 1.6;
     }
 
     .footer {
@@ -334,8 +342,8 @@
         grid-template-columns: 1fr;
       }
 
-      .specs-grid {
-        grid-template-columns: 1fr;
+      .specs-section {
+        padding: 2rem 1.5rem;
       }
 
       .nav-links {
@@ -358,7 +366,7 @@
   <header class="header">
     <div class="header-content">
       <a href="#" class="logo">
-        <img src="icon_logo.png" alt="LiteComics" class="logo-icon">
+        <img src="app_icon.svg" alt="LiteComics" class="logo-icon">
         <span>LiteComics</span>
       </a>
       <nav class="nav-links">
@@ -375,7 +383,7 @@
       <p class="hero-subtitle">Read ZIP/CBZ/RAR comics comfortably.<br>A modern web application that works serverless.
       </p>
       <div class="hero-buttons">
-        <a href="viewer-demo.html" class="btn btn-primary">Try Demo</a>
+        <a href="/demo/index.html" class="btn btn-primary">Try Demo</a>
         <a href="https://github.com/asaday/LiteComics/releases" class="btn btn-secondary">Download</a>
       </div>
     </div>
@@ -399,7 +407,8 @@
       <div class="feature-card">
         <span class="feature-icon">📚</span>
         <h3 class="feature-title">Multiple Format Support</h3>
-        <p class="feature-desc">Supports CBZ, ZIP, CBR, RAR, CB7, 7Z, and EPUB formats for comprehensive archive
+        <p class="feature-desc">Supports CBZ, ZIP, CBR, RAR, CB7, 7Z, and EPUB (image only) formats for comprehensive
+          archive
           viewing.
         </p>
       </div>
@@ -415,65 +424,87 @@
       </div>
       <div class="feature-card">
         <span class="feature-icon">⚡</span>
-        <h3 class="feature-title">Smart Caching</h3>
-        <p class="feature-desc">Efficient thumbnail and file list caching for fast browsing of large collections.</p>
+        <h3 class="feature-title">Lightweight & Fast</h3>
+        <p class="feature-desc">Extremely small binary size and low memory footprint. Blazing fast performance with
+          smart caching for instant browsing.</p>
       </div>
       <div class="feature-card">
         <span class="feature-icon">⌨️</span>
         <h3 class="feature-title">Keyboard Navigation</h3>
-        <p class="feature-desc">Comprehensive keyboard shortcuts for efficient page turning and navigation.</p>
+        <p class="feature-desc">Comprehensive keyboard shortcuts for efficient page turning and navigation. Also
+          convenient for cursor-operated devices like FireTV.</p>
       </div>
       <div class="feature-card">
-        <span class="feature-icon">🎨</span>
-        <h3 class="feature-title">Customizable UI</h3>
-        <p class="feature-desc">Light/dark theme toggle and UI scaling (50-200%) for personalized reading experience.
+        <span class="feature-icon">📱</span>
+        <h3 class="feature-title">Multi-Device Support</h3>
+        <p class="feature-desc">Works on desktop, mobile (iPhone/iPad/Android), tablets, and TV devices. Access your
+          comics from any device with a web browser.
         </p>
       </div>
     </div>
 
     <h2 class="section-title" id="specs">Technical Specifications</h2>
     <div class="specs-section">
-      <div class="specs-grid">
-        <div class="spec-item">
+      <ul class="specs-list">
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Go-based high-performance server (1.23+)</span>
-        </div>
-        <div class="spec-item">
+          <span class="spec-text">Go-based high-performance server with extremely small binary size</span>
+        </li>
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
-          <span class="spec-text">Archive formats: ZIP, CBZ, RAR, CBR, 7Z, CB7, EPUB</span>
-        </div>
-        <div class="spec-item">
+          <span class="spec-text">Book archive formats: ZIP, CBZ, RAR, CBR, 7Z, CB7, EPUB (image only)</span>
+        </li>
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
           <span class="spec-text">Media playback: MP4, MKV, WebM, MP3, FLAC, etc.</span>
-        </div>
-        <div class="spec-item">
+        </li>
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
           <span class="spec-text">Thumbnail and file list caching system</span>
-        </div>
-        <div class="spec-item">
+        </li>
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
           <span class="spec-text">Web-based responsive interface</span>
-        </div>
-        <div class="spec-item">
+        </li>
+        <li class="spec-item">
+          <span class="spec-icon">✓</span>
+          <span class="spec-text">No external dependencies or database required</span>
+        </li>
+        <li class="spec-item">
+          <span class="spec-icon">✓</span>
+          <span class="spec-text">Modern browser support: Chrome, Firefox, Safari, Edge</span>
+        </li>
+        <li class="spec-item">
+          <span class="spec-icon">✓</span>
+          <span class="spec-text">Mobile device support: iPhone, iPad, Android tablets and phones</span>
+        </li>
+        <li class="spec-item">
+          <span class="spec-icon">✓</span>
+          <span class="spec-text">Low memory footprint (256MB minimum, 512MB recommended)</span>
+        </li>
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
           <span class="spec-text">Docker support for easy deployment</span>
-        </div>
-        <div class="spec-item">
+        </li>
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
           <span class="spec-text">Cross-platform: macOS, Linux, Windows</span>
-        </div>
-        <div class="spec-item">
+        </li>
+        <li class="spec-item">
           <span class="spec-icon">✓</span>
           <span class="spec-text">Desktop GUI app with system tray integration</span>
-        </div>
-      </div>
+        </li>
+        <li class="spec-item">
+          <span class="spec-icon">✓</span>
+          <span class="spec-text">Configurable via web UI or JSON configuration file</span>
+        </li>
+      </ul>
     </div>
   </section>
 
   <footer class="footer">
     <div class="footer-content">
       <div class="footer-links">
-        <a href="https://github.com/asaday/LiteComics">GitHub</a>
       </div>
       <p class="footer-note">© 2025 NagisaWorks</p>
     </div>

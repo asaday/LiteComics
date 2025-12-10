@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiteComics</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+  <!-- INLINE_CSS -->
+</head>
+
+<body class="file-list">
+  <div class="container">
+    <div id="file-list" class="file-list">
+      <p>Loading...</p>
+    </div>
+    <div id="breadcrumb" class="breadcrumb">
+      <div class="menu-container">
+        <button id="menu-button" class="menu-button" title="Menu">☰</button>
+        <div id="menu-popup" class="menu-popup">
+          <div class="menu-item" id="menu-history">
+            <div class="menu-item-label">
+              <span>🕒</span>
+              <span>History</span>
+            </div>
+          </div>
+          <div class="menu-item" id="menu-theme">
+            <div class="menu-item-label">
+              <span id="theme-icon">🌓</span>
+              <span>Theme</span>
+            </div>
+          </div>
+          <div class="menu-item">
+            <div class="menu-item-controls">
+              <button id="font-size-decrease" class="menu-btn" title="Decrease (Ctrl + -)">A-</button>
+              <button id="font-size-reset" class="menu-btn" title="Reset">A</button>
+              <button id="font-size-increase" class="menu-btn" title="Increase (Ctrl + +)">A+</button>
+            </div>
+          </div>
+          <div class="menu-item" id="menu-settings">
+            <div class="menu-item-label">
+              <span>⚙️</span>
+              <span>Settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="preview-overlay">
+    <button id="preview-close">×</button>
+    <div id="preview-container">
+      <div id="preview-content"></div>
+    </div>
+  </div>
+
+  <div id="history-overlay">
+    <div class="history-header">
+      <h2>History</h2>
+      <div class="history-header-buttons">
+        <button id="history-clear" class="history-clear-btn">Clear All</button>
+        <button id="history-close" class="history-close-btn">×</button>
+      </div>
+    </div>
+    <div id="history-list" class="history-list"></div>
+  </div>
+
+  <script src="script.js"></script>
+  <!-- INLINE_JS -->
+</body>
+
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiteComics</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+  <!-- INLINE_CSS -->
+</head>
+
+<body class="viewer viewer-body">
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+
+  <div id="viewer-container" class="viewer-container">
+    <div id="image-display" class="image-display">
+    </div>
+    <div id="page-info" class="page-info">Loading...</div>
+
+    <!-- ツールバー -->
+    <div id="toolbar" class="toolbar">
+      <div id="filename-display" class="filename-display"></div>
+      <div class="toolbar-buttons">
+        <!-- ナビゲーション -->
+        <div class="toolbar-group">
+          <button id="btn-back" class="toolbar-btn" title="Back to file list (ESC)">✕ Close</button>
+        </div>
+        <!-- ページ操作 -->
+        <div class="toolbar-group">
+          <button id="btn-next" class="toolbar-btn" title="Next page (←)">◀◀</button>
+          <button id="btn-offset-down" class="toolbar-btn" title="Adjust offset: Go forward 1 page (↓)">◀</button>
+          <button id="btn-offset-up" class="toolbar-btn" title="Adjust offset: Go back 1 page (↑)">▶</button>
+          <button id="btn-prev" class="toolbar-btn" title="Previous page (→)">▶▶</button>
+        </div>
+        <!-- ナビゲーション -->
+        <div class="toolbar-group">
+          <button id="btn-thumbnails" class="toolbar-btn" title="Page list (P)">Pages</button>
+          <button id="btn-list" class="toolbar-btn" title="File name list (F)">Files</button>
+        </div>
+        <!-- 表示設定 -->
+        <div class="toolbar-group">
+          <button id="btn-single" class="toolbar-btn" title="Toggle single/double page (S)">Single/Double</button>
+          <button id="btn-fullscreen" class="toolbar-btn" title="Fullscreen (Enter)">Fullscreen</button>
+          <button id="btn-help" class="toolbar-btn" title="Help (H)">Help</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ファイル一覧サイドバー -->
+  <div id="page-sidebar" class="page-sidebar">
+    <div class="page-sidebar-content">
+      <div class="page-sidebar-header">
+        <div class="page-sidebar-title">File List</div>
+        <button id="close-sidebar" class="close-sidebar-btn">×</button>
+      </div>
+      <div id="page-list" class="page-list"></div>
+    </div>
+  </div>
+
+  <!-- ページ一覧オーバーレイ -->
+  <div id="page-overlay" class="page-overlay" style="display: none;">
+    <div class="page-overlay-header">
+      <h2>Page List</h2>
+      <button id="close-overlay" class="close-overlay-btn">×</button>
+    </div>
+    <div id="page-grid" class="page-grid"></div>
+  </div>
+
+  <div id="help" class="help" style="display: none;">
+    <div class="help-content">
+      <div class="help-header">
+        <h3>Keyboard Shortcuts</h3>
+        <button id="close-help" class="close-help-btn">×</button>
+      </div>
+      <ul>
+        <li><strong>← / → / Space</strong>: Navigate pages</li>
+        <li><strong>↑ / ↓</strong>: Adjust offset (Go forward/back 1 page)</li>
+        <li><strong>Enter</strong>: Toggle fullscreen mode</li>
+        <li><strong>S</strong>: Toggle single/double page mode</li>
+        <li><strong>P</strong>: Show page list</li>
+        <li><strong>F</strong>: Show file name list</li>
+        <li><strong>ESC / BS</strong>: Back to file list</li>
+        <li><strong>H</strong>: Show/hide this help</li>
+      </ul>
+      <p class="help-hint">Press H or × button to close</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <!-- INLINE_JS -->
+</body>
+
+</html>
