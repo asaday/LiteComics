@@ -9,21 +9,25 @@ console.log('Building minified production assets...');
 // Check if minify tool is installed
 let minifyCmd = 'minify';
 try {
-    execSync(process.platform === 'win32' ? 'where minify' : 'command -v minify', { stdio: 'ignore' });
+    execSync(process.platform === 'win32' ? 'where minify.exe' : 'command -v minify', { stdio: 'ignore' });
+    console.log('Found minify in PATH');
 } catch {
     const homeDir = process.env.HOME || process.env.USERPROFILE;
     const homeMinify = path.join(homeDir, 'go', 'bin', process.platform === 'win32' ? 'minify.exe' : 'minify');
     if (fs.existsSync(homeMinify)) {
         minifyCmd = homeMinify;
+        console.log(`Using minify from: ${minifyCmd}`);
     } else {
         console.log('Installing minify tool (tdewolff/minify)...');
         execSync('go install github.com/tdewolff/minify/v2/cmd/minify@latest');
         // After install, try to use it from PATH first
         try {
-            execSync(process.platform === 'win32' ? 'where minify' : 'command -v minify', { stdio: 'ignore' });
+            execSync(process.platform === 'win32' ? 'where minify.exe' : 'command -v minify', { stdio: 'ignore' });
             minifyCmd = 'minify';
+            console.log('Minify installed to PATH');
         } catch {
             minifyCmd = homeMinify;
+            console.log(`Using minify from: ${minifyCmd}`);
         }
     }
 }
@@ -91,7 +95,15 @@ function processDirectory(dir) {
             // Minify HTML (including inlined CSS and JS)
             console.log('    Minifying...');
             const beforeSize = fs.statSync(filePath).size;
-            execSync(`${minifyCmd} -o "${filePath}" "${filePath}"`, { stdio: 'pipe' });
+            try {
+                const options = { stdio: 'pipe' };
+                if (process.platform === 'win32') {
+                    options.shell = 'powershell.exe';
+                }
+                execSync(`${minifyCmd} -o "${filePath}" "${filePath}"`, options);
+            } catch (error) {
+                console.log(`    Warning: Minification failed: ${error.message}`);
+            }
             const afterSize = fs.statSync(filePath).size;
             const reduction = ((1 - afterSize / beforeSize) * 100).toFixed(1);
             console.log(`    ${beforeSize} bytes → ${afterSize} bytes (${reduction}% reduction)`);
