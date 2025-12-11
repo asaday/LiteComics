@@ -1,17 +1,17 @@
 
 // demo API URLを生成
 function fixUrl(path) {
-  const demoPrefix = '/LiteComics/demo';
-
-  if (!window.location.pathname.startsWith(demoPrefix)) return path;
+  const pathParts = window.location.pathname.split('/');
+  const demoIndex = pathParts.indexOf('__demo__');
+  if (demoIndex === -1) return path;
+  const demoPrefix = pathParts.slice(0, demoIndex + 1).join('/');
 
   if (path.match(/^\/api\/book\/.*\/list$/))
-    return `${demoPrefix}/book/list.json`;
+    return `${demoPrefix}/../__data__/list.json`;
 
   const imageMatch = path.match(/^\/api\/book\/[^\/]+\/image\/(\d+)$/);
   if (imageMatch)
-    return `${demoPrefix}/book/image/${imageMatch[1]}.jpg`;
-
+    return `${demoPrefix}/../__data__/image/${imageMatch[1]}.webp`;
   return path;
 }
 
