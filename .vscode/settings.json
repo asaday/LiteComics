@@ -11,6 +11,7 @@
     "Previewable",
     "rardecode",
     "sevenzip",
+    "Spacebar",
     "systray"
   ],
   "github.copilot.chat.commitMessageGeneration.instructions": [

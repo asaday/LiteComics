@@ -23,6 +23,7 @@ let currentPage = 0; // 表示開始ページのインデックス
 let offset = 0; // 配置修正用のオフセット
 let imageCache = {}; // 画像のキャッシュ
 let forceSinglePageMode = false; // 強制1ページモード
+let readingDirection = 'rtl'; // 読み方向: 'rtl' (right-to-left) or 'ltr' (left-to-right)
 let pageInfoTimer = null; // ページ情報の自動非表示タイマー
 
 // localStorage管理設定
@@ -65,6 +66,7 @@ function cleanupOldFiles(currentFile) {
     removedFiles.forEach(file => {
       localStorage.removeItem(`viewer_page_${file}`);
       localStorage.removeItem(`viewer_offset_${file}`);
+      localStorage.removeItem(`viewer_direction_${file}`);
     });
 
     // 履歴を更新
@@ -76,7 +78,6 @@ function cleanupOldFiles(currentFile) {
 
 // ページ一覧サイドバーの表示/非表示
 let sidebarVisible = false;
-let sidebarTimer = null;
 
 function showPageSidebar() {
   const sidebar = document.getElementById('page-sidebar');
@@ -280,16 +281,30 @@ async function loadImageList() {
       throw new Error('No images found');
     }
 
-    // 保存されたページ位置を復元
+    // 保存されたページ位置を復元（検証付き）
     const savedPage = localStorage.getItem(`viewer_page_${currentFile}`);
     const savedOffset = localStorage.getItem(`viewer_offset_${currentFile}`);
+    const savedDirection = localStorage.getItem(`viewer_direction_${currentFile}`);
+
     if (savedPage !== null) {
-      currentPage = parseInt(savedPage);
-      console.log('ページ位置を復元:', currentPage);
+      const page = parseInt(savedPage);
+      if (!isNaN(page) && page >= -1 && page <= imageCount) {
+        currentPage = page;
+        console.log('ページ位置を復元:', currentPage);
+      }
     }
+
     if (savedOffset !== null) {
-      offset = parseInt(savedOffset);
-      console.log('オフセットを復元:', offset);
+      const off = parseInt(savedOffset);
+      if (!isNaN(off)) {
+        offset = Math.max(-1, Math.min(1, off));
+        console.log('オフセットを復元:', offset);
+      }
+    }
+
+    if (savedDirection !== null && (savedDirection === 'rtl' || savedDirection === 'ltr')) {
+      readingDirection = savedDirection;
+      console.log('読み方向を復元:', readingDirection);
     }
 
     // 最初のページを表示
@@ -332,6 +347,7 @@ async function loadImage(index) {
 
 // 画像の横長判定（アスペクト比 >= 1.0）
 function isWideImage(img) {
+  if (!img) return false;
   return (img.naturalWidth / img.naturalHeight) >= 1.0;
 }
 
@@ -340,10 +356,9 @@ function isPortraitViewport() {
   return window.innerHeight > window.innerWidth;
 }
 
-// オフセットを適用した表示ページを計算
+// オフセットを適用した表示ページを計算（範囲外も許容）
 function getDisplayPage(page = currentPage) {
-  const actualPage = (page + offset) % imageCount;
-  return actualPage < 0 ? imageCount + actualPage : actualPage;
+  return page + offset;
 }
 
 // 現在の表示モードを判定（1ページか見開きか）
@@ -361,9 +376,10 @@ async function displayCurrentPages(isInitialLoad = false) {
   const displayPage = getDisplayPage();
   console.log('displayPage:', displayPage);
 
-  // ページ位置とオフセットを保存
+  // ページ位置とオフセットと読み方向を保存
   localStorage.setItem(`viewer_page_${currentFile}`, currentPage);
   localStorage.setItem(`viewer_offset_${currentFile}`, offset);
+  localStorage.setItem(`viewer_direction_${currentFile}`, readingDirection);
 
   // 古いファイルのデータをクリーンアップ
   cleanupOldFiles(currentFile);
@@ -371,71 +387,84 @@ async function displayCurrentPages(isInitialLoad = false) {
   const forceOnePageMode = isForceOnePageMode();
 
   try {
-    // 最初の画像を読み込み
+    // 最初の画像を読み込み（範囲外はnull）
     console.log('Image loading started:', displayPage);
     const img1 = await loadImage(displayPage);
     console.log('Image loading completed:', displayPage, img1);
 
-    if (!img1) {
-      pageInfoDiv.textContent = 'Page not found';
-      return;
-    }
-
     // 横長画像の場合、またはブラウザが縦長の場合、または強制1ページモードの場合は1ページのみ表示
-    if (isWideImage(img1) || forceOnePageMode) {
+    if ((img1 && isWideImage(img1)) || forceOnePageMode) {
       const container = document.createElement('div');
       container.className = 'single-page';
 
-      const imgClone = img1.cloneNode();
-      container.appendChild(imgClone);
+      if (img1) {
+        const imgClone = img1.cloneNode();
+        container.appendChild(imgClone);
+      }
 
       displayDiv.innerHTML = '';
       displayDiv.appendChild(container);
 
-      if (isWideImage(img1)) {
-        pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount} (Wide)`;
-      } else if (forceSinglePageMode) {
-        pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount} (Single page)`;
-      } else if (isPortraitViewport()) {
-        pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount} (Portrait display)`;
+      if (!img1) {
+        pageInfoDiv.textContent = 'Blank';
       } else {
-        pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}`;
+        let suffix = '';
+        if (isWideImage(img1)) suffix = ' (Wide)';
+        else if (forceSinglePageMode) suffix = ' (Single page)';
+        else if (isPortraitViewport()) suffix = ' (Portrait display)';
+        pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}${suffix}`;
       }
     } else {
-      // 2ページ表示（右綴じ: 右ページ、左ページの順）
+      // 2ページ表示
       const container = document.createElement('div');
       container.className = 'double-page';
 
-      // 右ページ（現在のページ）
-      const rightDiv = document.createElement('div');
-      rightDiv.className = 'page page-right';
-      const imgClone1 = img1.cloneNode();
-      rightDiv.appendChild(imgClone1);
-
-      // 左ページ（次のページ）
-      const nextPage = displayPage + 1;
-      if (nextPage < imageCount) {
-        const img2 = await loadImage(nextPage);
-
-        if (img2 && !isWideImage(img2)) {
-          const leftDiv = document.createElement('div');
-          leftDiv.className = 'page page-left';
-          const imgClone2 = img2.cloneNode();
-          leftDiv.appendChild(imgClone2);
-
-          container.appendChild(leftDiv);
-          container.appendChild(rightDiv);
-
-          pageInfoDiv.textContent = `${displayPage + 1}-${nextPage + 1} / ${imageCount}`;
-        } else {
-          // 次のページが横長の場合は1ページのみ
-          container.appendChild(rightDiv);
-          pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}`;
-        }
+      // 読み方向に応じてクラスを追加
+      if (readingDirection === 'ltr') {
+        container.classList.add('ltr');
       } else {
-        // 最後のページ
-        container.appendChild(rightDiv);
-        pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}`;
+        container.classList.add('rtl');
+      }
+
+      const firstDiv = document.createElement('div');
+      firstDiv.className = 'page page-first';
+      if (img1) {
+        const imgClone1 = img1.cloneNode();
+        firstDiv.appendChild(imgClone1);
+      }
+
+      // 次のページ
+      const nextPage = displayPage + 1;
+      const img2 = await loadImage(nextPage);
+
+      if (img2 && !isWideImage(img2)) {
+        const secondDiv = document.createElement('div');
+        secondDiv.className = 'page page-second';
+        const imgClone2 = img2.cloneNode();
+        secondDiv.appendChild(imgClone2);
+
+        // RTL: 右に現在、左に次 / LTR: 左に現在、右に次
+        if (readingDirection === 'ltr') {
+          container.appendChild(firstDiv);
+          container.appendChild(secondDiv);
+        } else {
+          container.appendChild(secondDiv);
+          container.appendChild(firstDiv);
+        }
+
+        // ページ情報表示
+        const validPages = [];
+        if (img1 && displayPage >= 0 && displayPage < imageCount) validPages.push(displayPage + 1);
+        if (img2 && nextPage >= 0 && nextPage < imageCount) validPages.push(nextPage + 1);
+        pageInfoDiv.textContent = validPages.length > 0 ? `${validPages.join('-')} / ${imageCount}` : 'Blank';
+      } else {
+        // 次のページが横長または範囲外の場合は1ページのみ
+        container.appendChild(firstDiv);
+        if (img1 && displayPage >= 0 && displayPage < imageCount) {
+          pageInfoDiv.textContent = `${displayPage + 1} / ${imageCount}`;
+        } else {
+          pageInfoDiv.textContent = `Blank`;
+        }
       }
 
       displayDiv.innerHTML = '';
@@ -473,75 +502,102 @@ async function preloadAdjacentPages(currentIndex) {
   }
 }
 
-// 次のページセットへ移動
-async function nextPages() {
-  console.log('nextPages called: currentPage=', currentPage);
+// ページ移動の共通処理
+async function movePages(direction) {
   const displayPage = getDisplayPage();
-  console.log('nextPages: displayPage=', displayPage);
-
-  if (displayPage >= imageCount) {
-    console.log('Last page');
-    return;
-  }
-
   const forceOnePageMode = isForceOnePageMode();
-
-  // Load image and check
-  console.log('nextPages: Image check started');
   const img = imageCache[displayPage] || await loadImage(displayPage);
-  console.log('nextPages: Image check completed', img, 'isWide=', isWideImage(img));
 
+  let step;
   if (forceOnePageMode || (img && isWideImage(img))) {
-    currentPage += 1; // 1ページモードまたは横長は1ページ進む
+    step = 1; // 1ページモードまたは横長は1ページ移動
   } else {
-    // 次のページもチェック
-    const nextPage = displayPage + 1;
-    if (nextPage < imageCount) {
-      const img2 = imageCache[nextPage] || await loadImage(nextPage);
-      if (img2 && !isWideImage(img2)) {
-        currentPage += 2; // 2ページ進む
-      } else {
-        currentPage += 1; // 次が横長なら1ページだけ進む
-      }
-    } else {
-      currentPage += 1;
-    }
+    // 隣接ページもチェック
+    const adjacentPage = displayPage + direction;
+    const img2 = imageCache[adjacentPage] || await loadImage(adjacentPage);
+    step = (img2 && !isWideImage(img2)) ? 2 : 1;
   }
 
-  if (currentPage >= imageCount) {
-    currentPage = imageCount - 1;
+  const newPage = currentPage + (step * direction);
+
+  // 移動後に表示できる画像があれば移動
+  if (canMoveTo(newPage, offset)) {
+    currentPage = newPage;
   }
 
   await displayCurrentPages();
+}
+
+// 次のページセットへ移動
+async function nextPages() {
+  await movePages(1);
 }
 
 // 前のページセットへ移動
 async function prevPages() {
+  await movePages(-1);
+}
+
+// 移動後に表示可能な画像があるかチェック
+function canMoveTo(newPage, newOffset) {
+  const newDisplayPage = newPage + newOffset;
+  const page1InRange = newDisplayPage >= 0 && newDisplayPage < imageCount;
+  const page2InRange = (newDisplayPage + 1) >= 0 && (newDisplayPage + 1) < imageCount;
+
   const forceOnePageMode = isForceOnePageMode();
-
   if (forceOnePageMode) {
-    currentPage -= 1; // 1ページモードの場合1ページ戻る
+    return page1InRange;
   } else {
-    currentPage -= 2; // 2ページモードの場合2ページ戻る
+    return page1InRange || page2InRange;
+  }
+}
+
+// 左方向へ移動（読み方向に応じてprev/nextを振り分け）
+async function toLeft() {
+  if (readingDirection === 'ltr') {
+    await prevPages();
+  } else {
+    await nextPages();
+  }
+}
+
+// 右方向へ移動（読み方向に応じてprev/nextを振り分け）
+async function toRight() {
+  if (readingDirection === 'ltr') {
+    await nextPages();
+  } else {
+    await prevPages();
+  }
+}
+
+// 配置修正の共通処理
+function adjustOffset(direction) {
+  let newOffset = offset + direction;
+  let newPage = currentPage;
+
+  // offsetが±1を超えたらcurrentPageを調整してoffsetをリセット
+  if (newOffset > 1 || newOffset < -1) {
+    newPage = currentPage + newOffset;
+    newOffset = 0;
   }
 
-  if (currentPage < 0) {
-    currentPage = 0;
+  // 移動後に表示できる画像があれば移動
+  if (canMoveTo(newPage, newOffset)) {
+    currentPage = newPage;
+    offset = newOffset;
   }
 
-  await displayCurrentPages();
+  displayCurrentPages();
 }
 
 // 配置修正: 1ページ進む
 function adjustOffsetForward() {
-  offset += 1;
-  displayCurrentPages();
+  adjustOffset(1);
 }
 
 // 配置修正: 1ページ戻る
 function adjustOffsetBackward() {
-  offset -= 1;
-  displayCurrentPages();
+  adjustOffset(-1);
 }
 
 // 全画面モードの切り替え
@@ -574,6 +630,28 @@ function closeHelp() {
   help.style.display = 'none';
 }
 
+// ボタンのテキストを現在の状態に更新
+function updateButtonStates() {
+  const directionBtn = document.getElementById('btn-direction');
+  const singleBtn = document.getElementById('btn-single');
+
+  if (directionBtn) {
+    directionBtn.textContent = readingDirection === 'rtl' ? 'RTL ←' : 'LTR →';
+  }
+
+  if (singleBtn) {
+    singleBtn.textContent = forceSinglePageMode ? 'Single' : 'Double';
+  }
+}
+
+// 読み方向の切り替え
+function toggleReadingDirection() {
+  readingDirection = readingDirection === 'rtl' ? 'ltr' : 'rtl';
+  console.log('Reading direction changed to:', readingDirection);
+  updateButtonStates();
+  displayCurrentPages();
+}
+
 // キーボードイベントハンドラ
 document.addEventListener('keydown', (e) => {
   console.log('キー押下:', e.key);
@@ -581,11 +659,11 @@ document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case 'ArrowLeft':
       e.preventDefault();
-      nextPages(); // 右綴じなので左キーで次へ
+      toLeft();
       break;
     case 'ArrowRight':
       e.preventDefault();
-      prevPages(); // 右綴じなので右キーで前へ
+      toRight();
       break;
     case ' ':
     case 'Spacebar':
@@ -641,6 +719,11 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       togglePageSidebar();
       break;
+    case 'd':
+    case 'D':
+      e.preventDefault();
+      toggleReadingDirection();
+      break;
   }
 });
 
@@ -653,6 +736,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ツールバーのボタンイベント
   setupToolbar();
+
+  // ボタンの状態を初期化
+  updateButtonStates();
 
   // サイドバーのクローズボタン
   document.getElementById('close-sidebar').addEventListener('click', hidePageSidebar);
@@ -681,8 +767,10 @@ function setupToolbar() {
   document.getElementById('btn-offset-down').addEventListener('click', adjustOffsetForward);
   document.getElementById('btn-single').addEventListener('click', () => {
     forceSinglePageMode = !forceSinglePageMode;
+    updateButtonStates();
     displayCurrentPages();
   });
+  document.getElementById('btn-direction').addEventListener('click', toggleReadingDirection);
   document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
   document.getElementById('btn-help').addEventListener('click', toggleHelp);
   document.getElementById('close-help').addEventListener('click', closeHelp);
@@ -697,12 +785,10 @@ function setupMouseNavigation() {
     const clickX = e.clientX - rect.left;
     const width = rect.width;
 
-    // 左半分クリックで次へ（右綴じなので左が次）
     if (clickX < width / 2) {
-      nextPages();
+      toLeft();
     } else {
-      // 右半分クリックで前へ
-      prevPages();
+      toRight();
     }
   });
 }
@@ -733,10 +819,11 @@ function setupTouchNavigation() {
 
     // 横方向のスワイプが縦方向より大きい場合のみページ送り
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
-      if (diffX < 0) {
-        nextPages();
+      // diffX > 0: 左スワイプ, diffX < 0: 右スワイプ
+      if (diffX > 0) {
+        toLeft();
       } else {
-        prevPages();
+        toRight();
       }
     }
   }
