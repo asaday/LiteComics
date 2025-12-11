@@ -3,6 +3,6 @@
 litecomics --version
 git pull
 make 
-sudo make install
+sudo make install-only
 sudo systemctl restart litecomics
 litecomics --version

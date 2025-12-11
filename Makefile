@@ -184,6 +184,17 @@ install: build
 	@echo ""
 	@echo "To uninstall, run: make uninstall"
 
+# Install binary only (without rebuilding, useful for update scripts)
+install-only:
+	@echo "Installing litecomics to $(BINDIR)..."
+	@if [ ! -f $(BUILD_DIR)/litecomics ]; then \
+		echo "Error: $(BUILD_DIR)/litecomics not found. Run 'make build' first."; \
+		exit 1; \
+	fi
+	@mkdir -p $(BINDIR)
+	@install -m 755 $(BUILD_DIR)/litecomics $(BINDIR)/litecomics
+	@echo "✓ Installed to $(BINDIR)/litecomics"
+
 # Uninstall binary from system (Linux/macOS)
 uninstall:
 	@echo "Uninstalling litecomics from $(BINDIR)..."
