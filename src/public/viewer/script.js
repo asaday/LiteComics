@@ -502,6 +502,20 @@ async function preloadAdjacentPages(currentIndex) {
   }
 }
 
+// 移動後に表示可能な画像があるかチェック
+function canMoveTo(newPage, newOffset) {
+  const newDisplayPage = newPage + newOffset;
+  const page1InRange = newDisplayPage >= 0 && newDisplayPage < imageCount;
+  const page2InRange = (newDisplayPage + 1) >= 0 && (newDisplayPage + 1) < imageCount;
+
+  const forceOnePageMode = isForceOnePageMode();
+  if (forceOnePageMode) {
+    return page1InRange;
+  } else {
+    return page1InRange || page2InRange;
+  }
+}
+
 // ページ移動の共通処理
 async function movePages(direction) {
   const displayPage = getDisplayPage();
@@ -536,20 +550,6 @@ async function nextPages() {
 // 前のページセットへ移動
 async function prevPages() {
   await movePages(-1);
-}
-
-// 移動後に表示可能な画像があるかチェック
-function canMoveTo(newPage, newOffset) {
-  const newDisplayPage = newPage + newOffset;
-  const page1InRange = newDisplayPage >= 0 && newDisplayPage < imageCount;
-  const page2InRange = (newDisplayPage + 1) >= 0 && (newDisplayPage + 1) < imageCount;
-
-  const forceOnePageMode = isForceOnePageMode();
-  if (forceOnePageMode) {
-    return page1InRange;
-  } else {
-    return page1InRange || page2InRange;
-  }
 }
 
 // 左方向へ移動（読み方向に応じてprev/nextを振り分け）
