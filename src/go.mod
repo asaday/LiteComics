@@ -10,6 +10,8 @@ require (
 	github.com/nwaples/rardecode/v2 v2.0.0-beta.4
 )
 
+require github.com/maruel/natural v1.2.1 // indirect
+
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect

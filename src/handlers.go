@@ -14,6 +14,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/maruel/natural"
 )
 
 func (s *Server) handleRoots(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +99,7 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 		if files[i].Type != "directory" && files[j].Type == "directory" {
 			return false
 		}
-		return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
+		return natural.Less(files[i].Name, files[j].Name)
 	})
 
 	respondJSON(w, struct {

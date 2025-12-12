@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/bodgit/sevenzip"
+	"github.com/maruel/natural"
 	"github.com/nwaples/rardecode/v2"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
@@ -42,7 +43,7 @@ func (s *Server) getImagesFromBook(bookPath string) ([]string, error) {
 
 	// Sort naturally
 	sort.Slice(images, func(i, j int) bool {
-		return strings.ToLower(images[i]) < strings.ToLower(images[j])
+		return natural.Less(images[i], images[j])
 	})
 
 	// Cache result
