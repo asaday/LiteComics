@@ -19,12 +19,14 @@ var configPath string // Global config path set by parseArgsAndLoadConfig
 
 // Config represents the application configuration
 type Config struct {
-	Port       int                                 `json:"port"`
-	Roots      []RootConfig                        `json:"roots"`
-	AutoOpen   *bool                               `json:"autoOpen,omitempty"`   // Auto-open browser on startup (GUI only)
-	DisableGUI *bool                               `json:"disableGUI,omitempty"` // Disable GUI mode (tray icon)
-	TLS        *TLSConfig                          `json:"tls,omitempty"`        // TLS/HTTPS configuration
-	Handlers   map[string]map[string]HandlerConfig `json:"handlers,omitempty"`
+	Port         int                                 `json:"port"`
+	Roots        []RootConfig                        `json:"roots"`
+	AutoOpen     *bool                               `json:"autoOpen,omitempty"`     // Auto-open browser on startup (GUI only)
+	DisableGUI   *bool                               `json:"disableGUI,omitempty"`   // Disable GUI mode (tray icon)
+	AllowRemove  *bool                               `json:"allowRemove,omitempty"`  // Allow file/folder deletion
+	AllowArchive *bool                               `json:"allowArchive,omitempty"` // Allow folder archiving
+	TLS          *TLSConfig                          `json:"tls,omitempty"`          // TLS/HTTPS configuration
+	Handlers     map[string]map[string]HandlerConfig `json:"handlers,omitempty"`
 }
 
 // TLSConfig represents TLS/HTTPS configuration

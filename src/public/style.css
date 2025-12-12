@@ -797,3 +797,91 @@ body[data-theme="light"] .history-item-time {
 body[data-theme="light"] .history-empty {
   color: #6e6e73;
 }
+
+/* コンテキストメニュー */
+.context-menu {
+  display: none;
+  position: fixed;
+  background: #2c2c2e;
+  border: 1px solid #48484a;
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  z-index: 10001;
+  overflow: hidden;
+}
+
+body[data-theme="light"] .context-menu {
+  background: #ffffff;
+  border-color: #d1d1d6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.context-menu.visible {
+  display: block;
+}
+
+.context-menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  transition: background-color 0.15s;
+  user-select: none;
+}
+
+body[data-theme="light"] .context-menu-item {
+  color: #1d1d1f;
+}
+
+.context-menu-item:hover {
+  background-color: #007aff;
+  color: #ffffff;
+}
+
+body[data-theme="light"] .context-menu-item:hover {
+  background-color: #007aff;
+  color: #ffffff;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: #48484a;
+  margin: 4px 0;
+}
+
+body[data-theme="light"] .context-menu-separator {
+  background-color: #d1d1d6;
+}
+
+.context-menu-info {
+  padding: 12px 16px;
+  color: #8e8e93;
+  font-size: 0.85rem;
+  user-select: none;
+  pointer-events: none;
+  border-bottom: 1px solid #48484a;
+}
+
+body[data-theme="light"] .context-menu-info {
+  color: #6e6e73;
+  border-bottom-color: #d1d1d6;
+}
+
+.context-menu-info-name {
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+body[data-theme="light"] .context-menu-info-name {
+  color: #1d1d1f;
+}
+
+.context-menu-info-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -308,4 +309,142 @@ func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
 			URL string `json:"url"`
 		}{URL: fullURL})
 	}
+}
+
+func (s *Server) handleRemove(w http.ResponseWriter, r *http.Request) {
+	// Check if removal is allowed
+	if s.config.AllowRemove == nil || !*s.config.AllowRemove {
+		respondError(w, "File deletion is disabled", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Path string `json:"path"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Path == "" {
+		respondError(w, "Path is required", http.StatusBadRequest)
+		return
+	}
+
+	// Resolve the path
+	resolved, err := s.resolveRequestPath(req.Path)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Check if file/directory exists
+	info, err := os.Stat(resolved.FullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			respondError(w, "File or directory not found", http.StatusNotFound)
+			return
+		}
+		respondError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Remove file or directory
+	if info.IsDir() {
+		err = os.RemoveAll(resolved.FullPath)
+	} else {
+		err = os.Remove(resolved.FullPath)
+	}
+
+	if err != nil {
+		respondError(w, fmt.Sprintf("Failed to delete: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, struct {
+		Success      bool   `json:"success"`
+		Path         string `json:"path"`
+		RootName     string `json:"rootName"`
+		RelativePath string `json:"relativePath"`
+	}{
+		Success:      true,
+		Path:         req.Path,
+		RootName:     resolved.RootName,
+		RelativePath: resolved.RelativePath,
+	})
+}
+
+func (s *Server) handleArchive(w http.ResponseWriter, r *http.Request) {
+	// Check if archiving is allowed
+	if s.config.AllowArchive == nil || !*s.config.AllowArchive {
+		respondError(w, "Folder archiving is disabled", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Path string `json:"path"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Path == "" {
+		respondError(w, "Path is required", http.StatusBadRequest)
+		return
+	}
+
+	// Resolve the path
+	resolved, err := s.resolveRequestPath(req.Path)
+	if err != nil {
+		respondError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Check if it's a directory
+	info, err := os.Stat(resolved.FullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			respondError(w, "Directory not found", http.StatusNotFound)
+			return
+		}
+		respondError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !info.IsDir() {
+		respondError(w, "Path is not a directory", http.StatusBadRequest)
+		return
+	}
+
+	// Create ZIP file in the parent directory
+	parentDir := filepath.Dir(resolved.FullPath)
+	baseName := filepath.Base(resolved.FullPath)
+	zipFileName := baseName + ".zip"
+	zipPath := filepath.Join(parentDir, zipFileName)
+
+	// Check if ZIP already exists
+	if _, err := os.Stat(zipPath); err == nil {
+		// Add timestamp to make it unique
+		zipFileName = fmt.Sprintf("%s_%d.zip", baseName, time.Now().Unix())
+		zipPath = filepath.Join(parentDir, zipFileName)
+	}
+
+	// Create the archive
+	if err := createZipArchive(resolved.FullPath, zipPath); err != nil {
+		respondError(w, fmt.Sprintf("Failed to create archive: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, struct {
+		Success     bool   `json:"success"`
+		ArchiveName string `json:"archiveName"`
+		ArchivePath string `json:"archivePath"`
+	}{
+		Success:     true,
+		ArchiveName: zipFileName,
+		ArchivePath: zipPath,
+	})
 }
