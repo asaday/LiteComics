@@ -260,16 +260,16 @@ function createContextMenu(file) {
         const apiUrl = `/api/file/${encodeURIComponent(file.path)}`;
         const pathToCopy = window.location.origin + fixUrl(apiUrl);
         await navigator.clipboard.writeText(pathToCopy);
-        console.log('Path copied:', pathToCopy);
+        console.log('URL copied:', pathToCopy);
       } catch (err) {
-        console.error('Failed to copy path:', err);
+        console.error('Failed to copy URL:', err);
       }
     });
   }
 
   // ZIP Archive (フォルダのみ)
   if (file.type === 'directory') {
-    addMenuItem('ZIP Archive', async () => {
+    addMenuItem('Create ZIP archive', async () => {
       if (!confirm(`Create ZIP archive of this folder?\n\n${file.name}\n\nThis may take some time for large folders.`)) {
         return;
       }
