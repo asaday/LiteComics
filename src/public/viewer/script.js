@@ -1,3 +1,6 @@
+// ============================================================================
+// ユーティリティ関数
+// ============================================================================
 
 // demo API URLを生成
 function fixUrl(path) {
@@ -26,7 +29,10 @@ let forceSinglePageMode = false; // 強制1ページモード
 let readingDirection = 'rtl'; // 読み方向: 'rtl' (right-to-left) or 'ltr' (left-to-right)
 let pageInfoTimer = null; // ページ情報の自動非表示タイマー
 
-// localStorage管理設定
+// ============================================================================
+// localStorage管理
+// ============================================================================
+
 const MAX_FILE_HISTORY = 512; // 保持する最大ファイル数
 const HISTORY_KEY = 'viewer_file_history'; // 履歴管理用キー
 
@@ -76,6 +82,10 @@ function cleanupOldFiles(currentFile) {
   }
 }
 
+// ============================================================================
+// UI表示/非表示
+// ============================================================================
+
 // ページ一覧サイドバーの表示/非表示
 let sidebarVisible = false;
 
@@ -102,6 +112,27 @@ function togglePageSidebar() {
   generatePageList();
 }
 
+// ============================================================================
+// ディレクトリ/ページリスト生成
+// ============================================================================
+
+// ディレクトリ構造を抽出（共通処理）
+function extractDirectories() {
+  const directories = new Map(); // ディレクトリパス -> 最初のファイルのインデックス
+
+  images.forEach((imagePath, index) => {
+    const parts = imagePath.split('/');
+    if (parts.length <= 1) return; // ディレクトリがない場合はスキップ
+
+    const dirPath = parts.slice(0, -1).join('/');
+    if (!directories.has(dirPath)) {
+      directories.set(dirPath, index);
+    }
+  });
+
+  return directories;
+}
+
 // ディレクトリリストを生成
 function generateDirectoryList() {
   const directoryList = document.getElementById('directory-list');
@@ -109,16 +140,8 @@ function generateDirectoryList() {
 
   directoryList.innerHTML = '';
 
-  // ディレクトリ構造を抽出
-  const directories = new Map(); // ディレクトリパス -> 最初のファイルのインデックス
-
-  images.forEach((imagePath, index) => {
-    const parts = imagePath.split('/');
-    if (parts.length <= 1) return; // ディレクトリがない場合はスキップ
-    const dirPath = parts.slice(0, -1).join('/');
-    if (directories.has(dirPath)) return
-    directories.set(dirPath, index);
-  });
+  const directories = extractDirectories();
+  if (directories.size === 0) return;
 
   directories.forEach((firstIndex, dirPath) => {
     const dirItem = document.createElement('div');
@@ -183,6 +206,7 @@ function showPageOverlay() {
   const overlay = document.getElementById('page-overlay');
   if (overlay) {
     overlay.style.display = 'flex';
+    generateDirectoryGrid();
     generatePageGrid();
   }
 }
@@ -192,6 +216,43 @@ function hidePageOverlay() {
   if (overlay) {
     overlay.style.display = 'none';
   }
+}
+
+// ディレクトリグリッドを生成
+function generateDirectoryGrid() {
+  const gridContainer = document.getElementById('directory-grid');
+  if (!gridContainer || imageCount === 0) return;
+
+  gridContainer.innerHTML = '';
+
+  const directories = extractDirectories();
+  if (directories.size === 0) return;
+
+  directories.forEach((firstIndex, dirPath) => {
+    const gridItem = document.createElement('div');
+    gridItem.className = 'directory-grid-item';
+
+    const thumbnail = document.createElement('img');
+    thumbnail.className = 'directory-grid-thumbnail';
+    thumbnail.src = fixUrl(`/api/book/${encodeURIComponent(currentFile)}/image/${firstIndex}`);
+    thumbnail.alt = dirPath;
+    thumbnail.loading = 'lazy';
+
+    const dirName = document.createElement('div');
+    dirName.className = 'directory-grid-name';
+    dirName.textContent = dirPath;
+
+    gridItem.appendChild(thumbnail);
+    gridItem.appendChild(dirName);
+
+    gridItem.addEventListener('click', () => {
+      currentPage = firstIndex;
+      displayCurrentPages();
+      hidePageOverlay();
+    });
+
+    gridContainer.appendChild(gridItem);
+  });
 }
 
 // ページ一覧グリッドを生成
@@ -212,6 +273,7 @@ function generatePageGrid() {
     thumbnail.className = 'page-grid-thumbnail';
     thumbnail.src = fixUrl(`/api/book/${encodeURIComponent(currentFile)}/image/${index}`);
     thumbnail.alt = `Page ${index + 1}`;
+    thumbnail.loading = 'lazy';
 
     const pageNumber = document.createElement('div');
     pageNumber.className = 'page-grid-number';
@@ -288,6 +350,10 @@ function getFileFromURL() {
   }
   return null;
 }
+
+// ============================================================================
+// 画像ロード/表示
+// ============================================================================
 
 // ファイルの画像リストを取得
 async function loadImageList() {
@@ -538,6 +604,10 @@ async function preloadAdjacentPages(currentIndex) {
   }
 }
 
+// ============================================================================
+// ページ移動
+// ============================================================================
+
 // 移動後に表示可能な画像があるかチェック
 function canMoveTo(newPage, newOffset) {
   const newDisplayPage = newPage + newOffset;
@@ -638,6 +708,10 @@ function adjustOffsetBackward() {
   adjustOffset(-1);
 }
 
+// ============================================================================
+// UI操作（フルスクリーン、ヘルプ、ボタン状態等）
+// ============================================================================
+
 // 全画面モードの切り替え
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -689,7 +763,9 @@ function toggleReadingDirection() {
   updateButtonStates();
   displayCurrentPages();
 }
-
+// ============================================================================
+// イベントハンドラー
+// ============================================================================
 // キーボードイベントハンドラ
 document.addEventListener('keydown', (e) => {
   console.log('キー押下:', e.key);
@@ -764,6 +840,10 @@ document.addEventListener('keydown', (e) => {
       break;
   }
 });
+
+// ============================================================================
+// セットアップ/初期化
+// ============================================================================
 
 // ページ読み込み時に画像リストを取得
 document.addEventListener('DOMContentLoaded', () => {
