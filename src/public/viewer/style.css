@@ -618,10 +618,7 @@ body.viewer {
 
 .page-grid {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(min(200px, calc(50% - 10px)), 1fr)
-  );
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
   padding: 40px;
 }
