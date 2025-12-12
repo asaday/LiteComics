@@ -259,10 +259,19 @@ function createContextMenu(file) {
       try {
         const apiUrl = `/api/file/${encodeURIComponent(file.path)}`;
         const pathToCopy = window.location.origin + fixUrl(apiUrl);
-        await navigator.clipboard.writeText(pathToCopy);
-        console.log('URL copied:', pathToCopy);
+
+        // Clipboard API fallback for non-HTTPS environments
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(pathToCopy);
+          alert('URL copied to clipboard');
+        } else {
+          // Fallback: show prompt with URL
+          prompt('Copy this URL:', pathToCopy);
+        }
       } catch (err) {
         console.error('Failed to copy URL:', err);
+        // Fallback on error
+        prompt('Copy this URL:', window.location.origin + fixUrl(`/api/file/${encodeURIComponent(file.path)}`));
       }
     });
   }
