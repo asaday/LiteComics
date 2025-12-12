@@ -419,13 +419,6 @@ async function displayCurrentPages(isInitialLoad = false) {
       const container = document.createElement('div');
       container.className = 'double-page';
 
-      // 読み方向に応じてクラスを追加
-      if (readingDirection === 'ltr') {
-        container.classList.add('ltr');
-      } else {
-        container.classList.add('rtl');
-      }
-
       const firstDiv = document.createElement('div');
       firstDiv.className = 'page page-first';
       if (img1) {
@@ -443,7 +436,7 @@ async function displayCurrentPages(isInitialLoad = false) {
         const imgClone2 = img2.cloneNode();
         secondDiv.appendChild(imgClone2);
 
-        // RTL: 右に現在、左に次 / LTR: 左に現在、右に次
+        // DOM追加順序で配置制御（RTL: 右→左、LTR: 左→右）
         if (readingDirection === 'ltr') {
           container.appendChild(firstDiv);
           container.appendChild(secondDiv);
@@ -452,10 +445,11 @@ async function displayCurrentPages(isInitialLoad = false) {
           container.appendChild(firstDiv);
         }
 
-        // ページ情報表示
+        // ページ情報表示（RTL時は表示順に合わせて降順）
         const validPages = [];
         if (img1 && displayPage >= 0 && displayPage < imageCount) validPages.push(displayPage + 1);
         if (img2 && nextPage >= 0 && nextPage < imageCount) validPages.push(nextPage + 1);
+        if (readingDirection === 'rtl') validPages.reverse();
         pageInfoDiv.textContent = validPages.length > 0 ? `${validPages.join('-')} / ${imageCount}` : 'Blank';
       } else {
         // 次のページが横長または範囲外の場合は1ページのみ
