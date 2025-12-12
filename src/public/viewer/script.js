@@ -98,7 +98,50 @@ function hidePageSidebar() {
 function togglePageSidebar() {
   // 常に表示する（閉じるのは×ボタンのみ）
   showPageSidebar();
+  generateDirectoryList();
   generatePageList();
+}
+
+// ディレクトリリストを生成
+function generateDirectoryList() {
+  const directoryList = document.getElementById('directory-list');
+  if (!directoryList || imageCount === 0) return;
+
+  directoryList.innerHTML = '';
+
+  // ディレクトリ構造を抽出
+  const directories = new Map(); // ディレクトリパス -> 最初のファイルのインデックス
+
+  images.forEach((imagePath, index) => {
+    const parts = imagePath.split('/');
+    if (parts.length <= 1) return; // ディレクトリがない場合はスキップ
+    const dirPath = parts.slice(0, -1).join('/');
+    if (directories.has(dirPath)) return
+    directories.set(dirPath, index);
+  });
+
+  directories.forEach((firstIndex, dirPath) => {
+    const dirItem = document.createElement('div');
+    dirItem.className = 'directory-item';
+
+    const dirIcon = document.createElement('span');
+    dirIcon.className = 'page-number';
+    dirIcon.textContent = '📁 ';
+
+    const dirName = document.createElement('span');
+    dirName.className = 'file-name';
+    dirName.textContent = dirPath;
+
+    dirItem.appendChild(dirIcon);
+    dirItem.appendChild(dirName);
+
+    dirItem.addEventListener('click', () => {
+      currentPage = firstIndex;
+      displayCurrentPages();
+    });
+
+    directoryList.appendChild(dirItem);
+  });
 }
 
 // ページ一覧を生成
@@ -129,7 +172,6 @@ function generatePageList() {
     pageItem.addEventListener('click', () => {
       currentPage = index;
       displayCurrentPages();
-      // サイドバーは閉じない
     });
 
     pageList.appendChild(pageItem);
@@ -538,11 +580,13 @@ async function movePages(direction) {
 
 // 次のページセットへ移動
 async function nextPages() {
+  hidePageSidebar();
   await movePages(1);
 }
 
 // 前のページセットへ移動
 async function prevPages() {
+  hidePageSidebar();
   await movePages(-1);
 }
 
