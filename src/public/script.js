@@ -559,7 +559,7 @@ function updateBreadcrumb() {
   // ホーム
   const homeLink = document.createElement('a');
   const homeImg = document.createElement('img');
-  homeImg.src = '/favicon.svg';
+  homeImg.src = 'favicon.svg';
   homeImg.alt = 'Home';
   homeImg.style.cssText = 'width:21x;height:21px;display:block';
   homeLink.appendChild(homeImg);
