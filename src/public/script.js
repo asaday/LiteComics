@@ -313,6 +313,11 @@ function hideMenu() {
 
 // ファイル一覧を取得して表示
 async function loadFileList(dirPath = null) {
+  const fileListDiv = document.getElementById('file-list');
+
+  // ローディング表示
+  fileListDiv.innerHTML = '<p>Loading...</p>';
+
   try {
     let response, data;
 
@@ -335,7 +340,6 @@ async function loadFileList(dirPath = null) {
       currentRelativePath = '';
     }
 
-    const fileListDiv = document.getElementById('file-list');
     fileListDiv.innerHTML = '';
 
     if (files.length === 0) {
