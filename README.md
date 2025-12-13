@@ -304,18 +304,7 @@ To start with HTTPS, add the following to `config.json`:
 - **Storage**: localStorage (settings), sessionStorage (navigation state)
 
 
-## API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/roots` | Get root list |
-| `GET /api/dir/:root/*` | Get directory contents |
-| `GET /api/book/:root/:path(*)/list` | Get file list in archive |
-| `GET /api/book/:root/:path(*)/image/:index` | Get image from archive |
-| `GET /api/book/:root/:path(*)/thumbnail` | Get thumbnail (LRU cache) |
-| `GET /api/media/:root/:path(*)` | Get media file (video/audio, Range support) |
-| `GET /api/media-url/:root/:path(*)` | Get media URL (device detection, external player support) |
-| `GET /api/file/:root/:path(*)` | Get any file |
 
 ## Supported Formats
 

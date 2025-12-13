@@ -47,15 +47,13 @@
 2. ZIPを解凍
 3. `litecomics.exe`をダブルクリック（システムトレイにアイコンが表示されます）
 
----
-
 ### Docker
 
-Docker環境があれば、Go環境や依存関係のインストールなしで簡単に起動できます。
+Dockerがある場合、Goや依存関係をインストールせずに簡単に始められます。
 
 #### セットアップ
 
-1. **docker-compose.yml をダウンロード:**
+1. **docker-compose.ymlをダウンロード:**
 
 ```bash
 curl -O https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.yml
@@ -64,7 +62,6 @@ curl -O https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.
 または手動でダウンロード: [docker-compose.yml](https://raw.githubusercontent.com/asaday/LiteComics/main/docker-compose.yml)
 
 2. **フォルダのパスを設定:**
-
 `docker-compose.yml` を開いて、あなたのフォルダのパスに変更します:
 
 ```yaml
