@@ -76,9 +76,65 @@ function addToHistory(file) {
   saveHistory(filteredHistory);
 }
 
+// カスタムダイアログを表示
+function showConfirmDialog(message, options = {}) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('confirm-dialog');
+    const messageDiv = dialog.querySelector('.confirm-dialog-message');
+    const okBtn = dialog.querySelector('.confirm-dialog-ok');
+    const cancelBtn = dialog.querySelector('.confirm-dialog-cancel');
+
+    messageDiv.textContent = message;
+
+    // destructiveオプションの場合はOKボタンを赤くする
+    if (options.destructive) {
+      okBtn.classList.add('destructive');
+    } else {
+      okBtn.classList.remove('destructive');
+    }
+
+    dialog.classList.add('visible');
+
+    setTimeout(() => cancelBtn.focus(), 0);
+
+    const handleOk = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleOk();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCancel();
+      }
+    };
+
+    const cleanup = () => {
+      dialog.classList.remove('visible');
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    document.addEventListener('keydown', handleKeyDown);
+  });
+}
+
 // 履歴をクリア
-function clearHistory() {
-  if (confirm('Are you sure you want to clear all history?')) {
+async function clearHistory() {
+  if (await showConfirmDialog('Are you sure you want to clear all history?')) {
     localStorage.removeItem(HISTORY_KEY);
     showHistoryOverlay();
   }
@@ -276,10 +332,43 @@ function createContextMenu(file) {
     });
   }
 
+  // Rename
+  addMenuItem('Rename', async () => {
+    const newName = prompt('Enter new name:', file.name);
+    if (!newName || newName === file.name) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/rename', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          path: file.path,
+          newName: newName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.error) {
+        alert(`Error: ${result.error}`);
+      } else if (result.success) {
+        // リネーム成功、ファイルリストをリロード
+        await loadFileList(getCurrentDirParam());
+      }
+    } catch (err) {
+      console.error('Failed to rename:', err);
+      alert(`Failed to rename: ${err.message}`);
+    }
+  });
+
   // ZIP Archive (フォルダのみ)
   if (file.type === 'directory') {
     addMenuItem('Create ZIP archive', async () => {
-      if (!confirm(`Create ZIP archive of this folder?\n\n${file.name}\n\nThis may take some time for large folders.`)) {
+      if (!await showConfirmDialog(`Create ZIP archive of this folder?\n\n${file.name}\n\nThis may take some time for large folders.`)) {
         return;
       }
 
@@ -313,7 +402,7 @@ function createContextMenu(file) {
   addSeparator();
   addMenuItem('Delete', async () => {
     const fileType = file.type === 'directory' ? 'folder' : 'file';
-    if (!confirm(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`)) {
+    if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, { destructive: true })) {
       return;
     }
 
@@ -854,6 +943,12 @@ function openSelected() {
 
 // キーボードイベントハンドラ
 document.addEventListener('keydown', async (e) => {
+  // ダイアログが開いている場合は何もしない
+  const confirmDialog = document.getElementById('confirm-dialog');
+  if (confirmDialog && confirmDialog.classList.contains('visible')) {
+    return;
+  }
+
   // オーバーレイが開いている場合の共通処理
   const checkAndCloseOverlays = () => {
     const historyOverlay = document.getElementById('history-overlay');

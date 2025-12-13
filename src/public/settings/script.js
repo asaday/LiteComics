@@ -13,6 +13,7 @@ async function loadSettings() {
 
         document.getElementById('port').value = config.port || 8539;
         document.getElementById('disableGUI').checked = config.disableGUI === true;
+        document.getElementById('allowRename').checked = config.allowRename === true;
         document.getElementById('allowRemove').checked = config.allowRemove === true;
         document.getElementById('allowArchive').checked = config.allowArchive === true;
 
@@ -113,7 +114,11 @@ async function saveSettings() {
             newConfig.disableGUI = true;
         }
 
-        // Add allowRemove and allowArchive settings
+        // Add allowRename, allowRemove and allowArchive settings
+        const allowRename = document.getElementById('allowRename').checked;
+        if (allowRename) {
+            newConfig.allowRename = true;
+        }
         const allowRemove = document.getElementById('allowRemove').checked;
         if (allowRemove) {
             newConfig.allowRemove = true;

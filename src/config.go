@@ -23,6 +23,7 @@ type Config struct {
 	Roots        []RootConfig                        `json:"roots"`
 	AutoOpen     *bool                               `json:"autoOpen,omitempty"`     // Auto-open browser on startup (GUI only)
 	DisableGUI   *bool                               `json:"disableGUI,omitempty"`   // Disable GUI mode (tray icon)
+	AllowRename  *bool                               `json:"allowRename,omitempty"`  // Allow file/folder renaming
 	AllowRemove  *bool                               `json:"allowRemove,omitempty"`  // Allow file/folder deletion
 	AllowArchive *bool                               `json:"allowArchive,omitempty"` // Allow folder archiving
 	TLS          *TLSConfig                          `json:"tls,omitempty"`          // TLS/HTTPS configuration
