@@ -6,7 +6,7 @@ function fixUrl(path) {
   if (demoIndex === -1) return path;
   const demoPrefix = pathParts.slice(0, demoIndex + 1).join('/');
 
-  if (path.startsWith('/api/roots'))
+  if (path.startsWith('/api/roots') || path.startsWith('/api/dir'))
     return `${demoPrefix}/../__data__/roots.json`;
 
   if (path.startsWith('/#'))
@@ -26,6 +26,10 @@ let files = [];
 let currentIndex = 0;
 let currentRootName = null;
 let currentRelativePath = '';
+let allowRename = false;
+let allowRemove = false;
+let allowArchive = false;
+let disableGUI = false;
 
 // 履歴管理
 const MAX_HISTORY_ITEMS = 256;
@@ -129,6 +133,61 @@ function showConfirmDialog(message, options = {}) {
     okBtn.addEventListener('click', handleOk);
     cancelBtn.addEventListener('click', handleCancel);
     document.addEventListener('keydown', handleKeyDown);
+  });
+}
+
+// カスタムプロンプトダイアログを表示
+function showPromptDialog(message, defaultValue = '') {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('prompt-dialog');
+    const messageDiv = dialog.querySelector('.prompt-dialog-message');
+    const input = dialog.querySelector('.prompt-dialog-input');
+    const okBtn = dialog.querySelector('.prompt-dialog-ok');
+    const cancelBtn = dialog.querySelector('.prompt-dialog-cancel');
+
+    messageDiv.textContent = message;
+    input.value = defaultValue;
+
+    dialog.classList.add('visible');
+
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
+
+    const handleOk = () => {
+      const value = input.value.trim();
+      cleanup();
+      resolve(value);
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleOk();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCancel();
+      }
+    };
+
+    const cleanup = () => {
+      dialog.classList.remove('visible');
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      input.removeEventListener('keydown', handleKeyDown);
+    };
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    input.addEventListener('keydown', handleKeyDown);
   });
 }
 
@@ -322,58 +381,60 @@ function createContextMenu(file) {
           alert('URL copied to clipboard');
         } else {
           // Fallback: show prompt with URL
-          prompt('Copy this URL:', pathToCopy);
+          showPromptDialog('Copy this URL:', pathToCopy);
         }
       } catch (err) {
         console.error('Failed to copy URL:', err);
         // Fallback on error
-        prompt('Copy this URL:', window.location.origin + fixUrl(`/api/file/${encodeURIComponent(file.path)}`));
+        showPromptDialog('Copy this URL:', window.location.origin + fixUrl(`/api/file/${encodeURIComponent(file.path)}`));
       }
     });
   }
 
   // Rename
-  addMenuItem('Rename', async () => {
-    const newName = prompt('Enter new name:', file.name);
-    if (!newName || newName === file.name) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/rename', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          path: file.path,
-          newName: newName,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.error) {
-        alert(`Error: ${result.error}`);
-      } else if (result.success) {
-        // リネーム成功、ファイルリストをリロード
-        await loadFileList(getCurrentDirParam());
+  if (allowRename) {
+    addMenuItem('Rename', async () => {
+      const newName = await showPromptDialog('Enter new name:', file.name);
+      if (!newName || newName === file.name) {
+        return;
       }
-    } catch (err) {
-      console.error('Failed to rename:', err);
-      alert(`Failed to rename: ${err.message}`);
-    }
-  });
+
+      try {
+        const response = await fetch('/api/command/rename', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            path: file.path,
+            newName: newName,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          alert(`Error: ${result.error}`);
+        } else if (result.success) {
+          // リネーム成功、ファイルリストをリロード
+          await loadFileList(getCurrentDirParam());
+        }
+      } catch (err) {
+        console.error('Failed to rename:', err);
+        alert(`Failed to rename: ${err.message}`);
+      }
+    });
+  }
 
   // ZIP Archive (フォルダのみ)
-  if (file.type === 'directory') {
+  if (allowArchive && file.type === 'directory') {
     addMenuItem('Create ZIP archive', async () => {
       if (!await showConfirmDialog(`Create ZIP archive of this folder?\n\n${file.name}\n\nThis may take some time for large folders.`)) {
         return;
       }
 
       try {
-        const response = await fetch('/api/archive', {
+        const response = await fetch('/api/command/archive', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -399,37 +460,38 @@ function createContextMenu(file) {
     });
   }
 
-  addSeparator();
-  addMenuItem('Delete', async () => {
-    const fileType = file.type === 'directory' ? 'folder' : 'file';
-    if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, { destructive: true })) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/remove', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          path: file.path,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.error) {
-        alert(`Error: ${result.error}`);
-      } else {
-        // 削除成功、ファイルリストをリロード
-        await loadFileList(getCurrentDirParam());
+  if (allowRemove) {
+    addMenuItem('Delete', async () => {
+      const fileType = file.type === 'directory' ? 'folder' : 'file';
+      if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, { destructive: true })) {
+        return;
       }
-    } catch (err) {
-      console.error('Failed to delete:', err);
-      alert(`Failed to delete: ${err.message}`);
-    }
-  });
+
+      try {
+        const response = await fetch('/api/command/remove', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            path: file.path,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          alert(`Error: ${result.error}`);
+        } else {
+          // 削除成功、ファイルリストをリロード
+          await loadFileList(getCurrentDirParam());
+        }
+      } catch (err) {
+        console.error('Failed to delete:', err);
+        alert(`Failed to delete: ${err.message}`);
+      }
+    });
+  }
 
   return menu;
 }
@@ -627,31 +689,35 @@ async function loadFileList(dirPath = null) {
   fileListDiv.innerHTML = '<p>Loading...</p>';
 
   try {
-    let response, data;
+    // API call: /api/dir with optional path
+    const apiUrl = `/api/dir${dirPath ? `/${encodeURIComponent(dirPath)}` : ''}`;
+    const response = await fetch(fixUrl(apiUrl));
+    const data = await response.json();
 
-    if (dirPath) {
-      response = await fetch(fixUrl(`/api/dir/${encodeURIComponent(dirPath)}`));
-      data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      files = data.files;
-      currentRootName = data.rootName;
-      currentRelativePath = data.relativePath || '';
-    } else {
-      response = await fetch(fixUrl('/api/roots'));
-      files = await response.json();
-      if (!Array.isArray(files)) {
-        throw new Error(files.error || 'Failed to load roots');
-      }
-      currentRootName = null;
-      currentRelativePath = '';
+    // Handle error response
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    // Parse response: directory listing or root listing
+    files = data.files;
+    currentRootName = data.rootName || null;
+    currentRelativePath = data.relativePath || '';
+    allowRename = data.allowRename || false;
+    allowRemove = data.allowRemove || false;
+    allowArchive = data.allowArchive || false;
+    disableGUI = data.disableGUI || false;
+
+    // Update settings menu visibility
+    const settingsMenu = document.getElementById('menu-settings');
+    if (settingsMenu) {
+      settingsMenu.style.display = disableGUI ? 'none' : '';
     }
 
     fileListDiv.innerHTML = '';
 
     if (files.length === 0) {
-      fileListDiv.innerHTML = '<p>No files found. Please check config.json.</p>';
+      fileListDiv.innerHTML = '<p>No files found.</p>';
       return;
     }
 
@@ -945,7 +1011,9 @@ function openSelected() {
 document.addEventListener('keydown', async (e) => {
   // ダイアログが開いている場合は何もしない
   const confirmDialog = document.getElementById('confirm-dialog');
-  if (confirmDialog && confirmDialog.classList.contains('visible')) {
+  const promptDialog = document.getElementById('prompt-dialog');
+  if ((confirmDialog && confirmDialog.classList.contains('visible')) ||
+    (promptDialog && promptDialog.classList.contains('visible'))) {
     return;
   }
 

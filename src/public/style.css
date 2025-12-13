@@ -836,3 +836,98 @@ body {
   outline: 2px solid var(--color-link);
   outline-offset: 2px;
 }
+/* ==========================================================================
+   Prompt Dialog
+   ========================================================================== */
+
+.prompt-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.prompt-dialog.visible {
+  display: flex;
+}
+
+.prompt-dialog-content {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 300px;
+  max-width: 500px;
+  box-shadow: var(--overlay-shadow-popup);
+}
+
+.prompt-dialog-message {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.prompt-dialog-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.prompt-dialog-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0;
+  border-color: var(--color-accent);
+}
+
+.prompt-dialog-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.prompt-dialog-cancel,
+.prompt-dialog-ok {
+  padding: 8px 20px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prompt-dialog-cancel:hover,
+.prompt-dialog-ok:hover {
+  background-color: var(--bg-active);
+  border-color: var(--button-hover-border);
+}
+
+.prompt-dialog-ok {
+  background-color: var(--color-accent);
+  color: var(--fg-on-accent);
+  border-color: var(--color-accent);
+}
+
+.prompt-dialog-ok:hover {
+  background-color: var(--color-link-hover);
+  border-color: var(--color-link-hover);
+}
+
+.prompt-dialog-ok:focus,
+.prompt-dialog-cancel:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

@@ -17,27 +17,6 @@ import (
 	"github.com/maruel/natural"
 )
 
-func (s *Server) handleRoots(w http.ResponseWriter, r *http.Request) {
-	type rootItem struct {
-		Name     string    `json:"name"`
-		Path     string    `json:"path"`
-		Type     string    `json:"type"`
-		Size     int64     `json:"size"`
-		Modified time.Time `json:"modified"`
-	}
-
-	items := make([]rootItem, 0, len(s.config.Roots))
-	for i := range s.config.Roots {
-		if info, err := os.Stat(s.config.Roots[i].Path); err == nil {
-			items = append(items, rootItem{
-				Name: s.config.Roots[i].Name, Path: s.config.Roots[i].Name, Type: "directory",
-				Size: info.Size(), Modified: info.ModTime(),
-			})
-		}
-	}
-	respondJSON(w, items)
-}
-
 func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 	type fileItem struct {
 		Name     string    `json:"name"`
@@ -48,6 +27,34 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requestPath := mux.Vars(r)["path"]
+
+	// If path is empty, return roots list
+	if requestPath == "" {
+		items := make([]fileItem, 0, len(s.config.Roots))
+		for i := range s.config.Roots {
+			if info, err := os.Stat(s.config.Roots[i].Path); err == nil {
+				items = append(items, fileItem{
+					Name: s.config.Roots[i].Name, Path: s.config.Roots[i].Name, Type: "directory",
+					Size: info.Size(), Modified: info.ModTime(),
+				})
+			}
+		}
+		respondJSON(w, struct {
+			Files        []fileItem `json:"files"`
+			AllowRename  bool       `json:"allowRename"`
+			AllowRemove  bool       `json:"allowRemove"`
+			AllowArchive bool       `json:"allowArchive"`
+			DisableGUI   bool       `json:"disableGUI"`
+		}{
+			Files:        items,
+			AllowRename:  s.config.AllowRename != nil && *s.config.AllowRename,
+			AllowRemove:  s.config.AllowRemove != nil && *s.config.AllowRemove,
+			AllowArchive: s.config.AllowArchive != nil && *s.config.AllowArchive,
+			DisableGUI:   s.config.DisableGUI != nil && *s.config.DisableGUI,
+		})
+		return
+	}
+
 	resolved, err := s.resolveRequestPath(requestPath)
 	if err != nil {
 		respondError(w, err.Error(), http.StatusNotFound)
@@ -56,7 +63,7 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 
 	info, err := os.Stat(resolved.FullPath)
 	if err != nil || !info.IsDir() {
-		respondError(w, "ディレクトリではありません", http.StatusBadRequest)
+		respondError(w, "dir is none", http.StatusBadRequest)
 		return
 	}
 
@@ -66,7 +73,7 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var files []fileItem
+	files := make([]fileItem, 0, len(entries))
 	for _, entry := range entries {
 		info, _ := entry.Info()
 		itemRelativePath := entry.Name()
@@ -106,8 +113,18 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 		RootName     string     `json:"rootName"`
 		RelativePath string     `json:"relativePath"`
 		Files        []fileItem `json:"files"`
+		AllowRename  bool       `json:"allowRename"`
+		AllowRemove  bool       `json:"allowRemove"`
+		AllowArchive bool       `json:"allowArchive"`
+		DisableGUI   bool       `json:"disableGUI"`
 	}{
-		RootName: resolved.RootName, RelativePath: resolved.RelativePath, Files: files,
+		RootName:     resolved.RootName,
+		RelativePath: resolved.RelativePath,
+		Files:        files,
+		AllowRename:  s.config.AllowRename != nil && *s.config.AllowRename,
+		AllowRemove:  s.config.AllowRemove != nil && *s.config.AllowRemove,
+		AllowArchive: s.config.AllowArchive != nil && *s.config.AllowArchive,
+		DisableGUI:   s.config.DisableGUI != nil && *s.config.DisableGUI,
 	})
 }
 
@@ -120,7 +137,7 @@ func (s *Server) handleBookList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := os.Stat(resolved.FullPath); err != nil {
-		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		respondError(w, "file not found", http.StatusNotFound)
 		return
 	}
 
@@ -162,7 +179,7 @@ func (s *Server) handleBookImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if index < 0 || index >= len(images) {
-		respondError(w, "インデックスが範囲外です", http.StatusNotFound)
+		respondError(w, "index out of range", http.StatusNotFound)
 		return
 	}
 
@@ -191,7 +208,7 @@ func (s *Server) handleThumbnail(w http.ResponseWriter, r *http.Request) {
 	// Get first image name for MIME type detection
 	images, err := s.getImagesFromBook(resolved.FullPath)
 	if err != nil || len(images) == 0 {
-		respondError(w, "画像が見つかりません", http.StatusNotFound)
+		respondError(w, "images not found", http.StatusNotFound)
 		return
 	}
 	firstImage := images[0]
@@ -231,14 +248,14 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 
 	file, err := os.Open(resolved.FullPath)
 	if err != nil {
-		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		respondError(w, "file not found", http.StatusNotFound)
 		return
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil || !stat.Mode().IsRegular() {
-		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		respondError(w, "file not found", http.StatusNotFound)
 		return
 	}
 
@@ -256,7 +273,7 @@ func (s *Server) handleMediaURL(w http.ResponseWriter, r *http.Request) {
 
 	stat, err := os.Stat(resolved.FullPath)
 	if err != nil || !stat.Mode().IsRegular() {
-		respondError(w, "ファイルが見つかりません", http.StatusNotFound)
+		respondError(w, "file not found", http.StatusNotFound)
 		return
 	}
 

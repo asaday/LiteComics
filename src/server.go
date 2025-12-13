@@ -96,16 +96,16 @@ func createHTTPServer(srv *Server) *http.Server {
 func (s *Server) setupRoutes() {
 	// API routes (must be defined before static files)
 	api := s.router.PathPrefix("/api").Subrouter()
-	api.HandleFunc("/roots", s.handleRoots).Methods("GET")
 	api.HandleFunc("/dir/{path:.*}", s.handleDir).Methods("GET")
+	api.HandleFunc("/dir", s.handleDir).Methods("GET") // For root list (empty path)
 	api.HandleFunc("/book/{path:.*}/list", s.handleBookList).Methods("GET")
 	api.HandleFunc("/book/{path:.*}/image/{index:[0-9]+}", s.handleBookImage).Methods("GET")
 	api.HandleFunc("/book/{path:.*}/thumbnail", s.handleThumbnail).Methods("GET")
 	api.HandleFunc("/media-url/{path:.*}", s.handleMediaURL).Methods("GET")
 	api.HandleFunc("/file/{path:.*}", s.handleFile).Methods("GET")
-	api.HandleFunc("/rename", s.handleRename).Methods("POST")
-	api.HandleFunc("/remove", s.handleRemove).Methods("POST")
-	api.HandleFunc("/archive", s.handleArchive).Methods("POST")
+	api.HandleFunc("/command/rename", s.handleRename).Methods("POST")
+	api.HandleFunc("/command/remove", s.handleRemove).Methods("POST")
+	api.HandleFunc("/command/archive", s.handleArchive).Methods("POST")
 
 	// GUI control APIs (disabled when disableGUI is true)
 	if s.config.DisableGUI == nil || !*s.config.DisableGUI {
