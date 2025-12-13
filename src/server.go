@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"embed"
 	"encoding/json"
 	"io/fs"
@@ -140,9 +139,20 @@ func (s *Server) setupRoutes() {
 
 // handleRestart handles POST requests for /api/restart
 func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
+	// Respond first, then restart asynchronously so the client receives the reply
 	w.Header().Set("Content-Type", "application/json")
-	restartServer()
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+
+	// Try to flush the response to the client
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+
+	// Restart server in a separate goroutine after a short delay
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		restartServer()
+	}()
 }
 
 // startServer creates and starts a new HTTP server
@@ -173,10 +183,10 @@ func shutdownServer(server *http.Server) {
 	if server == nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
-		log.Printf("Server shutdown error: %v", err)
+	// Immediate shutdown: force-close all active connections without waiting
+	// This ends quickly instead of waiting up to a timeout for in-flight requests.
+	if err := server.Close(); err != nil {
+		log.Printf("Server close error: %v", err)
 	}
 }
 

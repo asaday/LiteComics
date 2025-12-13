@@ -157,15 +157,24 @@ async function saveSettings() {
 
 
 async function saveAndRestart() {
+    // Confirm restart (use native confirm)
+    const ok = typeof window !== 'undefined' && typeof window.confirm === 'function'
+        ? window.confirm('Restart the server now?')
+        : true;
+    if (!ok) {
+        return;
+    }
+
     await saveSettings();
 
     try {
         await fetch('/api/settings/restart', { method: 'POST' });
         showMessage('Server is restarting...', 'success');
 
+        // Immediate shutdown is used on the server; try quick reload
         setTimeout(() => {
             location.reload();
-        }, 3000);
+        }, 1000);
     } catch (err) {
         showMessage('Settings saved, but restart failed. Please restart manually.', 'error');
     }
