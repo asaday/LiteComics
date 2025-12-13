@@ -937,8 +937,7 @@ function setupTouchNavigation() {
 
     // 横方向のスワイプが縦方向より大きい場合のみページ送り
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > minSwipeDistance) {
-      // diffX > 0: 左スワイプ, diffX < 0: 右スワイプ
-      if (diffX > 0) {
+      if (diffX < 0) {
         toLeft();
       } else {
         toRight();
