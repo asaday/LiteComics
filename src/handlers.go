@@ -151,13 +151,15 @@ func (s *Server) handleBookList(w http.ResponseWriter, r *http.Request) {
 	displayNames := getDisplayNames(images)
 
 	respondJSON(w, struct {
-		Filename string   `json:"filename"`
-		Images   []string `json:"images"`
-		Count    int      `json:"count"`
+		Filename   string   `json:"filename"`
+		Images     []string `json:"images"`
+		Count      int      `json:"count"`
+		DefaultLTR bool     `json:"defaultLTR"`
 	}{
-		Filename: filepath.Base(resolved.FullPath),
-		Images:   displayNames,
-		Count:    len(displayNames),
+		Filename:   filepath.Base(resolved.FullPath),
+		Images:     displayNames,
+		Count:      len(displayNames),
+		DefaultLTR: s.config.DefaultLTR != nil && *s.config.DefaultLTR,
 	})
 }
 

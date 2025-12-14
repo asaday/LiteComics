@@ -26,6 +26,7 @@ type Config struct {
 	AllowRename  *bool                               `json:"allowRename,omitempty"`  // Allow file/folder renaming
 	AllowRemove  *bool                               `json:"allowRemove,omitempty"`  // Allow file/folder deletion
 	AllowArchive *bool                               `json:"allowArchive,omitempty"` // Allow folder archiving
+	DefaultLTR   *bool                               `json:"defaultLTR,omitempty"`   // Default to left-to-right reading mode (instead of right-to-left)
 	TLS          *TLSConfig                          `json:"tls,omitempty"`          // TLS/HTTPS configuration
 	Handlers     map[string]map[string]HandlerConfig `json:"handlers,omitempty"`
 }

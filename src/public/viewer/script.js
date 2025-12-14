@@ -413,7 +413,12 @@ async function loadImageList() {
     if (savedDirection !== null && (savedDirection === 'rtl' || savedDirection === 'ltr')) {
       readingDirection = savedDirection;
       console.log('読み方向を復元:', readingDirection);
+    } else if (data.defaultLTR === true) {
+      // APIからのデフォルト値を使用（localStorageにないもの）
+      readingDirection = 'ltr';
+      console.log('APIのデフォルト(LTR)を適用:', readingDirection);
     }
+    updateButtonStates();
 
     // 最初のページを表示
     await displayCurrentPages(true); // 初回読み込みフラグ
