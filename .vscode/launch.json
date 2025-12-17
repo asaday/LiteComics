@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch LiteComics",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/src",
+      "cwd": "${workspaceFolder}",
+      "args": []
+    },
+    {
+      "name": "Launch LiteComics with config",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/src",
+      "cwd": "${workspaceFolder}",
+      "args": ["-config", "${workspaceFolder}/config.json"]
+    }
+  ]
+}

@@ -14,12 +14,20 @@
     <div class="container">
         <h1>LiteComics Settings</h1>
 
-        <div id="config-path" class="config-path-info">
-            <strong>Config File Location:</strong>
-            <span id="config-path-value">Loading...</span>
+        <div class="section">
+            <div id="config-path" class="config-path-info">
+                <strong>Config File Location:</strong>
+                <span id="config-path-value">Loading...</span>
+            </div>
+
+            <div id="message" class="message"></div>
         </div>
 
-        <div id="message" class="message"></div>
+        <div class="section">
+            <h2>Root Directories</h2>
+            <div id="roots" class="roots-list"></div>
+            <button type="button" class="btn-secondary btn-small" onclick="addRoot()">+ Add Directory</button>
+        </div>
 
         <div class="section">
             <h2>Server</h2>
@@ -28,18 +36,27 @@
 
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="disableGUI">
-                    <span>Disable GUI Settings</span>
+                    <input type="checkbox" id="defaultLTR">
+                    <span>Default Left-to-Right Reading</span>
                 </label>
-                <div class="checkbox-note">When enabled, settings page and configuration APIs will be disabled. You'll
-                    need to edit config.json manually.</div>
+                <div class="checkbox-note">When enabled, comics will default to left-to-right page order instead of
+                    right-to-left.</div>
+                <label>
+                    <input type="checkbox" id="allowRename">
+                    <span>Allow File/Folder Renaming</span>
+                </label>
+                <div class="checkbox-note">Allow users to rename files and folders via context menu.</div>
+                <label>
+                    <input type="checkbox" id="allowRemove">
+                    <span>Allow File/Folder Removal</span>
+                </label>
+                <div class="checkbox-note">Allow users to delete files and folders via context menu.</div>
+                <label>
+                    <input type="checkbox" id="allowArchive">
+                    <span>Allow Folder Archiving</span>
+                </label>
+                <div class="checkbox-note">Allow users to create ZIP archives of folders via context menu.</div>
             </div>
-        </div>
-
-        <div class="section">
-            <h2>Root Directories</h2>
-            <div id="roots" class="roots-list"></div>
-            <button type="button" class="btn-secondary btn-small" onclick="addRoot()">+ Add Directory</button>
         </div>
 
         <div class="section">
@@ -53,15 +70,28 @@
             <div class="note">Leave empty to use HTTP. When both files are specified, server will use HTTPS.</div>
         </div>
 
-        <div class="actions">
-            <button type="button" class="btn-primary" onclick="saveSettings()">Save Settings</button>
-            <button type="button" class="btn-secondary" onclick="saveAndRestart()">Save & Restart Server</button>
-            <button type="button" class="btn-secondary" onclick="location.href='/'">Back</button>
-        </div>
-    </div>
+        <div class="section">
+            <h2>GUI Settings</h2>
 
-    <script src="script.js"></script>
-    <!-- INLINE_JS -->
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="disableGUI">
+                    <span>Disable GUI Settings</span>
+                </label>
+                <div class="checkbox-note">When enabled, settings page and configuration APIs will be disabled. You'll
+
+                </div>
+            </div>
+
+            <div class="actions">
+                <button type="button" class="btn-primary" onclick="saveSettings()">Save Settings</button>
+                <button type="button" class="btn-secondary" onclick="saveAndRestart()">Save & Restart Server</button>
+                <button type="button" class="btn-secondary" onclick="location.href='/'">Back</button>
+            </div>
+        </div>
+
+        <script src="script.js"></script>
+        <!-- INLINE_JS -->
 </body>
 
 </html>

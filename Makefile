@@ -1,4 +1,5 @@
 .PHONY: build run clean dist dist-windows install uninstall install-service uninstall-service minify
+.DEFAULT_GOAL := build
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 DIST_DIR = dist
@@ -13,7 +14,7 @@ CONFIG_DIR = /etc/litecomics
 
 # Minify and inline CSS/JS for production builds
 minify:
-	cd src && ./minify.js
+	cd src && node minify.js
 
 # Build for current platform (uses minified assets from build/public)
 build: minify
@@ -176,13 +177,16 @@ run:
 	cd src && go run .
 
 # Install binary to system (Linux/macOS)
-install: build
+# Install binary only (without rebuilding, useful for update scripts)
+install:
 	@echo "Installing litecomics to $(BINDIR)..."
+	@if [ ! -f $(BUILD_DIR)/litecomics ]; then \
+		echo "Error: $(BUILD_DIR)/litecomics not found. Run 'make build' first."; \
+		exit 1; \
+	fi
 	@mkdir -p $(BINDIR)
 	@install -m 755 $(BUILD_DIR)/litecomics $(BINDIR)/litecomics
 	@echo "✓ Installed to $(BINDIR)/litecomics"
-	@echo ""
-	@echo "To uninstall, run: make uninstall"
 
 # Uninstall binary from system (Linux/macOS)
 uninstall:

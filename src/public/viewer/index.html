@@ -39,12 +39,13 @@
         </div>
         <!-- ナビゲーション -->
         <div class="toolbar-group">
-          <button id="btn-thumbnails" class="toolbar-btn" title="Page list (P)">Pages</button>
           <button id="btn-list" class="toolbar-btn" title="File name list (F)">Files</button>
+          <button id="btn-thumbnails" class="toolbar-btn" title="Page list (P)">Pages</button>
         </div>
         <!-- 表示設定 -->
         <div class="toolbar-group">
           <button id="btn-single" class="toolbar-btn" title="Toggle single/double page (S)">Single/Double</button>
+          <button id="btn-direction" class="toolbar-btn" title="Toggle reading direction (D)">RTL/LTR</button>
           <button id="btn-fullscreen" class="toolbar-btn" title="Fullscreen (Enter)">Fullscreen</button>
           <button id="btn-help" class="toolbar-btn" title="Help (H)">Help</button>
         </div>
@@ -59,7 +60,16 @@
         <div class="page-sidebar-title">File List</div>
         <button id="close-sidebar" class="close-sidebar-btn">×</button>
       </div>
-      <div id="page-list" class="page-list"></div>
+      <div class="page-sidebar-scroll">
+        <div class="list-section">
+          <div class="list-section-header">Folders</div>
+          <div id="directory-list" class="directory-list"></div>
+        </div>
+        <div class="list-section">
+          <div class="list-section-header">Files</div>
+          <div id="page-list" class="page-list"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -69,6 +79,7 @@
       <h2>Page List</h2>
       <button id="close-overlay" class="close-overlay-btn">×</button>
     </div>
+    <div id="directory-grid" class="directory-grid"></div>
     <div id="page-grid" class="page-grid"></div>
   </div>
 
@@ -83,6 +94,7 @@
         <li><strong>↑ / ↓</strong>: Adjust offset (Go forward/back 1 page)</li>
         <li><strong>Enter</strong>: Toggle fullscreen mode</li>
         <li><strong>S</strong>: Toggle single/double page mode</li>
+        <li><strong>D</strong>: Toggle reading direction (RTL/LTR)</li>
         <li><strong>P</strong>: Show page list</li>
         <li><strong>F</strong>: Show file name list</li>
         <li><strong>ESC / BS</strong>: Back to file list</li>

@@ -1,7 +1,35 @@
+
+// demo URLを生成
+function fixUrl(path) {
+  const pathParts = window.location.pathname.split('/');
+  const demoIndex = pathParts.indexOf('__demo__');
+  if (demoIndex === -1) return path;
+  const demoPrefix = pathParts.slice(0, demoIndex + 1).join('/');
+
+  if (path.startsWith('/api/roots') || path.startsWith('/api/dir'))
+    return `${demoPrefix}/../__data__/roots.json`;
+
+  if (path.startsWith('/#'))
+    return `${demoPrefix}`;
+
+  const thumbnailMatch = path.match(/^\/api\/book\/([^\/]+)\/thumbnail$/);
+  if (thumbnailMatch) return `${demoPrefix}/../__data__/thumbnail/${decodeURIComponent(thumbnailMatch[1])}.webp`;
+
+  if (path.startsWith('/viewer/')) return `${demoPrefix}${path}`;
+  if (path.startsWith('/media/')) return `${demoPrefix}${path}`;
+  if (path.startsWith('/settings/')) return `${demoPrefix}`;
+
+  return path;
+}
+
 let files = [];
 let currentIndex = 0;
 let currentRootName = null;
 let currentRelativePath = '';
+let allowRename = false;
+let allowRemove = false;
+let allowArchive = false;
+let disableGUI = false;
 
 // 履歴管理
 const MAX_HISTORY_ITEMS = 256;
@@ -52,9 +80,120 @@ function addToHistory(file) {
   saveHistory(filteredHistory);
 }
 
+// カスタムダイアログを表示
+function showConfirmDialog(message, options = {}) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('confirm-dialog');
+    const messageDiv = dialog.querySelector('.confirm-dialog-message');
+    const okBtn = dialog.querySelector('.confirm-dialog-ok');
+    const cancelBtn = dialog.querySelector('.confirm-dialog-cancel');
+
+    messageDiv.textContent = message;
+
+    // destructiveオプションの場合はOKボタンを赤くする
+    if (options.destructive) {
+      okBtn.classList.add('destructive');
+    } else {
+      okBtn.classList.remove('destructive');
+    }
+
+    dialog.classList.add('visible');
+
+    setTimeout(() => cancelBtn.focus(), 0);
+
+    const handleOk = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleOk();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCancel();
+      }
+    };
+
+    const cleanup = () => {
+      dialog.classList.remove('visible');
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    document.addEventListener('keydown', handleKeyDown);
+  });
+}
+
+// カスタムプロンプトダイアログを表示
+function showPromptDialog(message, defaultValue = '') {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('prompt-dialog');
+    const messageDiv = dialog.querySelector('.prompt-dialog-message');
+    const input = dialog.querySelector('.prompt-dialog-input');
+    const okBtn = dialog.querySelector('.prompt-dialog-ok');
+    const cancelBtn = dialog.querySelector('.prompt-dialog-cancel');
+
+    messageDiv.textContent = message;
+    input.value = defaultValue;
+
+    dialog.classList.add('visible');
+
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
+
+    const handleOk = () => {
+      const value = input.value.trim();
+      cleanup();
+      resolve(value);
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleOk();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCancel();
+      }
+    };
+
+    const cleanup = () => {
+      dialog.classList.remove('visible');
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      input.removeEventListener('keydown', handleKeyDown);
+    };
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    input.addEventListener('keydown', handleKeyDown);
+  });
+}
+
 // 履歴をクリア
-function clearHistory() {
-  if (confirm('Are you sure you want to clear all history?')) {
+async function clearHistory() {
+  if (await showConfirmDialog('Are you sure you want to clear all history?')) {
     localStorage.removeItem(HISTORY_KEY);
     showHistoryOverlay();
   }
@@ -114,9 +253,9 @@ function showHistoryOverlay() {
 
     contentDiv.addEventListener('click', () => {
       if (item.type === 'book') {
-        window.location.href = `/viewer/#${encodeURIComponent(item.path)}`;
+        window.location.href = fixUrl(`/viewer/#${encodeURIComponent(item.path)}`);
       } else if (item.type === 'video' || item.type === 'audio') {
-        window.location.href = `/media/#${encodeURIComponent(item.path)}`;
+        window.location.href = fixUrl(`/media/#${encodeURIComponent(item.path)}`);
       }
     });
 
@@ -162,6 +301,255 @@ function formatTime(timestamp) {
   return date.toLocaleDateString();
 }
 
+// コンテキストメニュー
+let contextMenuFile = null;
+
+// コンテキストメニューを生成
+function createContextMenu(file) {
+  const menu = document.createElement('div');
+  menu.id = 'context-menu';
+  menu.className = 'context-menu';
+
+  // ファイル情報セクション
+  const info = document.createElement('div');
+  info.className = 'context-menu-info';
+
+  const infoName = document.createElement('div');
+  infoName.className = 'context-menu-info-name';
+  infoName.textContent = file.name;
+  info.appendChild(infoName);
+
+  const infoDetails = document.createElement('div');
+  infoDetails.className = 'context-menu-info-details';
+
+  // フォルダとファイルで表示内容を分ける
+  if (file.type !== 'directory') {
+    const infoSize = document.createElement('div');
+    infoSize.className = 'context-menu-info-size';
+    if (file.size !== undefined && file.size !== null) {
+      infoSize.textContent = formatFileSize(file.size);
+    }
+    infoDetails.appendChild(infoSize);
+  }
+
+  if (file.modified) {
+    const infoDate = document.createElement('div');
+    infoDate.className = 'context-menu-info-date';
+    const date = new Date(file.modified);
+    infoDate.textContent = formatFileDate(date);
+    infoDetails.appendChild(infoDate);
+  }
+
+  info.appendChild(infoDetails);
+  menu.appendChild(info);
+
+  // メニュー項目を追加
+  const addMenuItem = (label, callback) => {
+    const item = document.createElement('div');
+    item.className = 'context-menu-item';
+    item.textContent = label;
+    item.addEventListener('click', () => {
+      hideContextMenu();
+      callback();
+    });
+    menu.appendChild(item);
+  };
+
+  const addSeparator = () => {
+    const sep = document.createElement('div');
+    sep.className = 'context-menu-separator';
+    menu.appendChild(sep);
+  };
+
+  // メニュー項目を追加
+  if (file.type !== 'directory') {
+    addMenuItem('Download', () => {
+      const apiUrl = `/api/file/${encodeURIComponent(file.path)}`;
+      const link = document.createElement('a');
+      link.href = fixUrl(apiUrl);
+      link.download = file.name;
+      link.click();
+    });
+    addMenuItem('Copy URL', async () => {
+      try {
+        const apiUrl = `/api/file/${encodeURIComponent(file.path)}`;
+        const pathToCopy = window.location.origin + fixUrl(apiUrl);
+
+        // Clipboard API fallback for non-HTTPS environments
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(pathToCopy);
+          alert('URL copied to clipboard');
+        } else {
+          // Fallback: show prompt with URL
+          showPromptDialog('Copy this URL:', pathToCopy);
+        }
+      } catch (err) {
+        console.error('Failed to copy URL:', err);
+        // Fallback on error
+        showPromptDialog('Copy this URL:', window.location.origin + fixUrl(`/api/file/${encodeURIComponent(file.path)}`));
+      }
+    });
+  }
+
+  // Rename
+  if (allowRename) {
+    addMenuItem('Rename', async () => {
+      const newName = await showPromptDialog('Enter new name:', file.name);
+      if (!newName || newName === file.name) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/command/rename', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            path: file.path,
+            newName: newName,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          alert(`Error: ${result.error}`);
+        } else if (result.success) {
+          // リネーム成功、ファイルリストをリロード
+          await loadFileList(getCurrentDirParam());
+        }
+      } catch (err) {
+        console.error('Failed to rename:', err);
+        alert(`Failed to rename: ${err.message}`);
+      }
+    });
+  }
+
+  // ZIP Archive (フォルダのみ)
+  if (allowArchive && file.type === 'directory') {
+    addMenuItem('Create ZIP archive', async () => {
+      if (!await showConfirmDialog(`Create ZIP archive of this folder?\n\n${file.name}\n\nThis may take some time for large folders.`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/command/archive', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            path: file.path,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          alert(`Error: ${result.error}`);
+        } else if (result.success) {
+          alert(`Archive created: ${result.archiveName}`);
+          // ファイルリストをリロード
+          await loadFileList(getCurrentDirParam());
+        }
+      } catch (err) {
+        console.error('Failed to archive:', err);
+        alert(`Failed to archive: ${err.message}`);
+      }
+    });
+  }
+
+  if (allowRemove) {
+    addMenuItem('Delete', async () => {
+      const fileType = file.type === 'directory' ? 'folder' : 'file';
+      if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, { destructive: true })) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/command/remove', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            path: file.path,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          alert(`Error: ${result.error}`);
+        } else {
+          // 削除成功、ファイルリストをリロード
+          await loadFileList(getCurrentDirParam());
+        }
+      } catch (err) {
+        console.error('Failed to delete:', err);
+        alert(`Failed to delete: ${err.message}`);
+      }
+    });
+  }
+
+  return menu;
+}
+
+function showContextMenu(x, y, file) {
+  contextMenuFile = file;
+
+  // 既存のメニューを削除
+  const oldMenu = document.getElementById('context-menu');
+  if (oldMenu) {
+    oldMenu.remove();
+  }
+
+  // 新しいメニューを生成
+  const menu = createContextMenu(file);
+  document.body.appendChild(menu);
+
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+  menu.classList.add('visible');
+
+  // 画面外に出る場合の調整
+  const rect = menu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) {
+    menu.style.left = `${window.innerWidth - rect.width - 5}px`;
+  }
+  if (rect.bottom > window.innerHeight) {
+    menu.style.top = `${window.innerHeight - rect.height - 5}px`;
+  }
+}
+
+function hideContextMenu() {
+  const menu = document.getElementById('context-menu');
+  menu.classList.remove('visible');
+  contextMenuFile = null;
+}
+
+// ファイルサイズをフォーマット
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// ファイル日付をフォーマット
+function formatFileDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+}
+
 // ファイル種類の判定
 function isImageFile(filename) {
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'];
@@ -188,7 +576,7 @@ async function showPreview(file) {
   overlay.classList.add('visible');
 
   try {
-    const filePath = `/api/file/${encodeURIComponent(file.path)}`;
+    const filePath = fixUrl(`/api/file/${encodeURIComponent(file.path)}`);
 
     if (isImageFile(file.name)) {
       const img = document.createElement('img');
@@ -287,35 +675,49 @@ function hideMenu() {
   menu.classList.remove('visible');
 }
 
+// 現在のディレクトリパラメータを取得
+function getCurrentDirParam() {
+  const hash = window.location.hash;
+  return hash ? decodeURIComponent(hash.substring(1)) : null;
+}
+
 // ファイル一覧を取得して表示
 async function loadFileList(dirPath = null) {
-  try {
-    let response, data;
+  const fileListDiv = document.getElementById('file-list');
 
-    if (dirPath) {
-      response = await fetch(`/api/dir/${encodeURIComponent(dirPath)}`);
-      data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      files = data.files;
-      currentRootName = data.rootName;
-      currentRelativePath = data.relativePath || '';
-    } else {
-      response = await fetch('/api/roots');
-      files = await response.json();
-      if (!Array.isArray(files)) {
-        throw new Error(files.error || 'Failed to load roots');
-      }
-      currentRootName = null;
-      currentRelativePath = '';
+  // ローディング表示
+  fileListDiv.innerHTML = '<p>Loading...</p>';
+
+  try {
+    // API call: /api/dir with optional path
+    const apiUrl = `/api/dir${dirPath ? `/${encodeURIComponent(dirPath)}` : ''}`;
+    const response = await fetch(fixUrl(apiUrl));
+    const data = await response.json();
+
+    // Handle error response
+    if (data.error) {
+      throw new Error(data.error);
     }
 
-    const fileListDiv = document.getElementById('file-list');
+    // Parse response: directory listing or root listing
+    files = data.files;
+    currentRootName = data.rootName || null;
+    currentRelativePath = data.relativePath || '';
+    allowRename = data.allowRename || false;
+    allowRemove = data.allowRemove || false;
+    allowArchive = data.allowArchive || false;
+    disableGUI = data.disableGUI || false;
+
+    // Update settings menu visibility
+    const settingsMenu = document.getElementById('menu-settings');
+    if (settingsMenu) {
+      settingsMenu.style.display = disableGUI ? 'none' : '';
+    }
+
     fileListDiv.innerHTML = '';
 
     if (files.length === 0) {
-      fileListDiv.innerHTML = '<p>No files found. Please check config.json.</p>';
+      fileListDiv.innerHTML = '<p>No files found.</p>';
       return;
     }
 
@@ -421,12 +823,12 @@ function createListItem(file, index) {
 
   if (file.type === 'directory') {
     const link = document.createElement('a');
-    link.href = `/#${encodeURIComponent(file.path)}`;
+    link.href = fixUrl(`/#${encodeURIComponent(file.path)}`);
     link.textContent = file.name;
     contentWrapper.appendChild(link);
   } else if (file.type === 'video' || file.type === 'audio') {
     const link = document.createElement('a');
-    link.href = `/media/#${encodeURIComponent(file.path)}`;
+    link.href = fixUrl(`/media/#${encodeURIComponent(file.path)}`);
     link.textContent = file.name;
     link.addEventListener('click', (e) => {
       // リンククリック時もsessionStorageに保存
@@ -463,6 +865,12 @@ function createListItem(file, index) {
     }
   });
 
+  // 右クリックメニュー
+  li.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, file);
+  });
+
   return li;
 }
 
@@ -473,11 +881,11 @@ function createTileItem(file, index) {
   tile.dataset.index = index;
 
   const link = document.createElement('a');
-  link.href = `/viewer/#${encodeURIComponent(file.path)}`;
+  link.href = fixUrl(`/viewer/#${encodeURIComponent(file.path)}`);
 
   const thumbnail = document.createElement('img');
   thumbnail.className = 'tile-thumbnail';
-  thumbnail.src = `/api/book/${encodeURIComponent(file.path)}/thumbnail`;
+  thumbnail.src = fixUrl(`/api/book/${encodeURIComponent(file.path)}/thumbnail`);
   thumbnail.alt = file.name;
   thumbnail.loading = 'lazy';
 
@@ -497,6 +905,12 @@ function createTileItem(file, index) {
   tile.addEventListener('click', (e) => {
     currentIndex = index;
     updateSelection(false);
+  });
+
+  // 右クリックメニュー
+  tile.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, file);
   });
 
   return tile;
@@ -531,12 +945,12 @@ function updateBreadcrumb() {
   // ホーム
   const homeLink = document.createElement('a');
   const homeImg = document.createElement('img');
-  homeImg.src = '/favicon.svg';
+  homeImg.src = 'favicon.svg';
   homeImg.alt = 'Home';
   homeImg.style.cssText = 'width:21x;height:21px;display:block';
   homeLink.appendChild(homeImg);
   homeLink.className = 'breadcrumb-item breadcrumb-home';
-  homeLink.href = '/';
+  homeLink.href = fixUrl('/');
   breadcrumbContent.appendChild(homeLink);
 
   if (currentRootName) {
@@ -595,6 +1009,14 @@ function openSelected() {
 
 // キーボードイベントハンドラ
 document.addEventListener('keydown', async (e) => {
+  // ダイアログが開いている場合は何もしない
+  const confirmDialog = document.getElementById('confirm-dialog');
+  const promptDialog = document.getElementById('prompt-dialog');
+  if ((confirmDialog && confirmDialog.classList.contains('visible')) ||
+    (promptDialog && promptDialog.classList.contains('visible'))) {
+    return;
+  }
+
   // オーバーレイが開いている場合の共通処理
   const checkAndCloseOverlays = () => {
     const historyOverlay = document.getElementById('history-overlay');
@@ -749,7 +1171,7 @@ document.getElementById('menu-history').addEventListener('click', () => {
 });
 document.getElementById('menu-settings').addEventListener('click', () => {
   hideMenu();
-  window.location.href = '/settings/';
+  window.location.href = fixUrl('/settings/');
 });
 document.getElementById('history-close').addEventListener('click', hideHistoryOverlay);
 document.getElementById('history-clear').addEventListener('click', clearHistory);
@@ -769,6 +1191,13 @@ document.getElementById('history-overlay').addEventListener('click', (e) => {
   }
 });
 
+// 右クリックメニューを閉じる（Escキー）
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    hideContextMenu();
+  }
+});
+
 // メニュー外クリックで閉じる
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('menu-popup');
@@ -776,24 +1205,13 @@ document.addEventListener('click', (e) => {
   if (!menu.contains(e.target) && e.target !== button) {
     hideMenu();
   }
+  // コンテキストメニューを閉じる
+  hideContextMenu();
 });
 
-const hash = window.location.hash;
-const dirParam = hash ? decodeURIComponent(hash.substring(1)) : null;
-
-if (dirParam) {
-  loadFileList(dirParam);
-} else {
-  loadFileList(null);
-}
+loadFileList(getCurrentDirParam());
 
 // ハッシュ変更時の処理
 window.addEventListener('hashchange', () => {
-  const hash = window.location.hash;
-  const dirParam = hash ? decodeURIComponent(hash.substring(1)) : null;
-  if (dirParam) {
-    loadFileList(dirParam);
-  } else {
-    loadFileList(null);
-  }
+  loadFileList(getCurrentDirParam());
 });

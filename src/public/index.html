@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LiteComics</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="style.css">
   <!-- INLINE_CSS -->
@@ -66,6 +66,27 @@
       </div>
     </div>
     <div id="history-list" class="history-list"></div>
+  </div>
+
+  <div id="confirm-dialog" class="confirm-dialog">
+    <div class="confirm-dialog-content">
+      <div class="confirm-dialog-message"></div>
+      <div class="confirm-dialog-buttons">
+        <button class="confirm-dialog-cancel">Cancel</button>
+        <button class="confirm-dialog-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="prompt-dialog" class="prompt-dialog">
+    <div class="prompt-dialog-content">
+      <div class="prompt-dialog-message"></div>
+      <input type="text" class="prompt-dialog-input" />
+      <div class="prompt-dialog-buttons">
+        <button class="prompt-dialog-cancel">Cancel</button>
+        <button class="prompt-dialog-ok">OK</button>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>

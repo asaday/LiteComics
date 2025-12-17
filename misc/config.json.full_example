@@ -1,0 +1,45 @@
+{
+  "port": 8539,
+  "autoOpen": true,
+  "roots": [
+    "/path/to/your/comics",
+    {
+      "path": "/path/to/your/manga",
+      "name": "Manga"
+    },
+    {
+      "path": "/path/to/your/books",
+      "name": "Books"
+    }
+  ],
+  "tls": {
+    "certFile": "/path/to/cert.crt",
+    "keyFile": "/path/to/key.key"
+  },
+  "handlers": {
+    "iOS": {
+      "vlc": {
+        "ext": ["mkv", "avi", "flac", "m2ts"],
+        "url": "vlc-x-callback://x-callback-url/stream?url={url}"
+      }
+    },
+    "Android": {
+      "vlc": {
+        "ext": ["mkv", "m2ts"],
+        "url": "vlc://{url}"
+      }
+    },
+    "macOS": {
+      "iina": {
+        "ext": ["avi", "flac", "mkv", "m2ts"],
+        "url": "iina://weblink?url={url}"
+      }
+    },
+    "Windows": {
+      "vlc": {
+        "ext": ["avi", "flac", "mkv", "m2ts"],
+        "url": "vlc://{url}"
+      }
+    }
+  }
+}

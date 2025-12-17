@@ -46,13 +46,23 @@ func onReady() {
 
 	systray.SetTooltip("LiteComics Server")
 
-	// Set icon as template icon for macOS (auto-adapts to light/dark mode)
-	// macOS systray uses 32x32 template icon
-	if len(mac_tray32) > 0 {
-		systray.SetTemplateIcon(mac_tray32, mac_tray32)
-		log.Printf("Icon set successfully (%d bytes)", len(mac_tray32))
-	} else {
-		log.Printf("Warning: Icon data is empty")
+	// Set icon based on platform
+	if runtime.GOOS == "darwin" {
+		// macOS: use template icon (auto-adapts to light/dark mode)
+		if len(mac_tray32) > 0 {
+			systray.SetTemplateIcon(mac_tray32, mac_tray32)
+			log.Printf("Icon set successfully (%d bytes)", len(mac_tray32))
+		} else {
+			log.Printf("Warning: Icon data is empty")
+		}
+	} else if runtime.GOOS == "windows" {
+		// Windows: use ICO file
+		if len(iconWindows) > 0 {
+			systray.SetIcon(iconWindows)
+			log.Printf("Icon set successfully (%d bytes)", len(iconWindows))
+		} else {
+			log.Printf("Warning: Icon data is empty")
+		}
 	}
 
 	// Menu items

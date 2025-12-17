@@ -1,127 +1,140 @@
-        /* 共通スタイル */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+/* ===========================================
+   リセット & 共通スタイル
+   =========================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            color: #e0e0e0;
-            line-height: 1.6;
-            min-height: 100vh;
-        }
+body {
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  color: #e0e0e0;
+}
 
-        /* ビューア画面の背景 */
-        body.viewer {
-            background: #000;
-        }
+body.viewer {
+  background: #000;
+}
 
-        /* メディアプレイヤー */
-        #media-container {
-            width: 100%;
-            height: 100vh;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            flex-direction: column;
-        }
+/* ===========================================
+   メディアコンテナ & プレイヤー
+   =========================================== */
+#media-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  background: #000;
+}
 
-        #media-player {
-            max-width: 100%;
-            max-height: 100%;
-        }
+#media-player {
+  max-width: 100%;
+  max-height: 100%;
+}
 
-        #media-player.video-player {
-            width: 100%;
-            height: 100%;
-        }
+#media-player.video-player {
+  width: 100%;
+  height: 100%;
+}
 
-        #media-player.audio-player {
-            width: 80%;
-            max-width: 600px;
-        }
+#media-player.audio-player {
+  width: 80%;
+  max-width: 600px;
+}
 
-        #media-toolbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            z-index: 1000;
-            transition: transform 0.3s ease;
-            transform: translateY(-100%);
-        }
+/* ===========================================
+   オーディオ情報表示
+   =========================================== */
+#audio-info {
+  display: none;
+  margin-bottom: 30px;
+  text-align: center;
+  color: white;
+}
 
-        #media-toolbar.visible {
-            transform: translateY(0);
-        }
+#audio-info.visible {
+  display: block;
+}
 
-        #media-filename {
-            flex: 1;
-            color: white;
-            font-size: 16px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+#audio-info h2 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+}
 
-        .media-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 8px 15px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: background 0.2s;
-        }
+/* ===========================================
+   メディアツールバー
+   =========================================== */
+#media-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
 
-        .media-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
+#media-toolbar.visible {
+  transform: translateY(0);
+}
 
-        #audio-info {
-            display: none;
-            color: white;
-            text-align: center;
-            margin-bottom: 30px;
-        }
+#media-filename {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 16px;
+  color: white;
+}
 
-        #audio-info h2 {
-            margin: 0 0 10px 0;
-            font-size: 24px;
-        }
+.media-btn {
+  padding: 8px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
 
-        #audio-info.visible {
-            display: block;
-        }
+.media-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 
-        #volume-indicator {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 20px 40px;
-            border-radius: 8px;
-            font-size: 24px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+/* ===========================================
+   ボリュームインジケーター
+   =========================================== */
+#volume-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 40px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  font-size: 24px;
+  color: white;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+}
 
-        #volume-indicator.visible {
-            opacity: 1;
-        }
+#volume-indicator.visible {
+  opacity: 1;
+}

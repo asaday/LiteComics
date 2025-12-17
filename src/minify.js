@@ -9,32 +9,37 @@ console.log('Building minified production assets...');
 // Check if minify tool is installed
 let minifyCmd = 'minify';
 try {
-    execSync('command -v minify', { stdio: 'ignore' });
+    execSync(process.platform === 'win32' ? 'where minify.exe' : 'command -v minify', { stdio: 'ignore' });
+    console.log('Found minify in PATH');
 } catch {
-    const homeMinify = path.join(process.env.HOME, 'go/bin/minify');
+    const homeDir = process.env.HOME || process.env.USERPROFILE;
+    const homeMinify = path.join(homeDir, 'go', 'bin', process.platform === 'win32' ? 'minify.exe' : 'minify');
     if (fs.existsSync(homeMinify)) {
         minifyCmd = homeMinify;
+        console.log(`Using minify from: ${minifyCmd}`);
     } else {
         console.log('Installing minify tool (tdewolff/minify)...');
         execSync('go install github.com/tdewolff/minify/v2/cmd/minify@latest');
         // After install, try to use it from PATH first
         try {
-            execSync('command -v minify', { stdio: 'ignore' });
+            execSync(process.platform === 'win32' ? 'where minify.exe' : 'command -v minify', { stdio: 'ignore' });
             minifyCmd = 'minify';
+            console.log('Minify installed to PATH');
         } catch {
             minifyCmd = homeMinify;
+            console.log(`Using minify from: ${minifyCmd}`);
         }
     }
 }
 
-// Create temp directory for minified files
-const TEMP_DIR = 'public-minified';
-if (fs.existsSync(TEMP_DIR)) {
-    fs.rmSync(TEMP_DIR, { recursive: true });
+// Create output directory for minified files
+const OUTPUT_DIR = 'public-minified';
+if (fs.existsSync(OUTPUT_DIR)) {
+    fs.rmSync(OUTPUT_DIR, { recursive: true });
 }
-fs.mkdirSync(TEMP_DIR, { recursive: true });// Copy structure
+fs.mkdirSync(OUTPUT_DIR, { recursive: true });// Copy structure
 console.log('Copying files...');
-fs.cpSync('public', TEMP_DIR, { recursive: true });
+fs.cpSync('public', OUTPUT_DIR, { recursive: true });
 
 // Process each HTML file
 console.log('Processing HTML files...');
@@ -90,7 +95,15 @@ function processDirectory(dir) {
             // Minify HTML (including inlined CSS and JS)
             console.log('    Minifying...');
             const beforeSize = fs.statSync(filePath).size;
-            execSync(`${minifyCmd} -o "${filePath}" "${filePath}"`, { stdio: 'pipe' });
+            try {
+                const options = { stdio: 'pipe' };
+                if (process.platform === 'win32') {
+                    options.shell = 'powershell.exe';
+                }
+                execSync(`${minifyCmd} -o "${filePath}" "${filePath}"`, options);
+            } catch (error) {
+                console.log(`    Warning: Minification failed: ${error.message}`);
+            }
             const afterSize = fs.statSync(filePath).size;
             const reduction = ((1 - afterSize / beforeSize) * 100).toFixed(1);
             console.log(`    ${beforeSize} bytes → ${afterSize} bytes (${reduction}% reduction)`);
@@ -98,14 +111,32 @@ function processDirectory(dir) {
     }
 }
 
-processDirectory(TEMP_DIR);
+processDirectory(OUTPUT_DIR);
+
+// Copy to docs/demo
+const DEMO_DIR = path.join('..', 'docs', '__demo__');
+console.log(`\nCopying to demo directory: ${DEMO_DIR}`);
+if (fs.existsSync(DEMO_DIR)) {
+    fs.rmSync(DEMO_DIR, { recursive: true });
+}
+fs.mkdirSync(DEMO_DIR, { recursive: true });
+fs.cpSync(OUTPUT_DIR, DEMO_DIR, { recursive: true });
 
 console.log('✓ Build complete');
 console.log('  Source: public/');
-console.log(`  Output: ${TEMP_DIR}/`);
+console.log(`  Output: ${OUTPUT_DIR}/`);
+console.log(`  Demo: ${DEMO_DIR}/`);
 console.log('');
-console.log(`You can inspect the minified files in: src/${TEMP_DIR}/`);
+console.log(`You can inspect the minified files in: src/${OUTPUT_DIR}/`);
 
 // Show size
-const stdout = execSync(`du -sh ${TEMP_DIR}`, { encoding: 'utf8' });
-console.log(stdout.trim());
+try {
+    const stdout = execSync(process.platform === 'win32' ? `powershell -c "(Get-ChildItem ${OUTPUT_DIR} -Recurse | Measure-Object -Property Length -Sum).Sum / 1KB"` : `du -sh ${OUTPUT_DIR}`, { encoding: 'utf8' });
+    if (process.platform === 'win32') {
+        console.log(`${parseFloat(stdout).toFixed(1)} KB`);
+    } else {
+        console.log(stdout.trim());
+    }
+} catch (e) {
+    // Ignore size calculation errors
+}
