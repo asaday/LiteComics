@@ -246,12 +246,25 @@ jobs:
           cd dist
           powershell -Command "Compress-Archive -Path litecomics-windows-amd64-$VERSION -DestinationPath litecomics-windows-amd64-$VERSION.zip"
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+
+      - name: Create Windows installer
+        shell: pwsh
+        run: |
+          $VERSION = "${{ steps.version.outputs.VERSION }}"
+          $env:VERSION = $VERSION
+          & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer.iss
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-builds
           path: |
             dist/*.zip
+            dist/*.exe
 
   release:
     name: Create Release
@@ -259,6 +272,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -267,10 +289,12 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
           files: |
             artifacts/linux-builds/*.tar.gz
             artifacts/macos-builds/*.dmg
             artifacts/windows-builds/*.zip
+            artifacts/windows-builds/*.exe
           draft: false
           prerelease: false
           generate_release_notes: true
