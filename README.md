@@ -7,6 +7,12 @@ A lightweight and feature-rich web-based comic and media viewer system. Browse C
 
 [日本語](docs/README_JP.md) | **English**
 
+## Introduction
+
+For more information and live demonstration, visit:
+- [Introduction Page](https://asaday.github.io/LiteComics/)
+- [Online Demo](https://asaday.github.io/LiteComics/__demo__/)
+
 ## Features
 
 ### Features
