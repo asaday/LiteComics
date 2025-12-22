@@ -390,6 +390,17 @@
       opacity: 1;
     }
 
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-dark);
+      padding: 0.5rem;
+      margin-left: auto;
+    }
+
     @media (max-width: 768px) {
       .hero h1 {
         font-size: 2.5rem;
@@ -415,8 +426,42 @@
         padding: 2rem 1.5rem;
       }
 
+      .menu-toggle {
+        display: block;
+      }
+
       .nav-links {
-        display: none;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        background: var(--bg-white);
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+        gap: 0;
+        padding: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        z-index: 50;
+      }
+
+      .nav-links.active {
+        max-height: calc(100vh - 70px);
+      }
+
+      .nav-links a {
+        display: block;
+        padding: 1rem 2rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .nav-links a:last-child {
+        border-bottom: none;
+      }
+
+      .header-content {
+        position: relative;
       }
 
       .hero-buttons {
@@ -438,7 +483,8 @@
         <img src="app_icon.svg" alt="LiteComics" class="logo-icon">
         <span>LiteComics</span>
       </a>
-      <nav class="nav-links">
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <nav class="nav-links" id="navLinks">
         <a href="#features">Features</a>
         <a href="#specs">Specs</a>
         <a href="https://github.com/asaday/LiteComics">GitHub</a>
@@ -586,6 +632,21 @@
   </div>
 
   <script>
+    // メニュー開閉機能
+    const menuToggle = document.getElementById('menuToggle');
+    const navLinks = document.getElementById('navLinks');
+
+    menuToggle.addEventListener('click', function () {
+      navLinks.classList.toggle('active');
+    });
+
+    // ナビゲーションリンククリック時にメニューを閉じる
+    navLinks.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', function () {
+        navLinks.classList.remove('active');
+      });
+    });
+
     function openModal(imgSrc) {
       const modal = document.getElementById('imageModal');
       const modalImg = document.getElementById('modalImage');
