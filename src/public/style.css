@@ -48,10 +48,10 @@ body[data-theme="light"] {
 
   --color-link: #007aff;
   --color-link-hover: #409cff;
-  --color-accent: #0058d0;
+  --color-accent: #0066e9;
   --color-error: #ff6b6b;
 
-  --fg-on-accent: #1d1d1f;
+  --fg-on-accent: #ffffff;
 
   /* Interactive Overlays - Light Theme */
   --overlay-light: rgba(0, 0, 0, 0.05);
