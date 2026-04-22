@@ -76,6 +76,11 @@ func toUTF8(name string) string {
 	return name
 }
 
+func isMacOSMetaFile(name string) bool {
+	base := filepath.Base(name)
+	return strings.HasPrefix(name, "__MACOSX/") || strings.HasPrefix(base, "._")
+}
+
 func getImagesFromZip(zipPath string) ([]string, error) {
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -86,6 +91,9 @@ func getImagesFromZip(zipPath string) ([]string, error) {
 	var images []string
 	for _, f := range r.File {
 		if f.FileInfo().IsDir() {
+			continue
+		}
+		if isMacOSMetaFile(f.Name) {
 			continue
 		}
 		if isImageFile(f.Name) {
@@ -112,7 +120,7 @@ func getImagesFromRar(rarPath string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		if !header.IsDir && isImageFile(header.Name) {
+		if !header.IsDir && !isMacOSMetaFile(header.Name) && isImageFile(header.Name) {
 			images = append(images, header.Name)
 		}
 	}
@@ -129,7 +137,7 @@ func getImagesFrom7z(sevenZPath string) ([]string, error) {
 
 	var images []string
 	for _, f := range r.File {
-		if !f.FileInfo().IsDir() && isImageFile(f.Name) {
+		if !f.FileInfo().IsDir() && !isMacOSMetaFile(f.Name) && isImageFile(f.Name) {
 			images = append(images, f.Name)
 		}
 	}
