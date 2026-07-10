@@ -29,7 +29,21 @@ let currentRelativePath = '';
 let allowRename = false;
 let allowRemove = false;
 let allowArchive = false;
+let allowTransfer = false;
+let allowUpload = false;
 let disableGUI = false;
+
+const TRANSFER_MIME = 'application/x-litecomics-item';
+const TRANSFER_TEXT_PREFIX = 'litecomics-transfer:';
+const transferChannel = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('litecomics-transfer')
+  : null;
+
+if (transferChannel) {
+  transferChannel.addEventListener('message', () => {
+    loadFileList(getCurrentDirParam());
+  });
+}
 
 // 履歴管理
 const MAX_HISTORY_ITEMS = 256;
@@ -89,6 +103,7 @@ function showConfirmDialog(message, options = {}) {
     const cancelBtn = dialog.querySelector('.confirm-dialog-cancel');
 
     messageDiv.textContent = message;
+    okBtn.textContent = options.confirmLabel || 'OK';
 
     // destructiveオプションの場合はOKボタンを赤くする
     if (options.destructive) {
@@ -112,11 +127,7 @@ function showConfirmDialog(message, options = {}) {
     };
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        e.stopPropagation();
-        handleOk();
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
         handleCancel();
@@ -189,6 +200,327 @@ function showPromptDialog(message, defaultValue = '') {
     cancelBtn.addEventListener('click', handleCancel);
     input.addEventListener('keydown', handleKeyDown);
   });
+}
+
+function showTransferDialog(sourceName, destinationName) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('transfer-dialog');
+    const messageDiv = dialog.querySelector('.transfer-dialog-message');
+    const copyBtn = dialog.querySelector('.transfer-dialog-copy');
+    const moveBtn = dialog.querySelector('.transfer-dialog-move');
+    const cancelBtn = dialog.querySelector('.transfer-dialog-cancel');
+
+    messageDiv.textContent = `Transfer “${sourceName}” to “${destinationName}”`;
+    dialog.classList.add('visible');
+    setTimeout(() => cancelBtn.focus(), 0);
+
+    const finish = (operation) => {
+      cleanup();
+      resolve(operation);
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        finish(null);
+      }
+    };
+    const handleCopy = () => finish('copy');
+    const handleMove = () => finish('move');
+    const handleCancel = () => finish(null);
+    const cleanup = () => {
+      dialog.classList.remove('visible');
+      copyBtn.removeEventListener('click', handleCopy);
+      moveBtn.removeEventListener('click', handleMove);
+      cancelBtn.removeEventListener('click', handleCancel);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    copyBtn.addEventListener('click', handleCopy);
+    moveBtn.addEventListener('click', handleMove);
+    cancelBtn.addEventListener('click', handleCancel);
+    document.addEventListener('keydown', handleKeyDown);
+  });
+}
+
+function showTransferProgress(operation, sourceName) {
+  const dialog = document.getElementById('transfer-dialog');
+  dialog.querySelector('.transfer-dialog-message').textContent =
+    `${operation === 'copy' ? 'Copying' : 'Moving'} “${sourceName}”…`;
+  dialog.querySelector('.transfer-dialog-buttons').classList.add('hidden');
+  dialog.classList.add('visible');
+}
+
+function hideTransferProgress() {
+  const dialog = document.getElementById('transfer-dialog');
+  dialog.classList.remove('visible');
+  dialog.querySelector('.transfer-dialog-buttons').classList.remove('hidden');
+}
+
+function showUploadDialog(itemCount, destinationName) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('upload-dialog');
+    const message = dialog.querySelector('.upload-dialog-message');
+    const uploadBtn = dialog.querySelector('.upload-dialog-upload');
+    const cancelBtn = dialog.querySelector('.upload-dialog-cancel');
+
+    message.textContent = `Upload ${itemCount} item${itemCount === 1 ? '' : 's'} to “${destinationName}”?`;
+    dialog.classList.add('visible');
+    setTimeout(() => cancelBtn.focus(), 0);
+
+    const finish = (confirmed) => {
+      cleanup();
+      resolve(confirmed);
+    };
+    const handleUpload = () => finish(true);
+    const handleCancel = () => finish(false);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        finish(false);
+      }
+    };
+    const cleanup = () => {
+      dialog.classList.remove('visible');
+      uploadBtn.removeEventListener('click', handleUpload);
+      cancelBtn.removeEventListener('click', handleCancel);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    uploadBtn.addEventListener('click', handleUpload);
+    cancelBtn.addEventListener('click', handleCancel);
+    document.addEventListener('keydown', handleKeyDown);
+  });
+}
+
+function showUploadProgress(percent) {
+  const dialog = document.getElementById('upload-dialog');
+  const progress = dialog.querySelector('.upload-progress');
+  dialog.querySelector('.upload-dialog-message').textContent = `Uploading… ${percent}%`;
+  dialog.querySelector('.upload-dialog-buttons').classList.add('hidden');
+  progress.hidden = false;
+  progress.querySelector('.upload-progress-bar').style.width = `${percent}%`;
+  dialog.classList.add('visible');
+}
+
+function hideUploadProgress() {
+  const dialog = document.getElementById('upload-dialog');
+  dialog.classList.remove('visible');
+  dialog.querySelector('.upload-dialog-buttons').classList.remove('hidden');
+  dialog.querySelector('.upload-progress').hidden = true;
+}
+
+function currentDirectoryPath() {
+  if (!currentRootName) return null;
+  return currentRelativePath ? `${currentRootName}/${currentRelativePath}` : currentRootName;
+}
+
+function setupDraggableItem(element, file) {
+  if (!allowTransfer || !currentRootName) return;
+  element.draggable = true;
+  element.addEventListener('dragstart', (e) => {
+    const payload = JSON.stringify({ path: file.path, name: file.name });
+
+    // Links and images have native URL drag data. Remove it so dropping in
+    // another LiteComics window cannot navigate to the dragged URL.
+    e.dataTransfer.clearData();
+    e.dataTransfer.setData(TRANSFER_MIME, payload);
+    e.dataTransfer.setData('text/plain', TRANSFER_TEXT_PREFIX + payload);
+    e.dataTransfer.effectAllowed = 'copyMove';
+    element.classList.add('dragging');
+  });
+  element.addEventListener('dragend', () => {
+    element.classList.remove('dragging');
+    document.querySelectorAll('.drop-target').forEach(item => item.classList.remove('drop-target'));
+  });
+}
+
+function hasLiteComicsDrag(dataTransfer) {
+  const types = Array.from(dataTransfer?.types || []);
+  return types.includes(TRANSFER_MIME) || types.includes('text/plain');
+}
+
+function hasLocalFiles(dataTransfer) {
+  return Array.from(dataTransfer?.types || []).includes('Files');
+}
+
+function setupCurrentDirectoryDropTarget(element) {
+  element.addEventListener('dragover', (e) => {
+    const localUpload = hasLocalFiles(e.dataTransfer);
+    const allowed = localUpload ? allowUpload : (allowTransfer && hasLiteComicsDrag(e.dataTransfer));
+    if (!allowed || !currentDirectoryPath()) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    element.classList.add('drop-target');
+  });
+  element.addEventListener('dragleave', (e) => {
+    if (!element.contains(e.relatedTarget)) element.classList.remove('drop-target');
+  });
+  element.addEventListener('drop', async (e) => {
+    const localUpload = hasLocalFiles(e.dataTransfer);
+    const allowed = localUpload ? allowUpload : (allowTransfer && hasLiteComicsDrag(e.dataTransfer));
+    if (!allowed || !currentDirectoryPath()) return;
+    e.preventDefault();
+    element.classList.remove('drop-target');
+    const destinationName = currentRelativePath
+      ? currentRelativePath.split('/').filter(Boolean).pop()
+      : currentRootName;
+    if (localUpload) {
+      try {
+        const upload = await collectLocalDrop(e.dataTransfer);
+        await handleLocalUpload(upload, currentDirectoryPath(), destinationName);
+      } catch (err) {
+        console.error('Failed to prepare upload:', err);
+        alert(`Failed to prepare upload: ${err.message}`);
+      }
+    } else {
+      await handleItemDrop(e.dataTransfer, currentDirectoryPath(), destinationName);
+    }
+  });
+}
+
+async function collectLocalDrop(dataTransfer) {
+  const upload = { files: [], directories: [] };
+  const items = Array.from(dataTransfer.items || []).filter(item => item.kind === 'file');
+
+  if (items.length > 0) {
+    for (const item of items) {
+      const entry = typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null;
+      if (entry) {
+        await collectFileSystemEntry(entry, upload);
+      } else {
+        const file = item.getAsFile();
+        if (file) upload.files.push({ file, path: file.name });
+      }
+    }
+  } else {
+    for (const file of Array.from(dataTransfer.files || [])) {
+      upload.files.push({ file, path: file.webkitRelativePath || file.name });
+    }
+  }
+
+  upload.directories = [...new Set(upload.directories)];
+  if (upload.files.length === 0 && upload.directories.length === 0) {
+    throw new Error('No readable files or folders were dropped');
+  }
+  return upload;
+}
+
+async function collectFileSystemEntry(entry, upload) {
+  const relativePath = entry.fullPath.replace(/^\/+/, '');
+  if (entry.isFile) {
+    const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+    upload.files.push({ file, path: relativePath || file.name });
+    return;
+  }
+  if (!entry.isDirectory) return;
+
+  upload.directories.push(relativePath);
+  const reader = entry.createReader();
+  while (true) {
+    const entries = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+    if (entries.length === 0) break;
+    for (const child of entries) {
+      await collectFileSystemEntry(child, upload);
+    }
+  }
+}
+
+async function handleLocalUpload(upload, destinationPath, destinationName) {
+  const topLevelItems = new Set([
+    ...upload.files.map(item => item.path.split('/')[0]),
+    ...upload.directories.map(directory => directory.split('/')[0]),
+  ]);
+  if (!await showUploadDialog(topLevelItems.size, destinationName)) return;
+
+  const formData = new FormData();
+  formData.append('destination', destinationPath);
+  formData.append('directories', JSON.stringify(upload.directories));
+  for (const item of upload.files) {
+    formData.append('paths', item.path);
+    formData.append('files', item.file, item.file.name);
+  }
+
+  showUploadProgress(0);
+  try {
+    const result = await uploadFormData(formData, percent => showUploadProgress(percent));
+    if (result.error) throw new Error(result.error);
+    await loadFileList(getCurrentDirParam());
+    transferChannel?.postMessage({ operation: 'upload', destination: destinationPath });
+  } catch (err) {
+    console.error('Upload failed:', err);
+    alert(`Upload failed: ${err.message}`);
+  } finally {
+    hideUploadProgress();
+  }
+}
+
+function uploadFormData(formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('POST', '/api/command/upload');
+    request.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    });
+    request.addEventListener('load', () => {
+      let result;
+      try {
+        result = JSON.parse(request.responseText);
+      } catch {
+        reject(new Error(`HTTP ${request.status}`));
+        return;
+      }
+      if (request.status < 200 || request.status >= 300) {
+        reject(new Error(result.error || `HTTP ${request.status}`));
+        return;
+      }
+      resolve(result);
+    });
+    request.addEventListener('error', () => reject(new Error('Network error')));
+    request.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+    request.send(formData);
+  });
+}
+
+async function handleItemDrop(dataTransfer, destinationPath, destinationName) {
+  let item;
+  try {
+    let payload = dataTransfer.getData(TRANSFER_MIME);
+    if (!payload) {
+      const plainText = dataTransfer.getData('text/plain');
+      if (!plainText.startsWith(TRANSFER_TEXT_PREFIX)) return;
+      payload = plainText.substring(TRANSFER_TEXT_PREFIX.length);
+    }
+    item = JSON.parse(payload);
+  } catch (err) {
+    console.error('Invalid drag data:', err);
+    return;
+  }
+  if (!item?.path || !item?.name) return;
+
+  const operation = await showTransferDialog(item.name, destinationName);
+  if (!operation) return;
+
+  showTransferProgress(operation, item.name);
+  try {
+    const response = await fetch('/api/command/transfer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: item.path, destination: destinationPath, operation }),
+    });
+    const result = await response.json();
+    if (!response.ok || result.error) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    await loadFileList(getCurrentDirParam());
+    transferChannel?.postMessage({ operation, source: item.path, destination: destinationPath });
+  } catch (err) {
+    console.error(`Failed to ${operation}:`, err);
+    alert(`Failed to ${operation}: ${err.message}`);
+  } finally {
+    hideTransferProgress();
+  }
 }
 
 // 履歴をクリア
@@ -463,7 +795,10 @@ function createContextMenu(file) {
   if (allowRemove) {
     addMenuItem('Delete', async () => {
       const fileType = file.type === 'directory' ? 'folder' : 'file';
-      if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, { destructive: true })) {
+      if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, {
+        destructive: true,
+        confirmLabel: 'Delete',
+      })) {
         return;
       }
 
@@ -525,7 +860,7 @@ function showContextMenu(x, y, file) {
 
 function hideContextMenu() {
   const menu = document.getElementById('context-menu');
-  menu.classList.remove('visible');
+  if (menu) menu.classList.remove('visible');
   contextMenuFile = null;
 }
 
@@ -706,6 +1041,8 @@ async function loadFileList(dirPath = null) {
     allowRename = data.allowRename || false;
     allowRemove = data.allowRemove || false;
     allowArchive = data.allowArchive || false;
+    allowTransfer = data.allowTransfer || false;
+    allowUpload = data.allowUpload || false;
     disableGUI = data.disableGUI || false;
 
     // Update settings menu visibility
@@ -857,6 +1194,14 @@ function createListItem(file, index) {
 
   li.appendChild(contentWrapper);
 
+  // Always disable native link/image dragging. When transfers are enabled,
+  // the draggable parent row handles the gesture instead.
+  contentWrapper.querySelectorAll('a, img').forEach(child => {
+    child.draggable = false;
+  });
+
+  setupDraggableItem(li, file);
+
   li.addEventListener('click', (e) => {
     currentIndex = index;
     updateSelection(false);
@@ -882,12 +1227,14 @@ function createTileItem(file, index) {
 
   const link = document.createElement('a');
   link.href = fixUrl(`/viewer/#${encodeURIComponent(file.path)}`);
+  link.draggable = false;
 
   const thumbnail = document.createElement('img');
   thumbnail.className = 'tile-thumbnail';
   thumbnail.src = fixUrl(`/api/book/${encodeURIComponent(file.path)}/thumbnail`);
   thumbnail.alt = file.name;
   thumbnail.loading = 'lazy';
+  thumbnail.draggable = false;
 
   const title = document.createElement('div');
   title.className = 'tile-title';
@@ -896,6 +1243,8 @@ function createTileItem(file, index) {
   link.appendChild(thumbnail);
   link.appendChild(title);
   tile.appendChild(link);
+
+  setupDraggableItem(tile, file);
 
   // クリック時に履歴に追加
   link.addEventListener('click', (e) => {
@@ -1012,8 +1361,12 @@ document.addEventListener('keydown', async (e) => {
   // ダイアログが開いている場合は何もしない
   const confirmDialog = document.getElementById('confirm-dialog');
   const promptDialog = document.getElementById('prompt-dialog');
+  const transferDialog = document.getElementById('transfer-dialog');
+  const uploadDialog = document.getElementById('upload-dialog');
   if ((confirmDialog && confirmDialog.classList.contains('visible')) ||
-    (promptDialog && promptDialog.classList.contains('visible'))) {
+    (promptDialog && promptDialog.classList.contains('visible')) ||
+    (transferDialog && transferDialog.classList.contains('visible')) ||
+    (uploadDialog && uploadDialog.classList.contains('visible'))) {
     return;
   }
 
@@ -1160,6 +1513,7 @@ document.addEventListener('keydown', async (e) => {
 // ページ読み込み時にファイル一覧を取得
 initTheme();
 initZoom();
+setupCurrentDirectoryDropTarget(document.getElementById('file-list'));
 
 document.getElementById('menu-button').addEventListener('click', (e) => {
   e.stopPropagation();

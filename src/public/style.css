@@ -290,6 +290,19 @@ body {
   color: var(--fg-on-accent);
 }
 
+[draggable="true"].dragging {
+  opacity: 0.45;
+}
+
+#file-list.drop-target {
+  outline: 3px solid var(--color-accent);
+  outline-offset: -3px;
+}
+
+#file-list.drop-target {
+  background-color: color-mix(in srgb, var(--color-accent) 10%, var(--bg-primary));
+}
+
 .file-list-view li.selected a,
 .file-list-view li.selected span {
   color: var(--fg-on-accent) !important;
@@ -835,6 +848,163 @@ body {
 .confirm-dialog-cancel:focus {
   outline: 2px solid var(--color-link);
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Transfer Dialog
+   ========================================================================== */
+
+.transfer-dialog {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.transfer-dialog.visible {
+  display: flex;
+}
+
+.transfer-dialog-content {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 300px;
+  max-width: 500px;
+  box-shadow: var(--overlay-shadow-popup);
+}
+
+.transfer-dialog-message {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.transfer-dialog-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.transfer-dialog-buttons.hidden {
+  display: none;
+}
+
+.transfer-dialog-buttons button {
+  padding: 8px 20px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.transfer-dialog-buttons button:hover {
+  background-color: var(--bg-active);
+  border-color: var(--button-hover-border);
+}
+
+.transfer-dialog-copy,
+.transfer-dialog-move {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--fg-on-accent) !important;
+}
+
+.transfer-dialog-copy:hover,
+.transfer-dialog-move:hover,
+.upload-dialog-upload:hover {
+  background-color: var(--color-link-hover) !important;
+  border-color: var(--color-link-hover) !important;
+}
+
+.transfer-dialog-buttons button:focus {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Upload Dialog
+   ========================================================================== */
+
+.upload-dialog {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.upload-dialog.visible {
+  display: flex;
+}
+
+.upload-dialog-content {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 320px;
+  max-width: 500px;
+  box-shadow: var(--overlay-shadow-popup);
+}
+
+.upload-dialog-message {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  word-break: break-word;
+}
+
+.upload-dialog-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.upload-dialog-buttons.hidden {
+  display: none;
+}
+
+.upload-dialog-buttons button {
+  padding: 8px 20px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.upload-dialog-upload {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--fg-on-accent) !important;
+}
+
+.upload-progress {
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background-color: var(--bg-active);
+}
+
+.upload-progress-bar {
+  width: 0;
+  height: 100%;
+  background-color: var(--color-accent);
+  transition: width 0.15s ease;
 }
 /* ==========================================================================
    Prompt Dialog

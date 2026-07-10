@@ -37,6 +37,7 @@ type Server struct {
 	pathToName     map[string]string
 	thumbnailCache *ThumbnailCache
 	imageListCache *ImageListCache
+	transferMutex  sync.Mutex
 }
 
 // initServer initializes a new Server with caches
@@ -105,6 +106,8 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/command/rename", s.handleRename).Methods("POST")
 	api.HandleFunc("/command/remove", s.handleRemove).Methods("POST")
 	api.HandleFunc("/command/archive", s.handleArchive).Methods("POST")
+	api.HandleFunc("/command/transfer", s.handleTransfer).Methods("POST")
+	api.HandleFunc("/command/upload", s.handleUpload).Methods("POST")
 
 	// GUI control APIs (disabled when disableGUI is true)
 	if s.config.DisableGUI == nil || !*s.config.DisableGUI {

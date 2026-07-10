@@ -3,12 +3,207 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+// handleTransfer copies or moves a file or directory into another configured directory.
+func (s *Server) handleTransfer(w http.ResponseWriter, r *http.Request) {
+	if s.config.AllowTransfer == nil || !*s.config.AllowTransfer {
+		respondError(w, "File transfer is disabled", http.StatusForbidden)
+		return
+	}
+	s.transferMutex.Lock()
+	defer s.transferMutex.Unlock()
+
+	var req struct {
+		Source      string `json:"source"`
+		Destination string `json:"destination"`
+		Operation   string `json:"operation"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.Source == "" || req.Destination == "" || (req.Operation != "copy" && req.Operation != "move") {
+		respondError(w, "Source, destination, and a valid operation are required", http.StatusBadRequest)
+		return
+	}
+
+	source, err := s.resolveRequestPath(req.Source)
+	if err != nil {
+		respondError(w, "Invalid source path", http.StatusBadRequest)
+		return
+	}
+	destination, err := s.resolveRequestPath(req.Destination)
+	if err != nil {
+		respondError(w, "Invalid destination path", http.StatusBadRequest)
+		return
+	}
+	// Configured roots are containers, not transferable items.
+	if source.RelativePath == "" {
+		respondError(w, "A root directory cannot be transferred", http.StatusBadRequest)
+		return
+	}
+
+	sourceInfo, err := os.Lstat(source.FullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			respondError(w, "Source file or directory not found", http.StatusNotFound)
+		} else {
+			respondError(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	destinationInfo, err := os.Stat(destination.FullPath)
+	if err != nil || !destinationInfo.IsDir() {
+		respondError(w, "Destination is not a directory", http.StatusBadRequest)
+		return
+	}
+	realRoot, rootErr := filepath.EvalSymlinks(destination.RootPath)
+	realDestination, destinationErr := filepath.EvalSymlinks(destination.FullPath)
+	if rootErr != nil || destinationErr != nil || !isPathSafe(realRoot, realDestination) {
+		respondError(w, "Destination resolves outside its configured root", http.StatusBadRequest)
+		return
+	}
+
+	targetPath := filepath.Join(destination.FullPath, filepath.Base(source.FullPath))
+	realSource, sourceErr := filepath.EvalSymlinks(source.FullPath)
+	realTargetPath := filepath.Join(realDestination, filepath.Base(source.FullPath))
+	if samePath(source.FullPath, targetPath) {
+		respondError(w, "Source and destination are the same", http.StatusBadRequest)
+		return
+	}
+	if sourceInfo.IsDir() && (pathContains(source.FullPath, targetPath) ||
+		(sourceErr == nil && pathContains(realSource, realTargetPath))) {
+		respondError(w, "A folder cannot be transferred into itself", http.StatusBadRequest)
+		return
+	}
+	if _, err := os.Lstat(targetPath); err == nil {
+		respondError(w, "An item with the same name already exists in the destination", http.StatusConflict)
+		return
+	} else if !os.IsNotExist(err) {
+		respondError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if req.Operation == "copy" {
+		err = copyPath(source.FullPath, targetPath)
+	} else {
+		err = os.Rename(source.FullPath, targetPath)
+		if err != nil {
+			// os.Rename cannot cross filesystem boundaries. Copy first and only
+			// remove the source after the complete copy succeeds.
+			if copyErr := copyPath(source.FullPath, targetPath); copyErr != nil {
+				err = fmt.Errorf("rename failed: %v; copy fallback failed: %w", err, copyErr)
+			} else if removeErr := removeTransferredSource(source.FullPath, sourceInfo); removeErr != nil {
+				err = fmt.Errorf("copy succeeded but the source could not be removed: %w", removeErr)
+			} else {
+				err = nil
+			}
+		}
+	}
+	if err != nil {
+		respondError(w, fmt.Sprintf("Failed to %s: %v", req.Operation, err), http.StatusInternalServerError)
+		return
+	}
+
+	targetRelative := filepath.Base(source.FullPath)
+	if destination.RelativePath != "" {
+		targetRelative = filepath.Join(destination.RelativePath, targetRelative)
+	}
+	respondJSON(w, struct {
+		Success   bool   `json:"success"`
+		Operation string `json:"operation"`
+		NewPath   string `json:"newPath"`
+	}{true, req.Operation, filepath.Join(destination.RootName, targetRelative)})
+}
+
+func samePath(a, b string) bool {
+	absA, errA := filepath.Abs(a)
+	absB, errB := filepath.Abs(b)
+	return errA == nil && errB == nil && filepath.Clean(absA) == filepath.Clean(absB)
+}
+
+func pathContains(parent, child string) bool {
+	absParent, err := filepath.Abs(parent)
+	if err != nil {
+		return false
+	}
+	absChild, err := filepath.Abs(child)
+	if err != nil {
+		return false
+	}
+	rel, err := filepath.Rel(absParent, absChild)
+	return err == nil && rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func copyPath(source, destination string) (err error) {
+	info, err := os.Lstat(source)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = os.RemoveAll(destination)
+		}
+	}()
+
+	if info.Mode()&os.ModeSymlink != 0 {
+		target, readErr := os.Readlink(source)
+		if readErr != nil {
+			return readErr
+		}
+		return os.Symlink(target, destination)
+	}
+	if info.IsDir() {
+		if err = os.Mkdir(destination, info.Mode().Perm()); err != nil {
+			return err
+		}
+		entries, readErr := os.ReadDir(source)
+		if readErr != nil {
+			return readErr
+		}
+		for _, entry := range entries {
+			if err = copyPath(filepath.Join(source, entry.Name()), filepath.Join(destination, entry.Name())); err != nil {
+				return err
+			}
+		}
+		return os.Chtimes(destination, info.ModTime(), info.ModTime())
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("unsupported file type: %s", info.Mode().String())
+	}
+
+	input, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer input.Close()
+	output, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	if _, err = io.Copy(output, input); err != nil {
+		_ = output.Close()
+		return err
+	}
+	if err = output.Close(); err != nil {
+		return err
+	}
+	return os.Chtimes(destination, info.ModTime(), info.ModTime())
+}
+
+func removeTransferredSource(path string, info os.FileInfo) error {
+	if info.IsDir() && info.Mode()&os.ModeSymlink == 0 {
+		return os.RemoveAll(path)
+	}
+	return os.Remove(path)
+}
 
 // decodePathRequest decodes a JSON request with a path field and resolves it
 func (s *Server) decodePathRequest(w http.ResponseWriter, r *http.Request) (*ResolvedPath, bool) {

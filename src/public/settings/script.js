@@ -17,6 +17,8 @@ async function loadSettings() {
         document.getElementById('allowRename').checked = config.allowRename === true;
         document.getElementById('allowRemove').checked = config.allowRemove === true;
         document.getElementById('allowArchive').checked = config.allowArchive === true;
+        document.getElementById('allowTransfer').checked = config.allowTransfer === true;
+        document.getElementById('allowUpload').checked = config.allowUpload === true;
 
         // Load TLS config
         if (config.tls) {
@@ -133,6 +135,14 @@ async function saveSettings() {
         const allowArchive = document.getElementById('allowArchive').checked;
         if (allowArchive) {
             newConfig.allowArchive = true;
+        }
+        const allowTransfer = document.getElementById('allowTransfer').checked;
+        if (allowTransfer) {
+            newConfig.allowTransfer = true;
+        }
+        const allowUpload = document.getElementById('allowUpload').checked;
+        if (allowUpload) {
+            newConfig.allowUpload = true;
         }
 
         // Add TLS settings if provided
