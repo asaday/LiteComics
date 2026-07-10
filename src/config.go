@@ -41,8 +41,9 @@ type TLSConfig struct {
 
 // RootConfig represents a root directory configuration
 type RootConfig struct {
-	Path string `json:"path"`
-	Name string `json:"name,omitempty"`
+	Path           string `json:"path"`
+	Name           string `json:"name,omitempty"`
+	UploadDisabled bool   `json:"uploadDisabled,omitempty"`
 }
 
 // HandlerConfig represents external player handler configuration

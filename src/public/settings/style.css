@@ -42,7 +42,8 @@
         }
 
         input[type="number"],
-        input[type="text"] {
+        input[type="text"],
+        input:not([type]) {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -62,7 +63,7 @@
             align-items: stretch;
         }
 
-        .root-item input[type="text"] {
+        .root-item .root-text-input {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -71,12 +72,31 @@
             min-width: 0;
         }
 
-        .root-item input[type="text"]:nth-child(1) {
+        .root-item .root-path-input {
             flex: 3;
         }
 
-        .root-item input[type="text"]:nth-child(2) {
+        .root-item .root-name-input {
             flex: 1;
+        }
+
+        .root-upload-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            padding: 0 4px;
+            font-size: 12px;
+            font-weight: normal;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .root-upload-control input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
         }
 
         button {

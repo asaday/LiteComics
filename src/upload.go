@@ -44,6 +44,10 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		respondError(w, "Invalid destination path", http.StatusBadRequest)
 		return
 	}
+	if !s.isUploadAllowed(destination.RootName) {
+		respondError(w, "File upload is disabled for this root", http.StatusForbidden)
+		return
+	}
 	destinationInfo, err := os.Stat(destination.FullPath)
 	if err != nil || !destinationInfo.IsDir() {
 		respondError(w, "Destination is not a directory", http.StatusBadRequest)
@@ -181,6 +185,20 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		Success   bool `json:"success"`
 		FileCount int  `json:"fileCount"`
 	}{true, len(fileHeaders)})
+}
+
+func (s *Server) isUploadAllowed(rootName string) bool {
+	if s.config.AllowUpload == nil || !*s.config.AllowUpload {
+		return false
+	}
+	// Match initServer's nameToPath behavior when duplicate root names exist:
+	// the last configured entry wins.
+	for i := len(s.config.Roots) - 1; i >= 0; i-- {
+		if s.config.Roots[i].Name == rootName {
+			return !s.config.Roots[i].UploadDisabled
+		}
+	}
+	return false
 }
 
 func cleanUploadPath(raw string) (string, error) {

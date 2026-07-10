@@ -31,7 +31,11 @@ async function loadSettings() {
 
         if (config.roots && config.roots.length > 0) {
             config.roots.forEach((root, i) => {
-                addRootItem(typeof root === 'string' ? root : root.path, typeof root === 'object' ? root.name : '');
+                addRootItem(
+                    typeof root === 'string' ? root : root.path,
+                    typeof root === 'object' ? root.name : '',
+                    typeof root === 'object' && root.uploadDisabled === true
+                );
             });
         } else {
             addRoot();
@@ -41,20 +45,37 @@ async function loadSettings() {
     }
 }
 
-function addRootItem(path = '', name = '') {
+function addRootItem(path = '', name = '', uploadDisabled = false) {
     const rootsDiv = document.getElementById('roots');
     const div = document.createElement('div');
     div.className = 'root-item';
 
     const pathInput = document.createElement('input');
     pathInput.type = 'text';
+    pathInput.className = 'root-text-input root-path-input';
     pathInput.placeholder = '/path/to/comics';
     pathInput.value = path;
 
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
+    nameInput.className = 'root-text-input root-name-input';
     nameInput.placeholder = 'Name (optional)';
     nameInput.value = name;
+
+    const uploadLabel = document.createElement('label');
+    uploadLabel.className = 'root-upload-control';
+    uploadLabel.title = 'When enabled, uploads to this root are rejected.';
+
+    const uploadCheckbox = document.createElement('input');
+    uploadCheckbox.type = 'checkbox';
+    uploadCheckbox.className = 'root-upload-disabled';
+    uploadCheckbox.checked = uploadDisabled;
+
+    const uploadText = document.createElement('span');
+    uploadText.textContent = 'Disable Upload';
+
+    uploadLabel.appendChild(uploadCheckbox);
+    uploadLabel.appendChild(uploadText);
 
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
@@ -64,6 +85,7 @@ function addRootItem(path = '', name = '') {
 
     div.appendChild(pathInput);
     div.appendChild(nameInput);
+    div.appendChild(uploadLabel);
     div.appendChild(removeBtn);
     rootsDiv.appendChild(div);
 }
@@ -76,13 +98,16 @@ function getRootsFromUI() {
     const items = document.querySelectorAll('.root-item');
     const roots = [];
     items.forEach(item => {
-        const inputs = item.querySelectorAll('input[type="text"]');
-        const path = inputs[0].value.trim();
-        const name = inputs[1].value.trim();
+        const path = item.querySelector('.root-path-input').value.trim();
+        const name = item.querySelector('.root-name-input').value.trim();
+        const uploadDisabled = item.querySelector('.root-upload-disabled').checked;
 
         if (path) {
-            if (name) {
-                roots.push({ path, name });
+            if (name || uploadDisabled) {
+                const root = { path };
+                if (name) root.name = name;
+                if (uploadDisabled) root.uploadDisabled = true;
+                roots.push(root);
             } else {
                 roots.push(path);
             }

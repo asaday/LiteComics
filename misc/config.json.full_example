@@ -11,7 +11,8 @@
     },
     {
       "path": "/path/to/your/books",
-      "name": "Books"
+      "name": "Books",
+      "uploadDisabled": true
     }
   ],
   "tls": {

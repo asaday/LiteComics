@@ -134,7 +134,7 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 		AllowRemove:   s.config.AllowRemove != nil && *s.config.AllowRemove,
 		AllowArchive:  s.config.AllowArchive != nil && *s.config.AllowArchive,
 		AllowTransfer: s.config.AllowTransfer != nil && *s.config.AllowTransfer,
-		AllowUpload:   s.config.AllowUpload != nil && *s.config.AllowUpload,
+		AllowUpload:   s.isUploadAllowed(resolved.RootName),
 		DisableGUI:    s.config.DisableGUI != nil && *s.config.DisableGUI,
 	})
 }

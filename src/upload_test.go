@@ -64,6 +64,25 @@ func TestHandleUploadRejectsTraversal(t *testing.T) {
 	}
 }
 
+func TestHandleUploadRejectsDisabledRoot(t *testing.T) {
+	root := t.TempDir()
+	enabled := true
+	server := initServer(&Config{
+		Roots: []RootConfig{{
+			Path: root, Name: "Root", UploadDisabled: true,
+		}},
+		AllowUpload: &enabled,
+	})
+
+	requestUpload(t, server, uploadRequest{
+		destination: "Root",
+		files:       []uploadFile{{path: "blocked.txt", data: "no"}},
+	}, http.StatusForbidden)
+	if _, err := os.Stat(filepath.Join(root, "blocked.txt")); !os.IsNotExist(err) {
+		t.Fatalf("disabled root accepted an upload: %v", err)
+	}
+}
+
 type uploadFile struct {
 	path string
 	data string
