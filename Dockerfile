@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /build
 RUN apk add --no-cache nodejs
 COPY src/go.mod src/go.sum ./
