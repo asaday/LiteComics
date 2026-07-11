@@ -216,6 +216,8 @@ Settings screen opens from the menu. Or manually edit `config.json`:
   - systemd service: `/etc/litecomics/config.json`
   - Manual execution: `~/.config/LiteComics/config.json`
 
+> **If you disable the GUI:** You cannot restore it from the settings page. Change `"disableGUI": true` to `false` in `config.json` (or remove the setting), then restart LiteComics.
+
 ### TLS/HTTPS Configuration
 
 To start with HTTPS, add the following to `config.json`:

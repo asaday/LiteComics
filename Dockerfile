@@ -1,9 +1,12 @@
 FROM golang:1.23-alpine AS builder
 WORKDIR /build
+RUN apk add --no-cache nodejs
 COPY src/go.mod src/go.sum ./
 RUN go mod download
 COPY src/*.go ./
 COPY src/public ./public
+COPY src/minify.js ./
+RUN node minify.js
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -o litecomics .
 
 FROM alpine:latest

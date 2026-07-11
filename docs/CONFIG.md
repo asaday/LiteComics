@@ -21,7 +21,7 @@ This file explains all configuration options available in LiteComics.
 - **Default**: `false`
 - **Description**: Disable GUI mode (settings page and tray icon)
 - **Example**: `true`, `false`
-- **Note**: When enabled, settings page will be inaccessible. You'll need to edit config.json manually.
+- **Note**: Once enabled, it cannot be restored from the settings page. Change `"disableGUI": true` to `false` in `config.json` (or remove the setting), then restart LiteComics.
 
 ### tls (Optional)
 - **Type**: Object

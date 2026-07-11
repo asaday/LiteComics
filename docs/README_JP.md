@@ -208,6 +208,8 @@ sudo make uninstall-service  # サービスも削除する場合
   - systemdサービス: `/etc/litecomics/config.json`
   - 手動実行: `~/.config/LiteComics/config.json`
 
+> **GUIを無効化した場合:** 設定画面からは元に戻せません。`config.json` の `"disableGUI": true` を `false` に変更（または項目を削除）し、LiteComicsを再起動してください。
+
 ### TLS/HTTPS設定
 
 HTTPSで起動する場合は、`config.json`に以下を追加します：
