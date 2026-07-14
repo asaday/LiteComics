@@ -193,11 +193,7 @@ function showPromptDialog(message, defaultValue = '') {
     };
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        e.stopPropagation();
-        handleOk();
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
         handleCancel();
