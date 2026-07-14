@@ -40,21 +40,15 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		respondJSON(w, struct {
-			Files         []fileItem `json:"files"`
-			AllowRename   bool       `json:"allowRename"`
-			AllowRemove   bool       `json:"allowRemove"`
-			AllowArchive  bool       `json:"allowArchive"`
-			AllowTransfer bool       `json:"allowTransfer"`
-			AllowUpload   bool       `json:"allowUpload"`
-			DisableGUI    bool       `json:"disableGUI"`
+			Files               []fileItem `json:"files"`
+			AllowFileOperations bool       `json:"allowFileOperations"`
+			AllowUpload         bool       `json:"allowUpload"`
+			DisableGUI          bool       `json:"disableGUI"`
 		}{
-			Files:         items,
-			AllowRename:   s.config.AllowRename != nil && *s.config.AllowRename,
-			AllowRemove:   s.config.AllowRemove != nil && *s.config.AllowRemove,
-			AllowArchive:  s.config.AllowArchive != nil && *s.config.AllowArchive,
-			AllowTransfer: s.config.AllowTransfer != nil && *s.config.AllowTransfer,
-			AllowUpload:   s.config.AllowUpload != nil && *s.config.AllowUpload,
-			DisableGUI:    s.config.DisableGUI != nil && *s.config.DisableGUI,
+			Files:               items,
+			AllowFileOperations: s.config.AllowFileOperations != nil && *s.config.AllowFileOperations,
+			AllowUpload:         s.config.AllowUpload != nil && *s.config.AllowUpload,
+			DisableGUI:          s.config.DisableGUI != nil && *s.config.DisableGUI,
 		})
 		return
 	}
@@ -117,25 +111,19 @@ func (s *Server) handleDir(w http.ResponseWriter, r *http.Request) {
 	})
 
 	respondJSON(w, struct {
-		RootName      string     `json:"rootName"`
-		RelativePath  string     `json:"relativePath"`
-		Files         []fileItem `json:"files"`
-		AllowRename   bool       `json:"allowRename"`
-		AllowRemove   bool       `json:"allowRemove"`
-		AllowArchive  bool       `json:"allowArchive"`
-		AllowTransfer bool       `json:"allowTransfer"`
-		AllowUpload   bool       `json:"allowUpload"`
-		DisableGUI    bool       `json:"disableGUI"`
+		RootName            string     `json:"rootName"`
+		RelativePath        string     `json:"relativePath"`
+		Files               []fileItem `json:"files"`
+		AllowFileOperations bool       `json:"allowFileOperations"`
+		AllowUpload         bool       `json:"allowUpload"`
+		DisableGUI          bool       `json:"disableGUI"`
 	}{
-		RootName:      resolved.RootName,
-		RelativePath:  resolved.RelativePath,
-		Files:         files,
-		AllowRename:   s.config.AllowRename != nil && *s.config.AllowRename,
-		AllowRemove:   s.config.AllowRemove != nil && *s.config.AllowRemove,
-		AllowArchive:  s.config.AllowArchive != nil && *s.config.AllowArchive,
-		AllowTransfer: s.config.AllowTransfer != nil && *s.config.AllowTransfer,
-		AllowUpload:   s.isUploadAllowed(resolved.RootName),
-		DisableGUI:    s.config.DisableGUI != nil && *s.config.DisableGUI,
+		RootName:            resolved.RootName,
+		RelativePath:        resolved.RelativePath,
+		Files:               files,
+		AllowFileOperations: s.config.AllowFileOperations != nil && *s.config.AllowFileOperations,
+		AllowUpload:         s.isUploadAllowed(resolved.RootName),
+		DisableGUI:          s.config.DisableGUI != nil && *s.config.DisableGUI,
 	})
 }
 

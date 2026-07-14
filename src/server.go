@@ -104,6 +104,7 @@ func (s *Server) setupRoutes() {
 	api.HandleFunc("/media-url/{path:.*}", s.handleMediaURL).Methods("GET")
 	api.HandleFunc("/file/{path:.*}", s.handleFile).Methods("GET")
 	api.HandleFunc("/command/rename", s.handleRename).Methods("POST")
+	api.HandleFunc("/command/mkdir", s.handleMkdir).Methods("POST")
 	api.HandleFunc("/command/remove", s.handleRemove).Methods("POST")
 	api.HandleFunc("/command/archive", s.handleArchive).Methods("POST")
 	api.HandleFunc("/command/transfer", s.handleTransfer).Methods("POST")

@@ -3,7 +3,14 @@
 function fixUrl(path) {
   const pathParts = window.location.pathname.split('/');
   const demoIndex = pathParts.indexOf('__demo__');
-  if (demoIndex === -1) return path;
+  if (demoIndex === -1) {
+    // Keep the right-hand file list inside its iframe while navigating folders.
+    if (new URLSearchParams(window.location.search).has('embedded')) {
+      if (path === '/') return '/?embedded=1';
+      if (path.startsWith('/#')) return `/?embedded=1${path.substring(1)}`;
+    }
+    return path;
+  }
   const demoPrefix = pathParts.slice(0, demoIndex + 1).join('/');
 
   if (path.startsWith('/api/roots') || path.startsWith('/api/dir'))
@@ -26,10 +33,7 @@ let files = [];
 let currentIndex = 0;
 let currentRootName = null;
 let currentRelativePath = '';
-let allowRename = false;
-let allowRemove = false;
-let allowArchive = false;
-let allowTransfer = false;
+let allowFileOperations = false;
 let allowUpload = false;
 let disableGUI = false;
 
@@ -38,6 +42,9 @@ const TRANSFER_TEXT_PREFIX = 'litecomics-transfer:';
 const transferChannel = typeof BroadcastChannel !== 'undefined'
   ? new BroadcastChannel('litecomics-transfer')
   : null;
+const TWO_PANE_KEY = 'fileList_twoPane';
+const SECOND_PANE_PATH_KEY = 'fileList_secondPanePath';
+const isEmbeddedPane = new URLSearchParams(window.location.search).has('embedded');
 
 if (transferChannel) {
   transferChannel.addEventListener('message', () => {
@@ -131,6 +138,14 @@ function showConfirmDialog(message, options = {}) {
         e.preventDefault();
         e.stopPropagation();
         handleCancel();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        e.stopPropagation();
+        cancelBtn.focus();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        e.stopPropagation();
+        okBtn.focus();
       }
     };
 
@@ -317,7 +332,7 @@ function currentDirectoryPath() {
 }
 
 function setupDraggableItem(element, file) {
-  if (!allowTransfer || !currentRootName) return;
+  if (!allowFileOperations || !currentRootName) return;
   element.draggable = true;
   element.addEventListener('dragstart', (e) => {
     const payload = JSON.stringify({ path: file.path, name: file.name });
@@ -348,7 +363,7 @@ function hasLocalFiles(dataTransfer) {
 function setupCurrentDirectoryDropTarget(element) {
   element.addEventListener('dragover', (e) => {
     const localUpload = hasLocalFiles(e.dataTransfer);
-    const allowed = localUpload ? allowUpload : (allowTransfer && hasLiteComicsDrag(e.dataTransfer));
+    const allowed = localUpload ? allowUpload : (allowFileOperations && hasLiteComicsDrag(e.dataTransfer));
     if (!allowed || !currentDirectoryPath()) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -359,7 +374,7 @@ function setupCurrentDirectoryDropTarget(element) {
   });
   element.addEventListener('drop', async (e) => {
     const localUpload = hasLocalFiles(e.dataTransfer);
-    const allowed = localUpload ? allowUpload : (allowTransfer && hasLiteComicsDrag(e.dataTransfer));
+    const allowed = localUpload ? allowUpload : (allowFileOperations && hasLiteComicsDrag(e.dataTransfer));
     if (!allowed || !currentDirectoryPath()) return;
     e.preventDefault();
     element.classList.remove('drop-target');
@@ -502,6 +517,10 @@ async function handleItemDrop(dataTransfer, destinationPath, destinationName) {
   const operation = await showTransferDialog(item.name, destinationName);
   if (!operation) return;
 
+  await transferItem(item, destinationPath, operation);
+}
+
+async function transferItem(item, destinationPath, operation) {
   showTransferProgress(operation, item.name);
   try {
     const response = await fetch('/api/command/transfer', {
@@ -521,6 +540,39 @@ async function handleItemDrop(dataTransfer, destinationPath, destinationName) {
   } finally {
     hideTransferProgress();
   }
+}
+
+function getOtherPaneWindow() {
+  if (isEmbeddedPane) {
+    return window.parent !== window && window.parent.document.body.classList.contains('two-pane')
+      ? window.parent
+      : null;
+  }
+  return document.querySelector('.second-pane')?.contentWindow || null;
+}
+
+function focusOtherPane() {
+  const otherPane = getOtherPaneWindow();
+  if (!otherPane) return false;
+  otherPane.document.getElementById('file-list')?.focus();
+  return true;
+}
+
+function canAcceptKeyboardTransfer() {
+  return allowFileOperations && Boolean(currentDirectoryPath());
+}
+
+async function transferSelectedToOtherPane(operation) {
+  const item = files[currentIndex];
+  const otherPane = getOtherPaneWindow();
+  if (!item || !allowFileOperations || !otherPane || !otherPane.canAcceptKeyboardTransfer()) return;
+
+  const destinationPath = otherPane.currentDirectoryPath();
+  if (item.path === destinationPath || destinationPath.startsWith(`${item.path}/`)) {
+    alert('A folder cannot be transferred into itself');
+    return;
+  }
+  await transferItem({ path: item.path, name: item.name }, destinationPath, operation);
 }
 
 // 履歴をクリア
@@ -615,6 +667,17 @@ function hideHistoryOverlay() {
   overlay.classList.remove('visible');
 }
 
+function showKeyboardHelp() {
+  hideMenu();
+  document.getElementById('keyboard-help-overlay').classList.add('visible');
+  setTimeout(() => document.getElementById('keyboard-help-close').focus(), 0);
+}
+
+function hideKeyboardHelp() {
+  document.getElementById('keyboard-help-overlay').classList.remove('visible');
+  document.getElementById('file-list').focus({ preventScroll: true });
+}
+
 // 時刻をフォーマット
 function formatTime(timestamp) {
   const now = Date.now();
@@ -635,6 +698,77 @@ function formatTime(timestamp) {
 
 // コンテキストメニュー
 let contextMenuFile = null;
+
+async function renameFile(file) {
+  if (!allowFileOperations || !file) return;
+  const newName = await showPromptDialog('Enter new name:', file.name);
+  if (!newName || newName === file.name) return;
+
+  try {
+    const response = await fetch('/api/command/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: file.path, newName }),
+    });
+    const result = await response.json();
+    if (!response.ok || result.error) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    await loadFileList(getCurrentDirParam());
+  } catch (err) {
+    console.error('Failed to rename:', err);
+    alert(`Failed to rename: ${err.message}`);
+  }
+}
+
+async function createFolder() {
+  const destinationPath = currentDirectoryPath();
+  if (!allowFileOperations || !destinationPath) return;
+  const name = await showPromptDialog('Enter new folder name:');
+  if (!name) return;
+
+  try {
+    const response = await fetch('/api/command/mkdir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: destinationPath, name }),
+    });
+    const result = await response.json();
+    if (!response.ok || result.error) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    await loadFileList(getCurrentDirParam());
+    transferChannel?.postMessage({ operation: 'mkdir', destination: destinationPath });
+  } catch (err) {
+    console.error('Failed to create folder:', err);
+    alert(`Failed to create folder: ${err.message}`);
+  }
+}
+
+async function deleteFile(file) {
+  if (!allowFileOperations || !file) return;
+  const fileType = file.type === 'directory' ? 'folder' : 'file';
+  if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, {
+    destructive: true,
+    confirmLabel: 'Delete',
+  })) return;
+
+  try {
+    const response = await fetch('/api/command/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: file.path }),
+    });
+    const result = await response.json();
+    if (!response.ok || result.error) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    await loadFileList(getCurrentDirParam());
+  } catch (err) {
+    console.error('Failed to delete:', err);
+    alert(`Failed to delete: ${err.message}`);
+  }
+}
 
 // コンテキストメニューを生成
 function createContextMenu(file) {
@@ -724,42 +858,12 @@ function createContextMenu(file) {
   }
 
   // Rename
-  if (allowRename) {
-    addMenuItem('Rename', async () => {
-      const newName = await showPromptDialog('Enter new name:', file.name);
-      if (!newName || newName === file.name) {
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/command/rename', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            path: file.path,
-            newName: newName,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.error) {
-          alert(`Error: ${result.error}`);
-        } else if (result.success) {
-          // リネーム成功、ファイルリストをリロード
-          await loadFileList(getCurrentDirParam());
-        }
-      } catch (err) {
-        console.error('Failed to rename:', err);
-        alert(`Failed to rename: ${err.message}`);
-      }
-    });
+  if (allowFileOperations) {
+    addMenuItem('Rename', () => renameFile(file));
   }
 
   // ZIP Archive (フォルダのみ)
-  if (allowArchive && file.type === 'directory') {
+  if (allowFileOperations && file.type === 'directory') {
     addMenuItem('Create ZIP archive', async () => {
       if (!await showConfirmDialog(`Create ZIP archive of this folder?\n\n${file.name}\n\nThis may take some time for large folders.`)) {
         return;
@@ -792,40 +896,8 @@ function createContextMenu(file) {
     });
   }
 
-  if (allowRemove) {
-    addMenuItem('Delete', async () => {
-      const fileType = file.type === 'directory' ? 'folder' : 'file';
-      if (!await showConfirmDialog(`Are you sure you want to delete this ${fileType}?\n\n${file.name}`, {
-        destructive: true,
-        confirmLabel: 'Delete',
-      })) {
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/command/remove', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            path: file.path,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.error) {
-          alert(`Error: ${result.error}`);
-        } else {
-          // 削除成功、ファイルリストをリロード
-          await loadFileList(getCurrentDirParam());
-        }
-      } catch (err) {
-        console.error('Failed to delete:', err);
-        alert(`Failed to delete: ${err.message}`);
-      }
-    });
+  if (allowFileOperations) {
+    addMenuItem('Delete', () => deleteFile(file));
   }
 
   return menu;
@@ -1010,6 +1082,73 @@ function hideMenu() {
   menu.classList.remove('visible');
 }
 
+function createEmbeddedPaneUrl(path) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('embedded', '1');
+  url.hash = path ? `#${encodeURIComponent(path)}` : '';
+  return url.href;
+}
+
+function rememberSecondPanePath(frame) {
+  try {
+    const hash = frame.contentWindow.location.hash;
+    const path = hash ? decodeURIComponent(hash.substring(1)) : '';
+    localStorage.setItem(SECOND_PANE_PATH_KEY, path);
+  } catch (err) {
+    console.warn('Failed to remember second pane path:', err);
+  }
+}
+
+function updateTwoPaneMenu() {
+  const item = document.getElementById('menu-two-pane');
+  if (isEmbeddedPane) {
+    item.hidden = true;
+    return;
+  }
+
+  const enabled = document.body.classList.contains('two-pane');
+  document.getElementById('two-pane-icon').textContent = enabled ? '◧' : '◫';
+  document.getElementById('two-pane-label').textContent = enabled ? 'Single Pane' : 'Two Panes';
+}
+
+function enableTwoPane() {
+  if (isEmbeddedPane || document.querySelector('.second-pane')) return;
+
+  const savedPath = localStorage.getItem(SECOND_PANE_PATH_KEY);
+  const frame = document.createElement('iframe');
+  frame.className = 'second-pane';
+  frame.title = 'Second file pane';
+  frame.src = createEmbeddedPaneUrl(savedPath === null ? getCurrentDirParam() : savedPath);
+  frame.addEventListener('load', () => {
+    rememberSecondPanePath(frame);
+    try {
+      frame.contentWindow.addEventListener('hashchange', () => rememberSecondPanePath(frame));
+    } catch (err) {
+      console.warn('Failed to watch second pane navigation:', err);
+    }
+  });
+  document.body.appendChild(frame);
+  document.body.classList.add('two-pane');
+  localStorage.setItem(TWO_PANE_KEY, 'true');
+  updateTwoPaneMenu();
+}
+
+function disableTwoPane() {
+  document.querySelector('.second-pane')?.remove();
+  document.body.classList.remove('two-pane');
+  localStorage.setItem(TWO_PANE_KEY, 'false');
+  updateTwoPaneMenu();
+}
+
+function toggleTwoPane() {
+  hideMenu();
+  if (document.body.classList.contains('two-pane')) {
+    disableTwoPane();
+  } else {
+    enableTwoPane();
+  }
+}
+
 // 現在のディレクトリパラメータを取得
 function getCurrentDirParam() {
   const hash = window.location.hash;
@@ -1038,10 +1177,7 @@ async function loadFileList(dirPath = null) {
     files = data.files;
     currentRootName = data.rootName || null;
     currentRelativePath = data.relativePath || '';
-    allowRename = data.allowRename || false;
-    allowRemove = data.allowRemove || false;
-    allowArchive = data.allowArchive || false;
-    allowTransfer = data.allowTransfer || false;
+    allowFileOperations = data.allowFileOperations || false;
     allowUpload = data.allowUpload || false;
     disableGUI = data.disableGUI || false;
 
@@ -1358,6 +1494,17 @@ function openSelected() {
 
 // キーボードイベントハンドラ
 document.addEventListener('keydown', async (e) => {
+  if (e.target.matches('input, textarea, select, [contenteditable="true"]') || e.ctrlKey || e.metaKey || e.altKey) {
+    return;
+  }
+
+  const keyboardHelp = document.getElementById('keyboard-help-overlay');
+  if (keyboardHelp.classList.contains('visible')) {
+    e.preventDefault();
+    if (e.key === 'Escape') hideKeyboardHelp();
+    return;
+  }
+
   // ダイアログが開いている場合は何もしない
   const confirmDialog = document.getElementById('confirm-dialog');
   const promptDialog = document.getElementById('prompt-dialog');
@@ -1404,6 +1551,13 @@ document.addEventListener('keydown', async (e) => {
   switch (e.key) {
     case 'ArrowDown':
       e.preventDefault();
+      if (getOtherPaneWindow()) {
+        if (currentIndex < files.length - 1) {
+          currentIndex++;
+          updateSelection();
+        }
+        break;
+      }
       // タイル表示の場合は列数分移動
       const columnsPerRow = getTileColumnsPerRow();
       if (columnsPerRow > 0) {
@@ -1422,13 +1576,20 @@ document.addEventListener('keydown', async (e) => {
       break;
     case 'ArrowRight':
       e.preventDefault();
-      if (currentIndex < files.length - 1) {
+      if (!focusOtherPane() && currentIndex < files.length - 1) {
         currentIndex++;
         updateSelection();
       }
       break;
     case 'ArrowUp':
       e.preventDefault();
+      if (getOtherPaneWindow()) {
+        if (currentIndex > 0) {
+          currentIndex--;
+          updateSelection();
+        }
+        break;
+      }
       // タイル表示の場合は列数分移動
       const columnsPerRowUp = getTileColumnsPerRow();
       if (columnsPerRowUp > 0) {
@@ -1447,7 +1608,7 @@ document.addEventListener('keydown', async (e) => {
       break;
     case 'ArrowLeft':
       e.preventDefault();
-      if (currentIndex > 0) {
+      if (!focusOtherPane() && currentIndex > 0) {
         currentIndex--;
         updateSelection();
       }
@@ -1467,6 +1628,46 @@ document.addEventListener('keydown', async (e) => {
     case 'Enter':
       e.preventDefault();
       openSelected();
+      break;
+    case 'c':
+    case 'C':
+      if (e.repeat) break;
+      e.preventDefault();
+      await transferSelectedToOtherPane('copy');
+      break;
+    case 'm':
+    case 'M':
+      if (e.repeat) break;
+      e.preventDefault();
+      await transferSelectedToOtherPane('move');
+      break;
+    case 'r':
+    case 'R':
+      if (e.repeat) break;
+      e.preventDefault();
+      await renameFile(files[currentIndex]);
+      break;
+    case 'n':
+    case 'N':
+      if (e.repeat) break;
+      e.preventDefault();
+      await createFolder();
+      break;
+    case 'd':
+    case 'D':
+      if (e.repeat) break;
+      e.preventDefault();
+      await deleteFile(files[currentIndex]);
+      break;
+    case 'w':
+    case 'W':
+      if (e.repeat) break;
+      e.preventDefault();
+      if (isEmbeddedPane) {
+        window.parent.toggleTwoPane();
+      } else {
+        toggleTwoPane();
+      }
       break;
     case 'Escape':
       e.preventDefault();
@@ -1513,7 +1714,12 @@ document.addEventListener('keydown', async (e) => {
 // ページ読み込み時にファイル一覧を取得
 initTheme();
 initZoom();
+document.body.classList.toggle('embedded-pane', isEmbeddedPane);
 setupCurrentDirectoryDropTarget(document.getElementById('file-list'));
+updateTwoPaneMenu();
+if (!isEmbeddedPane && localStorage.getItem(TWO_PANE_KEY) === 'true') {
+  enableTwoPane();
+}
 
 document.getElementById('menu-button').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -1530,6 +1736,8 @@ document.getElementById('menu-settings').addEventListener('click', () => {
 document.getElementById('history-close').addEventListener('click', hideHistoryOverlay);
 document.getElementById('history-clear').addEventListener('click', clearHistory);
 document.getElementById('menu-theme').addEventListener('click', toggleTheme);
+document.getElementById('menu-two-pane').addEventListener('click', toggleTwoPane);
+document.getElementById('menu-keyboard-help').addEventListener('click', showKeyboardHelp);
 document.getElementById('font-size-decrease').addEventListener('click', () => changeZoom(-10));
 document.getElementById('font-size-reset').addEventListener('click', resetZoom);
 document.getElementById('font-size-increase').addEventListener('click', () => changeZoom(10));
@@ -1543,6 +1751,10 @@ document.getElementById('history-overlay').addEventListener('click', (e) => {
   if (e.target.id === 'history-overlay') {
     hideHistoryOverlay();
   }
+});
+document.getElementById('keyboard-help-close').addEventListener('click', hideKeyboardHelp);
+document.getElementById('keyboard-help-overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'keyboard-help-overlay') hideKeyboardHelp();
 });
 
 // 右クリックメニューを閉じる（Escキー）

@@ -14,10 +14,7 @@ async function loadSettings() {
         document.getElementById('port').value = config.port || 8539;
         document.getElementById('disableGUI').checked = config.disableGUI === true;
         document.getElementById('defaultLTR').checked = config.defaultLTR === true;
-        document.getElementById('allowRename').checked = config.allowRename === true;
-        document.getElementById('allowRemove').checked = config.allowRemove === true;
-        document.getElementById('allowArchive').checked = config.allowArchive === true;
-        document.getElementById('allowTransfer').checked = config.allowTransfer === true;
+        document.getElementById('allowFileOperations').checked = config.allowFileOperations === true;
         document.getElementById('allowUpload').checked = config.allowUpload === true;
 
         // Load TLS config
@@ -148,22 +145,9 @@ async function saveSettings() {
             newConfig.defaultLTR = true;
         }
 
-        // Add allowRename, allowRemove and allowArchive settings
-        const allowRename = document.getElementById('allowRename').checked;
-        if (allowRename) {
-            newConfig.allowRename = true;
-        }
-        const allowRemove = document.getElementById('allowRemove').checked;
-        if (allowRemove) {
-            newConfig.allowRemove = true;
-        }
-        const allowArchive = document.getElementById('allowArchive').checked;
-        if (allowArchive) {
-            newConfig.allowArchive = true;
-        }
-        const allowTransfer = document.getElementById('allowTransfer').checked;
-        if (allowTransfer) {
-            newConfig.allowTransfer = true;
+        const allowFileOperations = document.getElementById('allowFileOperations').checked;
+        if (allowFileOperations) {
+            newConfig.allowFileOperations = true;
         }
         const allowUpload = document.getElementById('allowUpload').checked;
         if (allowUpload) {

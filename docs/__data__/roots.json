@@ -141,8 +141,6 @@
             "modified": "2013-01-08T12:10:20+09:00"
         }
     ],
-    "allowRename": false,
-    "allowRemove": false,
-    "allowArchive": false,
+    "allowFileOperations": false,
     "disableGUI": false
 }

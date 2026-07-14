@@ -55,8 +55,8 @@ func TestHandleTransferCopyAndMove(t *testing.T) {
 	}
 	enabled := true
 	server := initServer(&Config{
-		Roots:         []RootConfig{{Path: root, Name: "Root"}},
-		AllowTransfer: &enabled,
+		Roots:               []RootConfig{{Path: root, Name: "Root"}},
+		AllowFileOperations: &enabled,
 	})
 
 	requestTransfer(t, server, "Root/copy.txt", "Root/target", "copy", http.StatusOK)
@@ -83,11 +83,63 @@ func TestHandleTransferRejectsFolderIntoItself(t *testing.T) {
 	}
 	enabled := true
 	server := initServer(&Config{
-		Roots:         []RootConfig{{Path: root, Name: "Root"}},
-		AllowTransfer: &enabled,
+		Roots:               []RootConfig{{Path: root, Name: "Root"}},
+		AllowFileOperations: &enabled,
 	})
 
 	requestTransfer(t, server, "Root/folder", "Root/folder/child", "copy", http.StatusBadRequest)
+}
+
+func TestHandleMkdir(t *testing.T) {
+	root := t.TempDir()
+	enabled := true
+	server := initServer(&Config{
+		Roots:               []RootConfig{{Path: root, Name: "Root"}},
+		AllowFileOperations: &enabled,
+	})
+
+	body, err := json.Marshal(map[string]string{"path": "Root", "name": "New Folder"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/command/mkdir", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	server.handleMkdir(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	info, err := os.Stat(filepath.Join(root, "New Folder"))
+	if err != nil || !info.IsDir() {
+		t.Fatalf("created folder info = %v, %v", info, err)
+	}
+}
+
+func TestHandleMkdirRejectsInvalidNameAndDisabledConfig(t *testing.T) {
+	root := t.TempDir()
+	enabled := true
+	server := initServer(&Config{
+		Roots:               []RootConfig{{Path: root, Name: "Root"}},
+		AllowFileOperations: &enabled,
+	})
+
+	body := bytes.NewBufferString(`{"path":"Root","name":"bad/name"}`)
+	response := httptest.NewRecorder()
+	server.handleMkdir(response, httptest.NewRequest(http.MethodPost, "/api/command/mkdir", body))
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("invalid name status = %d, want %d", response.Code, http.StatusBadRequest)
+	}
+
+	disabled := false
+	server = initServer(&Config{
+		Roots:               []RootConfig{{Path: root, Name: "Root"}},
+		AllowFileOperations: &disabled,
+	})
+	body = bytes.NewBufferString(`{"path":"Root","name":"Blocked"}`)
+	response = httptest.NewRecorder()
+	server.handleMkdir(response, httptest.NewRequest(http.MethodPost, "/api/command/mkdir", body))
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("disabled status = %d, want %d", response.Code, http.StatusForbidden)
+	}
 }
 
 func requestTransfer(t *testing.T, server *Server, source, destination, operation string, wantStatus int) {

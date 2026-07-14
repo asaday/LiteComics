@@ -13,7 +13,7 @@ import (
 
 // handleTransfer copies or moves a file or directory into another configured directory.
 func (s *Server) handleTransfer(w http.ResponseWriter, r *http.Request) {
-	if s.config.AllowTransfer == nil || !*s.config.AllowTransfer {
+	if s.config.AllowFileOperations == nil || !*s.config.AllowFileOperations {
 		respondError(w, "File transfer is disabled", http.StatusForbidden)
 		return
 	}
@@ -244,10 +244,100 @@ func checkPathExists(w http.ResponseWriter, fullPath string) (os.FileInfo, bool)
 	return info, true
 }
 
+func validateItemName(name string) string {
+	if name == "" {
+		return "Name is required"
+	}
+	if strings.ContainsAny(name, "<>:\"/\\|?*") {
+		return "Name contains invalid characters"
+	}
+	for _, r := range name {
+		if r < 0x20 || r == 0x7F {
+			return "Name contains invalid characters"
+		}
+	}
+	trimmed := strings.TrimSpace(name)
+	if trimmed != name || strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") {
+		return "Name cannot start or end with spaces or dots"
+	}
+	upperName := strings.ToUpper(strings.TrimSuffix(name, filepath.Ext(name)))
+	reserved := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
+	for _, reservedName := range reserved {
+		if upperName == reservedName {
+			return "Name is a reserved filename"
+		}
+	}
+	return ""
+}
+
+// handleMkdir creates a directory inside the requested configured directory.
+func (s *Server) handleMkdir(w http.ResponseWriter, r *http.Request) {
+	if s.config.AllowFileOperations == nil || !*s.config.AllowFileOperations {
+		respondError(w, "Folder creation is disabled", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Path string `json:"path"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.Path == "" {
+		respondError(w, "Path is required", http.StatusBadRequest)
+		return
+	}
+	if message := validateItemName(req.Name); message != "" {
+		respondError(w, message, http.StatusBadRequest)
+		return
+	}
+
+	destination, err := s.resolveRequestPath(req.Path)
+	if err != nil {
+		respondError(w, "Invalid destination path", http.StatusBadRequest)
+		return
+	}
+	info, ok := checkPathExists(w, destination.FullPath)
+	if !ok {
+		return
+	}
+	if !info.IsDir() {
+		respondError(w, "Destination is not a directory", http.StatusBadRequest)
+		return
+	}
+	realRoot, rootErr := filepath.EvalSymlinks(destination.RootPath)
+	realDestination, destinationErr := filepath.EvalSymlinks(destination.FullPath)
+	if rootErr != nil || destinationErr != nil || !isPathSafe(realRoot, realDestination) {
+		respondError(w, "Destination resolves outside its configured root", http.StatusBadRequest)
+		return
+	}
+
+	targetPath := filepath.Join(destination.FullPath, req.Name)
+	if err := os.Mkdir(targetPath, 0755); err != nil {
+		if os.IsExist(err) {
+			respondError(w, "A file or directory with that name already exists", http.StatusConflict)
+		} else {
+			respondError(w, fmt.Sprintf("Failed to create folder: %v", err), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	newRelativePath := req.Name
+	if destination.RelativePath != "" {
+		newRelativePath = filepath.Join(destination.RelativePath, req.Name)
+	}
+	respondJSON(w, struct {
+		Success bool   `json:"success"`
+		NewPath string `json:"newPath"`
+	}{true, filepath.Join(destination.RootName, newRelativePath)})
+}
+
 // handleRename handles POST requests for /api/rename
 // Renames files or directories
 func (s *Server) handleRename(w http.ResponseWriter, r *http.Request) {
-	if s.config.AllowRename == nil || !*s.config.AllowRename {
+	if s.config.AllowFileOperations == nil || !*s.config.AllowFileOperations {
 		respondError(w, "File renaming is disabled", http.StatusForbidden)
 		return
 	}
@@ -262,43 +352,13 @@ func (s *Server) handleRename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Path == "" || req.NewName == "" {
-		respondError(w, "Path and new name are required", http.StatusBadRequest)
+	if req.Path == "" {
+		respondError(w, "Path is required", http.StatusBadRequest)
 		return
 	}
-
-	// Check for invalid filename characters (cross-platform)
-	// Windows: < > : " / \ | ? *
-	// Unix/Linux: /
-	// Also check for control characters and null
-	if strings.ContainsAny(req.NewName, "<>:\"/\\|?*") {
-		respondError(w, "New name contains invalid characters", http.StatusBadRequest)
+	if message := validateItemName(req.NewName); message != "" {
+		respondError(w, message, http.StatusBadRequest)
 		return
-	}
-
-	// Check for control characters (0x00-0x1F) and DEL (0x7F)
-	for _, r := range req.NewName {
-		if r < 0x20 || r == 0x7F {
-			respondError(w, "New name contains invalid characters", http.StatusBadRequest)
-			return
-		}
-	}
-
-	// Check for leading/trailing spaces or dots (problematic on Windows)
-	trimmed := strings.TrimSpace(req.NewName)
-	if trimmed != req.NewName || strings.HasPrefix(req.NewName, ".") || strings.HasSuffix(req.NewName, ".") {
-		respondError(w, "New name cannot start or end with spaces or dots", http.StatusBadRequest)
-		return
-	}
-
-	// Check for Windows reserved names
-	upperName := strings.ToUpper(strings.TrimSuffix(req.NewName, filepath.Ext(req.NewName)))
-	reserved := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
-	for _, r := range reserved {
-		if upperName == r {
-			respondError(w, "New name is a reserved filename", http.StatusBadRequest)
-			return
-		}
 	}
 
 	resolved, err := s.resolveRequestPath(req.Path)
@@ -354,9 +414,9 @@ func (s *Server) handleRename(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleRemove handles POST requests for /api/remove
-// Deletes files or directories based on the AllowRemove config setting
+// Deletes files or directories based on the AllowFileOperations config setting
 func (s *Server) handleRemove(w http.ResponseWriter, r *http.Request) {
-	if s.config.AllowRemove == nil || !*s.config.AllowRemove {
+	if s.config.AllowFileOperations == nil || !*s.config.AllowFileOperations {
 		respondError(w, "File deletion is disabled", http.StatusForbidden)
 		return
 	}
@@ -398,7 +458,7 @@ func (s *Server) handleRemove(w http.ResponseWriter, r *http.Request) {
 // handleArchive handles POST requests for /api/archive
 // Creates a ZIP archive of the specified directory
 func (s *Server) handleArchive(w http.ResponseWriter, r *http.Request) {
-	if s.config.AllowArchive == nil || !*s.config.AllowArchive {
+	if s.config.AllowFileOperations == nil || !*s.config.AllowFileOperations {
 		respondError(w, "Folder archiving is disabled", http.StatusForbidden)
 		return
 	}

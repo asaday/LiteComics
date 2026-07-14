@@ -1,7 +1,7 @@
 {
   "port": 8539,
   "autoOpen": true,
-  "allowTransfer": true,
+  "allowFileOperations": true,
   "allowUpload": true,
   "roots": [
     "/path/to/your/comics",
