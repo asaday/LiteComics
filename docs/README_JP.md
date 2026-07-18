@@ -7,6 +7,10 @@
 
 **日本語** | [English](../README.md)
 
+![LiteComicsのライブラリ画面](screenshot/sc1.webp)
+
+[紹介ページ](https://asaday.github.io/LiteComics/) · [オンラインデモ](https://asaday.github.io/LiteComics/__demo__/) · [ダウンロード](https://github.com/asaday/LiteComics/releases/latest)
+
 ## 特徴
 
 
@@ -349,4 +353,4 @@ HTTPSで起動する場合は、`config.json`に以下を追加します：
 
 ## ライセンス
 
-ISC License
+[ISC License](../LICENSE)

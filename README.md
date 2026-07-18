@@ -7,6 +7,10 @@ A lightweight and feature-rich web-based comic and media viewer system. Browse C
 
 [日本語](docs/README_JP.md) | **English**
 
+![LiteComics library view](docs/screenshot/sc1.webp)
+
+[Introduction](https://asaday.github.io/LiteComics/) · [Live Demo](https://asaday.github.io/LiteComics/__demo__/) · [Download](https://github.com/asaday/LiteComics/releases/latest)
+
 ## Introduction
 
 For more information and live demonstration, visit:
@@ -346,4 +350,4 @@ Certain formats can be opened with external players based on device (configured 
 
 ## License
 
-ISC License
+[ISC License](LICENSE)
