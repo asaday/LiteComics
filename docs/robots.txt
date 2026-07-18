@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://asaday.github.io/LiteComics/sitemap.xml
